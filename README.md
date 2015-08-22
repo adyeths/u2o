@@ -1,2 +1,4 @@
 # u2o
-USFM to OSIS bible format converter.
+A fast USFM to OSIS bible format converter.
+
+(A real readme needs to be created.)
