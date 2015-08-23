@@ -197,66 +197,10 @@ BOOKNAMES = {
 }
 
 # -------------------------------------------------------------------------- #
-# VARIABLES USED BY REFLOW ROUTINE
-
-# set of paragraph style tags
-# * chapter paragraph tags are omitted because we handle them differently
-PARTAGS = {
-    # identification
-    # r'\id',
-    r'\ide', r'\sts', r'\rem', r'\h', r'\h1', r'\h2', r'\h3',
-    r'\toc1', r'\toc2', r'\toc3',
-    r'\restore',
-    # introduction
-    r'\imt', r'\imt1', r'\imt2', r'\imt3', r'\imt4', r'\is', r'\is1', r'\is2',
-    r'\ip', r'\ipi', r'\im', r'\imi', r'\ipq', r'\imq', r'\ipr', r'\iq',
-    r'\iq1', r'\iq2', r'\iq3', r'\ib', r'\ili', r'\ili1', r'\ili2', r'\iot',
-    r'\io', r'\io1', r'\io2', r'\io3', r'\io4', r'\iex', r'\imte', r'\imte1',
-    r'\imte2', r'\imte3', r'\imte4', r'\ie',
-    # titles, headings, labels
-    r'\mt', r'\mt1', r'\mt2', r'\mt3', r'\mt4', r'\mte', r'\mte1', r'\mte2',
-    r'\mte3', r'\mte4', r'\ms', r'\ms1', r'\ms2', r'\ms3', r'\mr', r'\s',
-    r'\s1', r'\s2', r'\s3', r'\s4', r'\sr', r'\r', r'\d', r'\sp',
-    # paragraphs/poetry
-    r'\p', r'\m', r'\pmo', r'\pm', r'\pmc', r'\pmr', r'\pi', r'\pi1', r'\pi2',
-    r'\pi3', r'\pi4', r'\mi', r'\cls', r'\li', r'\li1', r'\li2', r'\li3',
-    r'\li4', r'\pc', r'\pr', r'\ph', r'\ph1', r'\ph2', r'\ph3', r'\q', r'\q1',
-    r'\q2', r'\q3', r'\q4', r'\qr', r'\qc', r'\qa', r'\qm', r'\qm1', r'\qm2',
-    r'\qm3', r'\qm4',
-    # r'\b',
-    # r'\nb'
-    # tables, special features, spacing, peripherals
-    r'\tr', r'\lit', r'\pb', r'\periph'
-}
-
-# poetry/prose tags... used by reflow subroutine below.
-PARTAGS2 = {
-    r'\ip', r'\ipi', r'\im', r'\imi', r'\ipq', r'\imq', r'\ipr', r'\iq',
-    r'\iq1', r'\iq2', r'\iq3', r'\ib', r'\ili', r'\ili1', r'\ili2', r'\iot',
-    r'\io', r'\io1', r'\io2', r'\io3', r'\io4',
-    r'\p', r'\m', r'\pmo', r'\pm', r'\pmc', r'\pmr', r'\pi', r'\pi1', r'\pi2',
-    r'\pi3', r'\pi4', r'\mi', r'\cls', r'\li', r'\li1', r'\li2', r'\li3',
-    r'\li4', r'\pc', r'\pr', r'\ph', r'\ph1', r'\ph2', r'\ph3', r'\q', r'\q1',
-    r'\q2', r'\q3', r'\q4', r'\qr', r'\qc', r'\qs', r'\qs*', r'\qa', r'\qac',
-    r'\qac*', r'\qm', r'\qm1', r'\qm2', r'\qm3', r'\qm4'  # , r'\b'
-}
-
-# title tags... used by reflow subroutine below.
-TITLETAGS = {
-    r'\imt', r'\imt1', r'\imt2', r'\imt3', r'\imt4', r'\is', r'\is1', r'\is2',
-    r'\imte', r'\imte1', r'\imte2', r'\imte3', r'\imte4',
-    r'\mt', r'\mt1', r'\mt2', r'\mt3', r'\mt4', r'\mte', r'\mte1', r'\mte2',
-    r'\mte3', r'\mte4', r'\ms', r'\ms1', r'\ms2', r'\ms3', r'\mr', r'\s',
-    r'\s1', r'\s2', r'\s3', r'\s4', r'\sr', r'\r', r'\d', r'\sp',
-    r'\cl'
-}
-
-
-# -------------------------------------------------------------------------- #
 # TAG MAPPINGS
 
 # identification tags
-ITAGS = {
+IDTAGS = {
     r'\sts': ('<milestone type="x-usfm-sts" n="', '" />'),
     r'\toc1': ('<milestone type="x-usfm-toc1" n="', '" />'),
     r'\toc2': ('<milestone type="x-usfm-toc2" n="', '" />'),
@@ -277,10 +221,10 @@ ITAGS = {
 # the osis 2.1.1 user manual says the value of id, ide, and rem should be
 # placed in description tags in the header. That's why they are in a separate
 # list instead of the dict above.
-ITAGS2 = [r'\id', r'\ide', r'\rem']
+IDTAGS2 = [r'\id', r'\ide', r'\rem']
 
 # title tags
-TTAGS = {
+TITLETAGS = {
     # ---------------------------------------------------------
     # ##### SECTION TAGS get special handling elsewhere ##### #
     r'\is': ('<title type="x-introduction">', '</title>'),
@@ -361,7 +305,7 @@ TTAGS = {
 }
 
 # paragraph and poetry/prose tags
-PTAGS = {
+PARTAGS = {
     # INTRODUCTIONS
     r'\iot': (r'<item type="x-head">', r'</item>'),
     r'\io': (r'<item type="x-indent-1">', r'</item>'),
@@ -428,13 +372,13 @@ PTAGS = {
 }
 
 # other introduction and poetry tags
-OTAGS = {
+OTHERTAGS = {
     # selah is handled in a special manner.
     r'\qs ': '<selah>',
     r'\qs*': '</selah>',
 
     # these get special  handling.
-    r'\ie': '<!-- ie -->',  # handled with ptags... probably not needed here.
+    r'\ie': '<!-- ie -->',  # handled with partags... probably not needed here.
     r'\ib ': '<!-- b -->',  # this tag is handled exactly like b.
     r'\b ': '<!-- b -->',
     r'\nb ': '<!-- nb -->'
@@ -580,6 +524,7 @@ FEATURETAGS = {
     r'\wg': ('', '<index index="Greek" level1="(?P<osis>)" />'),
     r'\wh': ('', '<index index="Hebrew" level1="(?P<osis>)" />')
 }
+
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
 
@@ -772,6 +717,32 @@ USFMRE = re.compile(r'''
     \*?
 ''', re.U + re.VERBOSE)
 
+# -------------------------------------------------------------------------- #
+# VARIABLES USED BY REFLOW ROUTINE
+
+# set of paragraph style tags built MOSTLY from other lists above...
+# this is used by reflow to reformat the input for processing
+# * chapter paragraph tags are omitted because we handle them differently
+PARFLOW = set(IDTAGS.keys())
+PARFLOW.update(TITLETAGS.keys())
+PARFLOW.update(PARTAGS.keys())
+PARFLOW.update([r'\ide', r'\rem', r'\tr', r'\pb', r'\periph'])
+
+# poetry/prose tags... used by reflow subroutine below.
+# this is used by reflow to test if we have paragraph markup.
+PARCHECK = set(PARTAGS.keys())
+try:
+    PARCHECK.remove(r'\iex')
+except KeyError:
+    pass
+try:
+    PARCHECK.remove(r'\ie')
+except KeyError:
+    pass
+
+# title tags... used by reflow subroutine below.
+# use TITLETAGS keys to eliminate unnecessary duplication
+TITLEFLOW = set(TITLETAGS.keys())
 
 # -------------------------------------------------------------------------- #
 
@@ -923,7 +894,7 @@ def reflow(text):
     mangletext = False
 
     # test for paragraph markup before mangling the text
-    for i in PARTAGS2:
+    for i in PARCHECK:
         if i in text:
             mangletext = True
             break
@@ -933,7 +904,7 @@ def reflow(text):
         text = SQUEEZE.sub(' ', text)
         # put (almost) all paragraph style tags on separate lines.
         # would regex be faster than a simple string operation here?
-        for i in PARTAGS:
+        for i in PARFLOW:
             if i in text:
                 text = text.replace(r'{} '.format(i), '\n{} '.format(i))
 
@@ -958,7 +929,7 @@ def reflow(text):
         # always make sure chapter markers are on a separate line from titles.
         textlines = text.split('\n')
         for i in range(len(textlines)):
-            if textlines[i].partition(' ')[0] in TITLETAGS:
+            if textlines[i].partition(' ')[0] in TITLEFLOW:
                 if r'\c ' in textlines[i]:
                     textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
@@ -1098,12 +1069,12 @@ def convert_to_osis(text, bookid='TEST'):
         '''
 
         line = text.partition(' ')
-        if line[0] in ITAGS.keys():
+        if line[0] in IDTAGS.keys():
             text = u'{}{}{}\ufdd0'.format(
-                ITAGS[line[0]][0],
+                IDTAGS[line[0]][0],
                 line[2].strip(),
-                ITAGS[line[0]][1])
-        elif line[0] in ITAGS2:
+                IDTAGS[line[0]][1])
+        elif line[0] in IDTAGS2:
             description.append(
                 '<description {} subType="x-{}">{}</description>'.format(
                     'type="usfm"',
@@ -1123,15 +1094,15 @@ def convert_to_osis(text, bookid='TEST'):
          '''
 
         # local copies of global variables.
-        ptags = PTAGS
-        otags = OTAGS
+        partags = PARTAGS
+        othertags = OTHERTAGS
         celltags = CELLTAGS
-        ttags = TTAGS
-        # add periph tag to ttags if book being processed
+        titletags = TITLETAGS
+        # add periph tag to titletags if book being processed
         # is a  peripheral or private use book.
         if bookid in ['FRONT', 'INTRODUCTION', 'BACK', 'X-OTHER', 'XXA',
                       'XXB', 'XXC', 'XXD', 'XXE', 'XXF', 'XXG']:
-            ttags[r'\periph'] = ('<title type="main">', '</title>')
+            titletags[r'\periph'] = ('<title type="main">', '</title>')
 
         # ################################################################### #
         # NOTE: I've not seen any kind of documentation to suggest that usage
@@ -1151,13 +1122,13 @@ def convert_to_osis(text, bookid='TEST'):
         #       incorrect use of this tag.
         #
         # if bookid != "Ps":
-        #     ttags[r'\d'] = ('<title canonical="true">', '</title>')
+        #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
         # ################################################################### #
 
         line = list(text.partition(' '))
 
         # process titles and sections
-        if line[0] in ttags.keys():
+        if line[0] in titletags.keys():
             # make sure titles don't end with a \b or an \ib tag
             line[2] = line[2].strip().rstrip('\\b').strip()
             line[2] = line[2].strip().rstrip('\\ib').strip()
@@ -1167,13 +1138,13 @@ def convert_to_osis(text, bookid='TEST'):
 
             text = u'\ufdd0<!-- {} -->{}{}{}\ufdd0'.format(
                 line[0].replace('\\', ''),
-                ttags[line[0]][0],
+                titletags[line[0]][0],
                 line[2].strip(),
-                ttags[line[0]][1])
+                titletags[line[0]][1])
 
         # process paragraphs
-        elif line[0] in ptags.keys():
-            pstart, pend = ptags[line[0]]
+        elif line[0] in partags.keys():
+            pstart, pend = partags[line[0]]
             btag = ''
             if pstart.startswith('<p'):
                 pstart = u'{}\ufdd0'.format(pstart)
@@ -1213,8 +1184,8 @@ def convert_to_osis(text, bookid='TEST'):
             text = u'<row>{}</row>\ufdd0'.format(''.join(cells))
 
         # other title, paragraph, intro tags
-        for i in otags.keys():
-            text = text.replace(i, otags[i])
+        for i in othertags.keys():
+            text = text.replace(i, othertags[i])
 
         # fix selah
         if '<selah>' in text:
@@ -2032,7 +2003,6 @@ def processfiles(args):
             numprocesses = multiprocessing.cpu_count()
         except NotImplementedError:
             numprocesses = 1
-            pass
 
     # process file contents
     filelist = [(_, args.v) for _ in files]
