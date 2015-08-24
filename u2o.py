@@ -94,7 +94,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.5',      # THIS SCRIPT version
-    'DATE': '2015-08-22'   # THIS SCRIPT revision date
+    'DATE': '2015-08-24'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -415,8 +415,6 @@ CELLTAGS = {
 }
 
 # special text and character style tags.
-# Changes to the tags here require changing the
-# SPECIALTEXTRE regular expression as well.
 SPECIALTEXT = {
     # tags for special text
     r'\add': ('<transChange type="added">', '</transChange>'),
@@ -473,9 +471,17 @@ SPECIALTEXT = {
     r'\+qac': ('<hi type="acrostic">', '</hi>')
 }
 
+# special features
+# do not add \lit here... that is handled with TITLETAGS.
+FEATURETAGS = {
+    r'\ndx': ('', '<index="Index" level1="(?P<osis>)" /> '),
+    r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r'\w': ('', '<index index="Glossary" level1="(?P<osis>)" />'),
+    r'\wg': ('', '<index index="Greek" level1="(?P<osis>)" />'),
+    r'\wh': ('', '<index index="Hebrew" level1="(?P<osis>)" />')
+}
+
 # footnote and cross reference tags
-# Changes to the tags here require changing the
-# NOTERE regular expression as well.
 NOTETAGS = {
     r'\f': ('<note placement="foot">', '</note>'),
     r'\fe': ('<note placement="end">', '</note>'),
@@ -485,8 +491,8 @@ NOTETAGS = {
 }
 
 # tags internal to footnotes and cross references
-# Changes to the tags here require changing the
-# NOTEFIXRE regular expression as well.
+# * If any of these ever start with anything other than \f or \x *
+# * then the NOTEFIXRE regex will need to be modified.           *
 NOTETAGS2 = {
     r'\fm': ('<hi type="super">', '</hi>'),
     r'\fdc': ('<seg editions="dc">', '</seg>'),
@@ -494,8 +500,9 @@ NOTETAGS2 = {
     r'\fk': ('<catchWord>', '</catchWord>'),
     r'\fq': ('<catchWord>', '</catchWord>'),
     r'\fqa': ('<rdg type="alternate">', '</rdg>'),
-    # This handling of \fl doesn't validate without the seg tag.
-    r'\fl': ('<seg><label>', '</label></seg>'),
+    # I think this should be label... but that doesn't validate.
+    # r'\fl': ('<label>', '</label>'),
+    r'\fl': ('<seg type="x-usfm-fl">', '</seg>'),
     r'\fv': ('<hi type="super">', '</hi>'),
     r'\ft': ('', ''),
     r'\xot': ('<seg editions="ot">', '</seg>'),
@@ -514,17 +521,6 @@ NOTETAGS2 = {
     r'\xt': ('<reference>', '</reference>')
 }
 
-# special features
-# Changes to the tags here require changing the
-# SPECIALFEATURESRE regular expression as well.
-FEATURETAGS = {
-    r'\ndx': ('', '<index="Index" level1="(?P<osis>)" /> '),
-    r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
-    r'\w': ('', '<index index="Glossary" level1="(?P<osis>)" />'),
-    r'\wg': ('', '<index index="Greek" level1="(?P<osis>)" />'),
-    r'\wh': ('', '<index index="Hebrew" level1="(?P<osis>)" />')
-}
-
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
 
@@ -532,9 +528,8 @@ FEATURETAGS = {
 SQUEEZE = re.compile(r'\s+', re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
-# changes here may require changing the SPECIALTEXT dict as well.
-SPECIALTEXTRE = re.compile(
-    r'''
+# Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
+SPECIALTEXTRE_S = r'''
         # put special text tags into a named group called 'tag'
         (?P<tag>
 
@@ -543,17 +538,7 @@ SPECIALTEXTRE = re.compile(
             \\\+?
 
             # match the tags we want to match.
-            (?:
-                # special text tags
-                add|wj|nd|pn|qt|sig|ord|tl|bk|k|dc|sls|
-
-                # character style tags
-                em|bd|it|bdit|no|sc|
-
-                # stray introduction and poetry tags that worked out well being
-                # handled with the special text tags.
-                ior|iqt|rq|qac
-            )
+            (?:{})
         )
 
         # there is always at least one space separating the tag and the content
@@ -564,12 +549,14 @@ SPECIALTEXTRE = re.compile(
 
         # tag end marker
         (?P=tag)\*
-    ''', re.U + re.VERBOSE)
+    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
+               _ in SPECIALTEXT.keys()]))
+SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
+del SPECIALTEXTRE_S
 
 # matches special feature tags
-# changes here may require changing the FEATURETAGS dict as well.
-SPECIALFEATURESRE = re.compile(
-    r'''
+# Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
+SPECIALFEATURESRE_S = r'''
         # put the special features tags into a named group called 'tag'
         (?P<tag>
 
@@ -578,7 +565,7 @@ SPECIALFEATURESRE = re.compile(
 
             # this matches all of the known usfm special features except
             # for fig which is handled in a different manner.
-            (?:ndx|pro|w|wg|wh)
+            (?:{})
         )
 
         # there is always at least one space separating the tag and the content
@@ -589,12 +576,14 @@ SPECIALFEATURESRE = re.compile(
 
         # tag end marker
         (?P=tag)\*
-    ''', re.U + re.VERBOSE)
+    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
+               _ in FEATURETAGS.keys()]))
+SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
+del SPECIALFEATURESRE_S
 
 # regex used in footnote/crossref functions
-# changes here may require changing the NOTETAGS dict as well.
-NOTERE = re.compile(
-    r'''
+# Automatically build NOTERE regex string from NOTETAGS dict.
+NOTERE_S = r'''
         # put the footnote and cross reference markers into a named group
         # called 'tag'
         (?P<tag>
@@ -603,7 +592,7 @@ NOTERE = re.compile(
             \\
 
             # this matches the usfm footnote and cross reference markers.
-            (?:f|fe|x|ef|ex)
+            (?:{})
         )
 
         # there is always at least one space following the tag.
@@ -620,24 +609,21 @@ NOTERE = re.compile(
 
         # footnote / cross reference end tag
         (?P=tag)\*
-    ''', re.U + re.VERBOSE)
+    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
+               _ in NOTETAGS.keys()]))
+
+NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
+del NOTERE_S
 # ---
-# changes here may require changing the NOTETAGS2 dict as well.
-NOTEFIXRE = re.compile(
-    r'''
+# Automatically build NOTEFIXRE regex string from NOTETAGS2 dict.
+NOTEFIXRE_S = r'''
         (
             # tags always start with a backslash
             \\
 
             # this matches all of the footnote/crossref specific usfm tags that
             # appear inside footnotes and cross references.
-            (?:
-                # footnote markers
-                fr|fk|fl|fp|fv|ft|fm|fdc|fq|fqa|
-
-                # cross reference markers
-                xo|xot|xt|xnt|xdc|xk|xq
-            )
+            (?:{})
         )
 
         # there is always at least one space following the tag.
@@ -649,7 +635,10 @@ NOTEFIXRE = re.compile(
         # This marks the end of the tag. It matches against either the
         # start of an additional tag or the end of the note.
         (?=\\[fx]|</note)
-    ''', re.U + re.VERBOSE)
+    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
+               _ in NOTETAGS2.keys()]))
+NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
+del NOTEFIXRE_S
 
 # match \cp and \vp tags
 CPRE = re.compile(
