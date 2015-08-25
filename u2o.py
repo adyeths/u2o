@@ -94,7 +94,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.5',      # THIS SCRIPT version
-    'DATE': '2015-08-24'   # THIS SCRIPT revision date
+    'DATE': '2015-08-25'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -549,8 +549,8 @@ SPECIALTEXTRE_S = r'''
 
         # tag end marker
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
-               _ in SPECIALTEXT.keys()]))
+    '''.format('|'.join([_.replace('\\', '') for _ in SPECIALTEXT.keys()
+               if not _.startswith(r'\+')]))
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
 
@@ -576,8 +576,8 @@ SPECIALFEATURESRE_S = r'''
 
         # tag end marker
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
-               _ in FEATURETAGS.keys()]))
+    '''.format('|'.join([_.replace('\\', '') for _ in FEATURETAGS.keys()
+               if not _.startswith(r'\+')]))
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
 del SPECIALFEATURESRE_S
 
@@ -609,9 +609,8 @@ NOTERE_S = r'''
 
         # footnote / cross reference end tag
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
-               _ in NOTETAGS.keys()]))
-
+    '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS.keys()
+               if not _.startswith(r'\+')]))
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
 del NOTERE_S
 # ---
@@ -635,8 +634,8 @@ NOTEFIXRE_S = r'''
         # This marks the end of the tag. It matches against either the
         # start of an additional tag or the end of the note.
         (?=\\[fx]|</note)
-    '''.format('|'.join([_.replace('\\+', '').replace('\\', '') for
-               _ in NOTETAGS2.keys()]))
+    '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS2.keys()
+               if not _.startswith(r'\+')]))
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
