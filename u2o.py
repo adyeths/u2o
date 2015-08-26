@@ -1731,6 +1731,30 @@ def convert_to_osis(text, bookid='TEST'):
                     lines[i],
                     1)
 
+        # adjust some tags for postprocessing purposes.
+        i = len(lines)
+        while i > 0:
+            i -= 1
+            # remove empty l tags if present.
+            if lines[i] == '<l level="1"> </l>':
+                del lines[i]
+                continue
+            # move lb to it's own line
+            if lines[i].endswith('<lb type="x-p" />'):
+                lines.insert(i + 1, '<lb type="x-p" />')
+                lines[i] = lines[i].rpartition('<lb type="x-p" />')[0].strip()
+            # move lg to it's own line
+            if lines[i].endswith('<lg>'):
+                lines.insert(i + 1, '<lg>')
+                lines[i] = lines[i].rpartition('<lg>')[0].strip()
+
+        # swap lb and lg end tag when lg end tag follows lb.
+        i = len(lines)
+        while i > 0:
+            i -= 1
+            if lines[i] == '<lb type="x-p" />' and lines[i + 1] == '</lg>':
+                lines[i], lines[i + 1] = (lines[i + 1], lines[i])
+
         # adjust placement of some verse end tags...
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
@@ -1763,6 +1787,47 @@ def convert_to_osis(text, bookid='TEST'):
             try:
                 if lines[i - 1] == '<p>' and lines[i - 2] == '</lg>':
                     lines.insert(i - 2, lines.pop(i))
+            except IndexError:
+                pass
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1].startswith('<l ') \
+                            and lines[i - 2].endswith('</l>'):
+                    tmp = lines[i - 2].rpartition('</l>')
+                    lines[i - 2] = "{}{}{}{}".format(
+                        tmp[0],
+                        lines.pop(i),
+                        tmp[1], tmp[2])
+                elif lines[i - 1].startswith('<l ') \
+                        and lines[i - 2] == '<lb type="x-p" />' \
+                        and lines[i - 3].endswith('</l>'):
+                    tmp = lines[i - 3].rpartition('</l>')
+                    lines[i - 3] = "{}{}{}{}".format(
+                        tmp[0],
+                        lines.pop(i),
+                        tmp[1], tmp[2])
+                elif lines[i - 1] == '<lb type="x-p" />' \
+                        and lines[i - 2] == '</lg>' \
+                        and lines[i - 3].endswith('</l>'):
+                    tmp = lines[i - 3].rpartition('</l>')
+                    lines[i - 3] = "{}{}{}{}".format(
+                        tmp[0],
+                        lines.pop(i),
+                        tmp[1], tmp[2])
+            except IndexError:
+                pass
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1] == '<lb type="x-p" />' \
+                            and lines[i - 2] == '</lg>' \
+                            and lines[i - 3].endswith('</l>'):
+                    tmp = lines[i - 3].rpartition('</l>')
+                    lines[i - 3] = "{}{}{}{}".format(
+                        tmp[0],
+                        lines.pop(i),
+                        tmp[1], tmp[2])
             except IndexError:
                 pass
 
