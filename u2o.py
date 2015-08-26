@@ -47,10 +47,6 @@ running this script than CPython.
 
 This script is public domain. You may do whatever you want with it.
 
-
-Changes:
-    version 0.5     --  2015.08.22  --  Initial version uploaded to github.
-                                        Future changes will be recorded there.
 '''
 
 #
@@ -94,7 +90,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.5',      # THIS SCRIPT version
-    'DATE': '2015-08-25'   # THIS SCRIPT revision date
+    'DATE': '2015-08-26'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -474,11 +470,11 @@ SPECIALTEXT = {
 # special features
 # do not add \lit here... that is handled with TITLETAGS.
 FEATURETAGS = {
-    r'\ndx': ('', '<index="Index" level1="(?P<osis>)" /> '),
+    r'\ndx': ('', '<index="Index" level1="{}" /> '),
     r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
-    r'\w': ('', '<index index="Glossary" level1="(?P<osis>)" />'),
-    r'\wg': ('', '<index index="Greek" level1="(?P<osis>)" />'),
-    r'\wh': ('', '<index index="Hebrew" level1="(?P<osis>)" />')
+    r'\w': ('', '<index index="Glossary" level1="{}" />'),
+    r'\wg': ('', '<index index="Greek" level1="{}" />'),
+    r'\wh': ('', '<index index="Hebrew" level1="{}" />')
 }
 
 # footnote and cross reference tags
@@ -1517,7 +1513,11 @@ def convert_to_osis(text, bookid='TEST'):
         def simplerepl(match):
             ''' simple regex replacement helper function '''
             tag = FEATURETAGS[match.group('tag')]
-            return '{}{}{}'.format(tag[0], match.group('osis'), tag[1])
+            osis = match.group('osis')
+            if tag[0] == '':
+                return '{}{}'.format(osis, tag[1].format(osis))
+            else:
+                return '{}{}{}'.format(tag[0], osis, tag[1])
         text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
 
         # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
