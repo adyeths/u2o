@@ -1756,16 +1756,41 @@ def convert_to_osis(text, bookid='TEST'):
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
 
         # adjust placement of some verse end tags...
+        # -- linebreaks
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 2] in ['<list>', '</list>']:
-                    lines.insert(i - 2, lines.pop(i))
-                elif lines[i - 1] == '<p>' and lines[i - 2] == '</p>':
-                    lines.insert(i - 2, lines.pop(i))
+                if lines[i - 1].startswith('<lb type="x-p"'):
+                    lines.insert(i - 1, lines.pop(i))
             except IndexError:
                 pass
 
+        # -- tables
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1] == '<table>' and \
+                   lines[i - 2] == '</table>':
+                    lines.insert(i - 2, lines.pop(i))
+            except IndexError:
+                pass
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1] == '</table>':
+                    lines.insert(i - 1, lines.pop(i))
+            except IndexError:
+                pass
+        # -- TODO: rows within tables
+        # -- lists
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1] == '<list>' and \
+                   lines[i - 2] == '</list>':
+                    lines.insert(i - 2, lines.pop(i))
+            except IndexError:
+                pass
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
@@ -1773,135 +1798,107 @@ def convert_to_osis(text, bookid='TEST'):
                     lines.insert(i - 1, lines.pop(i))
             except IndexError:
                 pass
-
+        # -- items within lists
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1] == '</p>' or lines[i - 1].startswith('<item'):
-                    lines.insert(i - 1, lines.pop(i))
+                if lines[i - 1].startswith('<item') and \
+                   lines[i - 2].endswith('</item>'):
+                    lines[i-2] = '{}{}</item>'.format(lines[i-2][:-7],
+                                                      lines[i])
+                    lines[i] = ''
             except IndexError:
                 pass
-
+        # -- linegroups
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1] == '<p>' and lines[i - 2] == '</lg>':
+                if lines[i - 1] == '<lg>' and \
+                   lines[i - 2] == '</lg>':
                     lines.insert(i - 2, lines.pop(i))
             except IndexError:
                 pass
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1].startswith('<l ') \
-                            and lines[i - 2].endswith('</l>'):
-                    tmp = lines[i - 2].rpartition('</l>')
-                    lines[i - 2] = "{}{}{}{}".format(
-                        tmp[0],
-                        lines.pop(i),
-                        tmp[1], tmp[2])
-                elif lines[i - 1].startswith('<l ') \
-                        and lines[i - 2] == '<lb type="x-p" />' \
-                        and lines[i - 3].endswith('</l>'):
-                    tmp = lines[i - 3].rpartition('</l>')
-                    lines[i - 3] = "{}{}{}{}".format(
-                        tmp[0],
-                        lines.pop(i),
-                        tmp[1], tmp[2])
-                elif lines[i - 1] == '<lb type="x-p" />' \
-                        and lines[i - 2] == '</lg>' \
-                        and lines[i - 3].endswith('</l>'):
-                    tmp = lines[i - 3].rpartition('</l>')
-                    lines[i - 3] = "{}{}{}{}".format(
-                        tmp[0],
-                        lines.pop(i),
-                        tmp[1], tmp[2])
+                if lines[i - 1] == '</lg>':
+                    lines.insert(i - 1, lines.pop(i))
             except IndexError:
                 pass
+        # -- lines within linegroups
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1] == '<lb type="x-p" />' \
-                            and lines[i - 2] == '</lg>' \
-                            and lines[i - 3].endswith('</l>'):
-                    tmp = lines[i - 3].rpartition('</l>')
-                    lines[i - 3] = "{}{}{}{}".format(
-                        tmp[0],
-                        lines.pop(i),
-                        tmp[1], tmp[2])
+                if lines[i - 1].endswith('</l>'):
+                    lines[i - 1] = '{}{}</l>'.format(lines[i - 1][:-4],
+                                                     lines.pop(i))
             except IndexError:
                 pass
-
+        # -- paragraphs
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1].endswith('</item>'):
-                    lines[i - 1] = '{}{}</item>'.format(
-                        lines[i - 1][:-7], lines[i])
-                    lines[i] = ''
+                if lines[i - 1] == '<p>' and \
+                   lines[i - 2] == '</p>':
+                    lines.insert(i - 2, lines.pop(i))
             except IndexError:
                 pass
-
+        # --
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1].startswith('<title') and \
-                        lines[i - 2].startswith('<div ') and \
-                        lines[i - 3] == '</div>' and \
-                        (lines[i - 4].startswith('</p>') or
-                         lines[i - 4].startswith('</list>')):
-                    lines.insert(i - 4, lines.pop(i))
+                if lines[i - 1].startswith('<item') and \
+                   lines[i - 2] == '<list>' and \
+                   lines[i - 3] == '</p>':
+                    lines.insert(i - 3, lines.pop(i))
             except IndexError:
                 pass
-
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
                 if lines[i - 1].startswith('<p') and \
-                        lines[i - 2].startswith('<title') and \
-                        lines[i - 3].startswith('<div ') and \
-                        lines[i - 4] == '</div>' and \
-                        (lines[i - 5].startswith('</p>') or
-                         lines[i - 5].startswith('</list>')):
-                    lines.insert(i - 5, lines.pop(i))
-            except IndexError:
-                pass
-
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<title') and \
-                        lines[i - 2].startswith('<div ') and \
-                        lines[i - 3] == '</div>' and \
-                        lines[i - 4] == '</list>' and \
-                        lines[i - 5].endswith('</item>'):
-                    (tmp1, tmp2, tmp3) = lines[i - 5].rpartition(' ')
-                    lines[i - 5] = '{} {} {}'.format(tmp1, lines[i],
-                                                     tmp3)
-                    lines[i] = ''
-                elif lines[i - 1] == '<p>' and \
-                        lines[i - 2].startswith('<title') and \
-                        lines[i - 3].startswith('<div ') and \
-                        lines[i - 4] == '</div>' and \
-                        lines[i - 5] == '</list>' and \
-                        lines[i - 6].endswith('<item>'):
-                    (tmp1, tmp2, tmp3) = lines[i - 6].rpartition(' ')
-                    lines[i - 6] = '{} {} {}'.format(tmp1, lines[i],
-                                                     tmp3)
+                   lines[i - 2] == '</list>' and \
+                   lines[i - 3].endswith('</item>'):
+                    tmp = lines[i - 3].rpartition('<')
+                    lines[i - 3] = '{}{}{}{}'.format(tmp[0],
+                                                     lines[i],
+                                                     tmp[1],
+                                                     tmp[2])
                     lines[i] = ''
             except IndexError:
                 pass
-
-        # adjust verse end tags in relation to tables...
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
             try:
-                if lines[i - 1] == '<row><cell>' and \
-                        lines[i - 2] == '<table>' and \
-                        lines[i - 3] == '</p>':
-                    lines.insert(i - 3, lines.pop(i))
+                if lines[i - 1].startswith('<l ') and \
+                   lines[i - 2].startswith('<lb') and \
+                   lines[i - 3].endswith('</l>'):
+                    tmp = lines[i - 3].rpartition('<')
+                    lines[i - 3] = '{}{}{}{}'.format(tmp[0],
+                                                     lines[i],
+                                                     tmp[1],
+                                                     tmp[2])
+                    lines[i] = ''
             except IndexError:
                 pass
-        # TODO: more table fixes need to be done here...
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            try:
+                if lines[i - 1].startswith('<p') and \
+                   lines[i - 2].startswith('<title') and \
+                   lines[i - 3] == '<div>' and \
+                   lines[i - 4] == '</div>' and \
+                   lines[i - 5].endswith('</p>'):
+                    tmp = lines[i - 5].rpartition('<')
+                    lines[i - 5] = '{}{}{}{}'.format(tmp[0],
+                                                     lines[i],
+                                                     tmp[1],
+                                                     tmp[2])
+                    lines[i] = ''
+            except IndexError:
+                pass
+
+        # -- # -- # -- #
 
         # adjust placement of some chapter start tags
         for i in [_ for _ in range(len(lines)) if
@@ -1920,6 +1917,7 @@ def convert_to_osis(text, bookid='TEST'):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
+
         # some chapter start tags have had div's appended to the end...
         # fix that.
         for i in [_ for _ in range(len(lines)) if
