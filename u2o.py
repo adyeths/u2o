@@ -729,6 +729,20 @@ except KeyError:
 TITLEFLOW = set(TITLETAGS.keys())
 
 # -------------------------------------------------------------------------- #
+# VARIABLES USED BY POSTPROCESS ROUTINE
+
+OSISITEM = set()
+OSISL = set()
+
+for _ in PARTAGS:
+    if PARTAGS[_][0].startswith('<item '):
+        OSISITEM.add(PARTAGS[_][0])
+    elif PARTAGS[_][0].startswith('<l '):
+        OSISL.add(PARTAGS[_][0])
+OSISL.add('<l>')
+OSISITEM.add('<item>')
+
+# -------------------------------------------------------------------------- #
 
 # osis 2.1.1 schema...
 # compressed with bzip2 and base64 encoded.
@@ -1756,147 +1770,41 @@ def convert_to_osis(text, bookid='TEST'):
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
 
         # adjust placement of some verse end tags...
-        # -- linebreaks
+        for j in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            if lines[j - 1].strip() in OSISL or\
+               lines[j - 1].strip() in OSISITEM:
+                lines.insert(j - 1, lines.pop(j))
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<lb type="x-p"'):
-                    lines.insert(i - 1, lines.pop(i))
-            except IndexError:
-                pass
+            if lines[i - 1] == '<row><cell>' and \
+               lines[i - 2] == '<table>':
+                lines.insert(i - 2, lines.pop(i))
 
-        # -- tables
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '<table>' and \
-                   lines[i - 2] == '</table>':
-                    lines.insert(i - 2, lines.pop(i))
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '</table>':
-                    lines.insert(i - 1, lines.pop(i))
-            except IndexError:
-                pass
-        # -- TODO: rows within tables
-        # -- lists
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '<list>' and \
-                   lines[i - 2] == '</list>':
-                    lines.insert(i - 2, lines.pop(i))
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '</list>':
-                    lines.insert(i - 1, lines.pop(i))
-            except IndexError:
-                pass
-        # -- items within lists
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<item') and \
-                   lines[i - 2].endswith('</item>'):
-                    lines[i-2] = '{}{}</item>'.format(lines[i-2][:-7],
-                                                      lines[i])
-                    lines[i] = ''
-            except IndexError:
-                pass
-        # -- linegroups
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '<lg>' and \
-                   lines[i - 2] == '</lg>':
-                    lines.insert(i - 2, lines.pop(i))
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '</lg>':
-                    lines.insert(i - 1, lines.pop(i))
-            except IndexError:
-                pass
-        # -- lines within linegroups
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].endswith('</l>'):
-                    lines[i - 1] = '{}{}</l>'.format(lines[i - 1][:-4],
-                                                     lines.pop(i))
-            except IndexError:
-                pass
-        # -- paragraphs
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1] == '<p>' and \
-                   lines[i - 2] == '</p>':
-                    lines.insert(i - 2, lines.pop(i))
-            except IndexError:
-                pass
-        # --
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<item') and \
-                   lines[i - 2] == '<list>' and \
-                   lines[i - 3] == '</p>':
-                    lines.insert(i - 3, lines.pop(i))
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<p') and \
-                   lines[i - 2] == '</list>' and \
-                   lines[i - 3].endswith('</item>'):
-                    tmp = lines[i - 3].rpartition('<')
-                    lines[i - 3] = '{}{}{}{}'.format(tmp[0],
-                                                     lines[i],
+        for i in ['<p', '<lb ', '</p>', '<lg', '<lb ', '</lg>',
+                  '<list', '<lb', '</list>', '<title',
+                  '<div', '</div>']:
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<verse eID')]:
+                if lines[j - 1].startswith(i):
+                    lines.insert(j - 1, lines.pop(j))
+        for i in ['<lb ', '</p>', '</lg>', '<lb', '</list>',
+                  '<lb', '</p>', '</div>']:
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<verse eID')]:
+                if lines[j - 1].startswith(i):
+                    lines.insert(j - 1, lines.pop(j))
+
+        for i in ['</l>', '</item>']:
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<verse eID')]:
+                if lines[j - 1].endswith(i):
+                    tmp = lines[j - 1].rpartition('<')
+                    lines[j - 1] = '{}{}{}{}'.format(tmp[0],
+                                                     lines[j],
                                                      tmp[1],
                                                      tmp[2])
-                    lines[i] = ''
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<l ') and \
-                   lines[i - 2].startswith('<lb') and \
-                   lines[i - 3].endswith('</l>'):
-                    tmp = lines[i - 3].rpartition('<')
-                    lines[i - 3] = '{}{}{}{}'.format(tmp[0],
-                                                     lines[i],
-                                                     tmp[1],
-                                                     tmp[2])
-                    lines[i] = ''
-            except IndexError:
-                pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            try:
-                if lines[i - 1].startswith('<p') and \
-                   lines[i - 2].startswith('<title') and \
-                   lines[i - 3] == '<div>' and \
-                   lines[i - 4] == '</div>' and \
-                   lines[i - 5].endswith('</p>'):
-                    tmp = lines[i - 5].rpartition('<')
-                    lines[i - 5] = '{}{}{}{}'.format(tmp[0],
-                                                     lines[i],
-                                                     tmp[1],
-                                                     tmp[2])
-                    lines[i] = ''
-            except IndexError:
-                pass
+                    lines[j] = ''
 
         # -- # -- # -- #
 
