@@ -2031,8 +2031,13 @@ def processfiles(args):
     osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
 
     # validate and "pretty print" our osis doc if requested.
-    if not args.x:
-        if HAVELXML:
+    if HAVELXML:
+        # a test string allows output to still be generated
+        # even when when validation fails.
+        testosis = SQUEEZE.sub(' ', osisdoc.decode('utf-8'))
+
+        # validation is requested...
+        if not args.x:
             print('Validating osis xml... ')
             osisschema = codecs.decode(
                 codecs.decode(codecs.decode(SCHEMA, 'base64'), 'bz2'), 'utf-8')
@@ -2040,15 +2045,20 @@ def processfiles(args):
                 vparser = et.XMLParser(
                     schema=et.XMLSchema(et.XML(osisschema)),
                     remove_blank_text=True)
-                # using a test string here allows for output to still be
-                # generated even when validation fails.
-                testosis = SQUEEZE.sub(' ', osisdoc.decode('utf-8'))
                 _ = et.fromstring(testosis.encode('utf-8'), vparser)
                 print('Validation passed!')
                 osisdoc = et.tostring(_, pretty_print=True, encoding='utf-8')
             except et.XMLSyntaxError as err:
                 print('Validation failed: {}'.format(str(err)))
+        # no validation, just pretty printing...
         else:
+            # ... but only if we're not debugging.
+            if not args.d:
+                vparser = et.XMLParser(remove_blank_text=True)
+                _ = et.fromstring(testosis.encode('utf-8'), vparser)
+                osisdoc = et.tostring(_, pretty_print=True, encoding='utf-8')
+    else:
+        if not args.x:
             print('LXML needs to be installed for validation.')
 
     # find unhandled usfm tags that are leftover after processing
