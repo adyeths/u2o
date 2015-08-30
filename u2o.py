@@ -90,7 +90,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.5',      # THIS SCRIPT version
-    'DATE': '2015-08-26'   # THIS SCRIPT revision date
+    'DATE': '2015-08-30'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1808,6 +1808,14 @@ def convert_to_osis(text, bookid='TEST'):
 
         # -- # -- # -- #
 
+        # adjust placement of some chapter end tags
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<chapter eID')]:
+            try:
+                if "<title" in lines[i - 1]:
+                    lines.insert(i - 1, lines.pop(i))
+            except IndexError:
+                pass
         # adjust placement of some chapter start tags
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<chapter osisID')]:
