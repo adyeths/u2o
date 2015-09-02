@@ -1805,6 +1805,21 @@ def convert_to_osis(text, bookid='TEST'):
                                                      tmp[1],
                                                      tmp[2])
                     lines[j] = ''
+        # adjust placement of verse tags in relation
+        # to d titles that contain verses.
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<!-- d -->')]:
+            i1 = lines[i + 1].replace('<', '\n<').replace('>', '>\n')
+            i2 = lines[i + 2].replace('<', '\n<').replace('>', '>\n')
+            tmp1 = [_ for _ in i1.split('\n') if _ != '']
+            tmp2 = [_ for _ in i2.split('\n') if _ != '']
+            if tmp1[0].startswith('<verse osisID') and \
+               tmp1[2] == '</title>' and \
+               tmp2[0].startswith('<verse eID'):
+                lines[i] = ''.join([lines[i], tmp1[0], tmp1[1], tmp2[0],
+                                    tmp1[2]])
+                lines[i + 1] = ''
+                lines[i + 2] = ''
 
         # -- # -- # -- #
 
