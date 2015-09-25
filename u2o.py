@@ -89,8 +89,8 @@ except ImportError:
 META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
-    'VERSION': '0.5',      # THIS SCRIPT version
-    'DATE': '2015-09-03'   # THIS SCRIPT revision date
+    'VERSION': '0.6a',     # THIS SCRIPT version
+    'DATE': '2015-09-25'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -208,10 +208,20 @@ IDTAGS = {
     r'\restore': ('<!-- restore - ', ' -->'),
     # the osis 2.1.1 user manual says the value of h h1 h2 and h3 tags should
     # be in the short attribute of a title.
-    r'\h': ('<title type="runningHead" short="', '" />'),
-    r'\h1': ('<title type="runningHead" n="1" short="', '" />'),
-    r'\h2': ('<title type="runningHead" n="2" short="', '" />'),
-    r'\h3': ('<title type="runningHead" n="3" short="', '" />')
+    # ************************************************************************
+    # NOTE: These types of titles seem to be problematic when trying to import
+    #       bibles for The SWORD Project. So alternative conversions have been
+    #       implemented to work around the issue.
+    # ************************************************************************
+    # r'\h': ('<title type="runningHead" short="', '" />'),
+    # r'\h1': ('<title type="runningHead" n="1" short="', '" />'),
+    # r'\h2': ('<title type="runningHead" n="2" short="', '" />'),
+    # r'\h3': ('<title type="runningHead" n="3" short="', '" />')
+    # ************************************************************************
+    r'\h': ('<milestone type="x-usfm-h" n="', '" />'),
+    r'\h1': ('<milestone type="x-usfm-h1" n="', '" />'),
+    r'\h2': ('<milestone type="x-usfm-h2" n="', '" />'),
+    r'\h3': ('<milestone type="x-usfm-h3" n="', '" />')
 }
 
 # the osis 2.1.1 user manual says the value of id, ide, and rem should be
