@@ -1685,10 +1685,17 @@ def convert_to_osis(text, bookid='TEST'):
 
                 # handle verse ranges
                 if '-' in vnum:
-                    vlist = verserange(vnum)
-                    for j in range(len(vlist)):
-                        vlist[j] = '{}.{}.{}'.format(bookid, chap, vlist[j])
-                    osisid = 'osisID="{}{}"'.format(' '.join(vlist), vaid)
+                    try:
+                        vlist = verserange(vnum)
+                        for j in range(len(vlist)):
+                            vlist[j] = '{}.{}.{}'.format(bookid, chap, vlist[j])
+                        osisid = 'osisID="{}{}"'.format(' '.join(vlist), vaid)
+                    except TypeError:
+                        vnum = vnum.strip('-')
+                        osisid = 'osisID="{}.{}.{}{}"'.format(bookid,
+                                                              chap,
+                                                              vnum,
+                                                              vaid)
                 else:
                     osisid = 'osisID="{}.{}.{}{}"'.format(bookid,
                                                           chap,
