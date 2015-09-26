@@ -1688,7 +1688,9 @@ def convert_to_osis(text, bookid='TEST'):
                     try:
                         vlist = verserange(vnum)
                         for j in range(len(vlist)):
-                            vlist[j] = '{}.{}.{}'.format(bookid, chap, vlist[j])
+                            vlist[j] = '{}.{}.{}'.format(bookid,
+                                                         chap,
+                                                         vlist[j])
                         osisid = 'osisID="{}{}"'.format(' '.join(vlist), vaid)
                     except TypeError:
                         vnum = vnum.strip('-')
@@ -1799,12 +1801,12 @@ def convert_to_osis(text, bookid='TEST'):
                 lines.insert(i - 2, lines.pop(i))
 
         for i in ['<p', '<lb ', '</p>', '<lg', '<lb ', '</lg>',
-                  '<list', '<lb', '</list>', '<title',
-                  '<div', '</div>']:
+                  '<list', '<lb', '</list>', '<div', '</div>']:
             for j in [_ for _ in range(len(lines)) if
                       lines[_].startswith('<verse eID')]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
+
         for i in ['<lb ', '</p>', '</lg>', '<lb', '</list>',
                   '<lb', '</p>', '</div>']:
             for j in [_ for _ in range(len(lines)) if
@@ -1822,6 +1824,15 @@ def convert_to_osis(text, bookid='TEST'):
                                                      tmp[1],
                                                      tmp[2])
                     lines[j] = ''
+        lines = [_ for _ in lines if _ != '']
+
+        # handling of verse end tags in relation to titles...
+        for i in ['<!-- ', '</p>']:
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<verse eID')]:
+                if lines[j - 1].startswith(i):
+                    lines.insert(j - 1, lines.pop(j))
+
         # adjust placement of verse tags in relation
         # to d titles that contain verses.
         for i in [_ for _ in range(len(lines)) if
@@ -1835,6 +1846,7 @@ def convert_to_osis(text, bookid='TEST'):
                                                    lines[i + 2])
                 lines[i + 1] = ''
                 lines[i + 2] = ''
+        lines = [_ for _ in lines if _ != '']
 
         # -- # -- # -- #
 
@@ -1875,9 +1887,10 @@ def convert_to_osis(text, bookid='TEST'):
                     lines[i] = '</div>'
             except IndexError:
                 pass
+        lines = [_ for _ in lines if _ != '']
 
         # done postprocessing of lines
-        return [i for i in lines if i != '']
+        return lines
 
     # ---------------------------------------------------------------------- #
 
