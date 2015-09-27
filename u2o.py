@@ -1801,7 +1801,7 @@ def convert_to_osis(text, bookid='TEST'):
                 lines.insert(i - 2, lines.pop(i))
 
         for i in ['<p', '<lb ', '</p>', '<lg', '<lb ', '</lg>',
-                  '<list', '<lb', '</list>', '<div', '</div>']:
+                  '<list', '<lb', '</list>', '<title', '<div', '</div>']:
             for j in [_ for _ in range(len(lines)) if
                       lines[_].startswith('<verse eID')]:
                 if lines[j - 1].startswith(i):
