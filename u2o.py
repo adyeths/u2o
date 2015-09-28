@@ -90,7 +90,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2015-09-25'   # THIS SCRIPT revision date
+    'DATE': '2015-09-28'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -885,6 +885,36 @@ OFCQJyEEPw==
 '''
 
 # -------------------------------------------------------------------------- #
+
+
+def convertcl(text):
+    '''
+    convert cl tags that appear only before chapter one to
+    the form that appears after each chapter marker.
+    '''
+    lines = text.split('\n')
+
+    # count number of cl tags in text
+    clcount = 0
+    for i in lines:
+        if i.startswith(r'\cl '):
+            clcount += 1
+
+    # test for presence of only 1 cl marker.
+    if clcount == 1:
+        chaplines = [_ for _ in range(len(lines)) if
+                     lines[_].startswith(r'\c ')]
+
+        # get cl marker line if it precedes chapter 1 and add this after
+        # each chapter marker in the book.
+        if lines[chaplines[0] - 1].startswith(r'\cl '):
+            clmarker = lines[chaplines[0] - 1]
+            lines[chaplines[0] - 1] = ''
+            for i in reversed(chaplines):
+                lines.insert(i + 1, clmarker)
+
+    # return our lines with converted cl tags.
+    return '\n'.join(lines)
 
 
 def reflow(text):
@@ -1951,6 +1981,11 @@ def doconvert(args):
     convert our text and return our results
     '''
     text, verbose = args
+
+    # convert cl lines to form that follows each chapter marker instead of
+    # form that precedes first chapter.
+    if r'\cl ' in text:
+        text = convertcl(text)
 
     # decode and reflow our text
     newtext = reflow(text)
