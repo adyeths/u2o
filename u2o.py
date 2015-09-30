@@ -1919,6 +1919,32 @@ def convert_to_osis(text, bookid='TEST'):
                 pass
         lines = [_ for _ in lines if _ != '']
 
+        # -- # -- # -- #
+
+        # selah processing sometimes does weird things with l and lg tags
+        # that needs to be fixed.
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<chapter osisID')]:
+            if lines[i].endswith('</l>') and \
+               lines[i + 1] == '</lg>' and \
+               lines[i - 1].startswith('<chapter eID') and \
+               lines[i - 2].startswith('<verse eID') and \
+               lines[i - 3].endswith('</l><l>'):
+                lines[i - 3] = lines[i - 3][:-3]
+                lines[i - 2] = '{}{}'.format(lines[i - 2], '</lg>')
+                lines[i] = lines[i][:-4]
+                lines[i + 1] = ''
+
+        # additional postprocessing for l and lg tags
+        for i in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<chapter osisID')]:
+            if lines[i].endswith('</l>') and \
+               lines[i - 1].startswith('<chapter eID') and \
+               lines[i + 1] == '</lg>':
+                lines[i - 2] = '{}</l></lg>'.format(lines[i - 2])
+                lines[i] = lines[i][:-4]
+                lines[i + 1] = ''
+
         # done postprocessing of lines
         return lines
 
