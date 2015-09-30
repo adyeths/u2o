@@ -981,6 +981,12 @@ def reflow(text):
                             or textlines[i + 1].startswith(r'\p'):
                         textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
+        # make sure rem lines don't contain chapter or verse text.
+        for i in range(len(textlines)):
+            if textlines[i].startswith(r'\rem'):
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+
         text = '\n'.join(textlines)
 
     # process text without paragraph markup (may not work. needs testing.)
@@ -1489,7 +1495,7 @@ def convert_to_osis(text, bookid='TEST'):
         # In order to avoid getting stuck here we abort
         # after a maximum of 5 attempts. (5 was chosen arbitrarily)
         nestcount = 0
-        while r'\+' in text:
+        while '\\' in text:
             nestcount += 1
             text = SPECIALTEXTRE.sub(simplerepl, text, 0)
             if nestcount > 5:
