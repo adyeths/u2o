@@ -422,9 +422,9 @@ CELLTAGS = {
 }
 
 # special text and character style tags.
-# NOTE: wj is handled elsewhere. Don't add it here.
 SPECIALTEXT = {
     # tags for special text
+    r'\wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\add': ('<transChange type="added">', '</transChange>'),
     r'\nd': ('<divineName>', '</divineName>'),
     r'\pn': ('<name>', '</name>'),
@@ -437,6 +437,7 @@ SPECIALTEXT = {
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
     r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
+    r'\+wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\+add': ('<transChange type="added">', '</transChange>'),
     r'\+nd': ('<divineName>', '</divineName>'),
     r'\+pn': ('<name>', '</name>'),
@@ -981,28 +982,13 @@ def reflow(text):
                             or textlines[i + 1].startswith(r'\p'):
                         textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
-        # make sure rem lines don't contain chapter or verse text.
+        # make sure some lines don't contain verse content
         for i in range(len(textlines)):
-            if textlines[i].startswith(r'\rem'):
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
-                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
-
-        # make sure is, ms, and s lines don't contain chapter or verse text.
-        for i in range(len(textlines)):
-            if textlines[i].startswith(r'\is ') or \
-               textlines[i].startswith(r'\is1 ') or \
-               textlines[i].startswith(r'\is2 ') or \
-               textlines[i].startswith(r'\ms ') or \
-               textlines[i].startswith(r'\ms1 ') or \
-               textlines[i].startswith(r'\ms2 ') or \
-               textlines[i].startswith(r'\ms3 ') or \
-               textlines[i].startswith(r'\s ') or \
-               textlines[i].startswith(r'\s1 ') or \
-               textlines[i].startswith(r'\s2 ') or \
-               textlines[i].startswith(r'\s3 ') or \
-               textlines[i].startswith(r'\s4 '):
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
-                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+            for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
+                      r'\s3 ', r'\s4 ']:
+                if textlines[i].startswith(j):
+                    textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+                    textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
 
         text = '\n'.join(textlines)
 
@@ -1792,6 +1778,10 @@ def convert_to_osis(text, bookid='TEST'):
     def processwj(lines):
         '''
         create milestone form of q tags for words of jesus.
+
+        NOTE: Not currently used as this seems to be problematic for the
+              sword lib to handle. Of course, by not doing this there will
+              be problems converting some translations.
         '''
         # prepare for processing by joining lines together
         text = '\ufdd1'.join(lines)
@@ -2037,8 +2027,12 @@ def convert_to_osis(text, bookid='TEST'):
         lines[i] = titlepar(lines[i])
 
     # process words of Jesus
-    if r'\wj' in text:
-        lines = processwj(lines)
+    ######################################################################
+    # NOTE: Don't uncomment this right now. Processing words of Jesus in
+    #       this manner is problematic.
+    ######################################################################
+    # if r'\wj' in text:
+    #     lines = processwj(lines)
 
     # postprocessing of poetry, lists, tables, and sections
     # to add missing tags and div's.
