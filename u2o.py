@@ -987,6 +987,23 @@ def reflow(text):
                 textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
                 textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
 
+        # make sure is, ms, and s lines don't contain chapter or verse text.
+        for i in range(len(textlines)):
+            if textlines[i].startswith(r'\is ') or \
+               textlines[i].startswith(r'\is1 ') or \
+               textlines[i].startswith(r'\is2 ') or \
+               textlines[i].startswith(r'\ms ') or \
+               textlines[i].startswith(r'\ms1 ') or \
+               textlines[i].startswith(r'\ms2 ') or \
+               textlines[i].startswith(r'\ms3 ') or \
+               textlines[i].startswith(r'\s ') or \
+               textlines[i].startswith(r'\s1 ') or \
+               textlines[i].startswith(r'\s2 ') or \
+               textlines[i].startswith(r'\s3 ') or \
+               textlines[i].startswith(r'\s4 '):
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+
         text = '\n'.join(textlines)
 
     # process text without paragraph markup (may not work. needs testing.)
