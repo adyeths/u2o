@@ -51,6 +51,7 @@ This script is public domain. You may do whatever you want with it.
 
 #
 #    uFDD0     - used to mark line breaks during processing
+#    uFDD1     - used to preserve line breaks during wj processing
 #
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
@@ -90,7 +91,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2015-09-28'   # THIS SCRIPT revision date
+    'DATE': '2015-10-01'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -421,10 +422,10 @@ CELLTAGS = {
 }
 
 # special text and character style tags.
+# NOTE: wj is handled elsewhere. Don't add it here.
 SPECIALTEXT = {
     # tags for special text
     r'\add': ('<transChange type="added">', '</transChange>'),
-    r'\wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\nd': ('<divineName>', '</divineName>'),
     r'\pn': ('<name>', '</name>'),
     r'\qt': ('<seg type="otPassage">', '</seg>'),
@@ -437,7 +438,6 @@ SPECIALTEXT = {
     r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
     r'\+add': ('<transChange type="added">', '</transChange>'),
-    r'\+wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\+nd': ('<divineName>', '</divineName>'),
     r'\+pn': ('<name>', '</name>'),
     r'\+qt': ('<seg type="otPassage">', '</seg>'),
@@ -1772,6 +1772,36 @@ def convert_to_osis(text, bookid='TEST'):
 
         return lines
 
+    def processwj(lines):
+        '''
+        create milestone form of q tags for words of jesus.
+        '''
+        # prepare for processing by joining lines together
+        text = '\ufdd1'.join(lines)
+
+        # split words of jesus from the rest of the text.
+        text = text.replace('\\wj ', '\n\\wj ')
+        text = text.replace('\\wj*', '\\wj*\n ')
+        lines = text.split('\n')
+
+        # process words of Jesus.
+        wjcount = 1
+        for i in range(len(lines)):
+            if lines[i].startswith(r'\wj '):
+                wjmarker = '"wj{}"'.format(wjcount)
+                lines[i] = lines[i].replace(r'\wj ', '')
+                lines[i] = lines[i].replace(r'\wj*', '')
+
+                lines[i] = '{}{}{}'.format(
+                    '<q who="Jesus" marker="" sID={} />'.format(wjmarker),
+                    lines[i],
+                    '<q eID={} />'.format(wjmarker))
+                wjcount += 1
+
+        # rejoin lines, then resplit and return processed lines...
+        text = "".join(lines)
+        return text.split('\ufdd1')
+
     def postprocess(lines):
         '''
         fix some formatting issues that may be present after processing
@@ -1988,6 +2018,10 @@ def convert_to_osis(text, bookid='TEST'):
 
         # paragraph style formatting.
         lines[i] = titlepar(lines[i])
+
+    # process words of Jesus
+    if r'\wj' in text:
+        lines = processwj(lines)
 
     # postprocessing of poetry, lists, tables, and sections
     # to add missing tags and div's.
