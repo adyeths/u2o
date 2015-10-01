@@ -1805,7 +1805,7 @@ def convert_to_osis(text, bookid='TEST'):
         wjcount = 1
         for i in range(len(lines)):
             if lines[i].startswith(r'\wj '):
-                wjmarker = '"wj{}"'.format(wjcount)
+                wjmarker = '"{}.wj{}"'.format(bookid, wjcount)
                 lines[i] = lines[i].replace(r'\wj ', '')
                 lines[i] = lines[i].replace(r'\wj*', '')
 
