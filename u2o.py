@@ -91,7 +91,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2015-10-01'   # THIS SCRIPT revision date
+    'DATE': '2015-10-03'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -422,9 +422,9 @@ CELLTAGS = {
 }
 
 # special text and character style tags.
+# \wj tags are handled with a special function. Don't add it here.
 SPECIALTEXT = {
     # tags for special text
-    r'\wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\add': ('<transChange type="added">', '</transChange>'),
     r'\nd': ('<divineName>', '</divineName>'),
     r'\pn': ('<name>', '</name>'),
@@ -437,7 +437,6 @@ SPECIALTEXT = {
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
     r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
-    r'\+wj': ('<q who="Jesus" marker="">', '</q>'),
     r'\+add': ('<transChange type="added">', '</transChange>'),
     r'\+nd': ('<divineName>', '</divineName>'),
     r'\+pn': ('<name>', '</name>'),
@@ -1780,8 +1779,7 @@ def convert_to_osis(text, bookid='TEST'):
         create milestone form of q tags for words of jesus.
 
         NOTE: Not currently used as this seems to be problematic for the
-              sword lib to handle. Of course, by not doing this there will
-              be problems converting some translations.
+              sword lib to handle.
         '''
         # prepare for processing by joining lines together
         text = '\ufdd1'.join(lines)
@@ -1804,6 +1802,54 @@ def convert_to_osis(text, bookid='TEST'):
                     lines[i],
                     '<q eID={} />'.format(wjmarker))
                 wjcount += 1
+
+        # rejoin lines, then resplit and return processed lines...
+        text = "".join(lines)
+        return text.split('\ufdd1')
+
+    def processwj2(lines):
+        '''
+        alternate processing of wj tags.
+
+        This attempts to insert q start and end tags in appropriate locations
+        in order to avoid crossing container boundaries.
+        '''
+        # get lists of tags where lines need to be broken for processing
+        wjstarttags = set()
+        wjendtags = set()
+        for i in TITLETAGS:
+            if TITLETAGS[i][0] != '' and TITLETAGS[i][1] != '':
+                wjstarttags.add(TITLETAGS[i][0].strip())
+                wjendtags.add(TITLETAGS[i][1].strip())
+        for i in PARTAGS:
+            if PARTAGS[i][0] != '' and PARTAGS[i][1] != '':
+                wjstarttags.add(PARTAGS[i][0].strip())
+                wjendtags.add(PARTAGS[i][1].strip())
+
+        # prepare for processing by joining lines together
+        text = '\ufdd1'.join(lines)
+
+        # split words of jesus from the rest of the text.
+        text = text.replace('\\wj ', '\n\\wj ')
+        text = text.replace('\\wj*', '\\wj*\n ')
+        lines = text.split('\n')
+
+        # process words of Jesus.
+        for i in range(len(lines)):
+            if lines[i].startswith(r'\wj '):
+                # Add initial start and end q tags
+                lines[i] = lines[i].replace(r'\wj ',
+                                            '<q who="Jesus" marker="">')
+                lines[i] = lines[i].replace(r'\wj*',
+                                            '</q>')
+
+                # add additional closing and opening q tags
+                for j in wjstarttags:
+                    lines[i] = lines[i].replace(
+                        j, '{}<q who="Jesus" marker="">'.format(j))
+                for j in wjendtags:
+                    lines[i] = lines[i].replace(
+                        j, '</q>{}'.format(j))
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
@@ -2028,11 +2074,18 @@ def convert_to_osis(text, bookid='TEST'):
 
     # process words of Jesus
     ######################################################################
-    # NOTE: Don't uncomment this right now. Processing words of Jesus in
-    #       this manner is problematic.
+    # NOTE: Don't uncomment this right now. Converting words of Jesus to
+    #       milestone q tags works but is problematic for some software.
+    #       The alternative way that immediately follows is better for now.
     ######################################################################
     # if r'\wj' in text:
     #     lines = processwj(lines)
+
+    # use alternative way to process words of Jesus
+    # This still has some issues. But it works better than both the original
+    # handling of wj tags and the milestone handling of the tags.
+    if r'\wj' in text:
+        lines = processwj2(lines)
 
     # postprocessing of poetry, lists, tables, and sections
     # to add missing tags and div's.
