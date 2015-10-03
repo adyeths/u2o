@@ -297,7 +297,12 @@ TITLETAGS = {
     # The osis user manual says to convert these to titles and use chapterLabel
     # for type in the title tag. That type is not allowed according to the osis
     # 2.1.1 schema though. So I use x-chapterLabel for the type instead.
-    r'\cl': ('<title type="x-chapterLabel" short="', '" />'),
+    # NOTE: titles created in this manner don't work with The SWORD Project
+    #       sofware and create problems with displaying other titles as well.
+    #       So the conversion to titles is disabled for now and milestone
+    #       markers are inserted instead.
+    # r'\cl': ('<title type="x-chapterLabel" short="', '" />'),
+    r'\cl': ('<milestone type="x-chapterLabel" n="', '" />'),
 
     # ##### chapter cd tags ##### #
     # the osis user manual says cd titles should be in an introduction div.
