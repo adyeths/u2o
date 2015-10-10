@@ -89,7 +89,6 @@ try:
     import Sword
     HAVESWORD = True
 except ImportError:
-    print("Sword lib not available. Cross References will not be processed.")
     pass
 
 # -------------------------------------------------------------------------- #
@@ -1081,6 +1080,7 @@ def markintroend(lines):
         lines.append(u'\ufde1')
 
     return lines
+
 
 def getosisrefs(text):
     '''
@@ -2161,7 +2161,6 @@ def processreferences(text):
                 outtext = text
         return outtext
 
-
     # process reference tags in document
     for i in (_ for _ in range(len(lines)) if "<reference>" in lines[_]):
         lines[i] = reftag.sub(simplerepl, lines[i], 0)
@@ -2173,6 +2172,8 @@ def processreferences(text):
     return '\n'.join(lines)
 
 # -------------------------------------------------------------------------- #
+
+
 def doconvert(args):
     '''
     convert our text and return our results
@@ -2313,7 +2314,10 @@ def processfiles(args):
 
     # process cross references if the Sword library is available
     if HAVESWORD:
-        osisdoc = processreferences(osisdoc)
+        if '<note type="crossReference"' in osisdoc or '<reference' in osisdoc:
+            osisdoc = processreferences(osisdoc)
+    else:
+        print("Sword lib not available. Cross References not processed.")
 
     # apply NFC normalization to text
     osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
