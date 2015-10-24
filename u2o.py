@@ -97,7 +97,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2015-10-05'   # THIS SCRIPT revision date
+    'DATE': '2015-10-23'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1201,8 +1201,11 @@ def convert_to_osis(text, bookid='TEST'):
         # process titles and sections
         if line[0] in titletags.keys():
             # make sure titles don't end with a \b or an \ib tag
-            line[2] = line[2].strip().rstrip('\\b').strip()
-            line[2] = line[2].strip().rstrip('\\ib').strip()
+            line[2] = line[2].strip()
+            if line[2].endswith(r'\b'):
+                line[2] = line[2][:-2]
+            elif line[2].endswith(r'\ib'):
+                line[2] = line[2][:-3]
 
             # is there ever a reason for a \b tag to appear in a title?
             # if there is, I will have to add \b processing here.
