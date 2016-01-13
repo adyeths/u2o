@@ -448,7 +448,8 @@ SPECIALTEXT = {
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
     r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
-    r'\+add': ('<seg type="x-nested"><transChange type="added">', '</transChange></seg>'),
+    r'\+add': ('<seg type="x-nested"><transChange type="added">',
+               '</transChange></seg>'),
     r'\+nd': ('<seg type="x-nested"><divineName>', '</divineName></seg>'),
     r'\+pn': ('<seg type="x-nested"><name>', '</name></seg>'),
     r'\+qt': ('<seg type="x-nested"><seg type="otPassage">', '</seg></seg>'),
@@ -457,8 +458,10 @@ SPECIALTEXT = {
     r'\+tl': ('<seg type="x-nested"><foreign>', '</foreign></seg>'),
     r'\+bk': ('<seg type="x-nested"><name type="x-usfm-bk">', '</name></seg>'),
     r'\+k': ('<seg type="x-nested"><seg type="keyword">', '</seg></seg>'),
-    r'\+dc': ('<seg type="x-nested"><transChange type="added" editions="dc">', '</transChange></seg>'),
-    r'\+sls': ('<seg type="x-nested"><foreign type="x-secondaryLanguage">', '</foreign></seg>'),
+    r'\+dc': ('<seg type="x-nested"><transChange type="added" editions="dc">',
+              '</transChange></seg>'),
+    r'\+sls': ('<seg type="x-nested"><foreign type="x-secondaryLanguage">',
+               '</foreign></seg>'),
 
     # tags for character styles
     r'\em': ('<hi type="emphasis">', '</hi>'),
@@ -471,7 +474,8 @@ SPECIALTEXT = {
     r'\+em': ('<seg type="x-nested"><hi type="emphasis">', '</hi></seg>'),
     r'\+bd': ('<seg type="x-nested"><hi type="bold">', '</hi></seg>'),
     r'\+it': ('<seg type="x-nested"><hi type="italic">', '</hi></seg>'),
-    r'\+bdit': ('<seg type="x-nested"><hi type="bold"><hi type="italic">', '</hi></hi></seg>'),
+    r'\+bdit': ('<seg type="x-nested"><hi type="bold"><hi type="italic">',
+                '</hi></hi></seg>'),
     r'\+no': ('<seg type="x-nested"><hi type="normal">', '</hi></seg>'),
     r'\+sc': ('<seg type="x-nested"><hi type="small-caps">', '</hi></seg>'),
 
@@ -483,8 +487,10 @@ SPECIALTEXT = {
     r'\qac': ('<hi type="acrostic">', '</hi>'),
 
     r'\+ior': ('<seg type="x-nested"><reference>', '</reference></seg>'),
-    r'\+iqt': ('<seg type="x-nested"><q subType="x-introduction">', '</q></seg>'),
-    r'\+rq': ('<seg type="x-nested"><reference type="source">', '</reference></seg>'),
+    r'\+iqt': ('<seg type="x-nested"><q subType="x-introduction">',
+               '</q></seg>'),
+    r'\+rq': ('<seg type="x-nested"><reference type="source">',
+              '</reference></seg>'),
     r'\+qac': ('<seg type="x-nested"><hi type="acrostic">', '</hi></seg>')
 }
 
@@ -1810,7 +1816,7 @@ def convert_to_osis(text, bookid='TEST'):
               sword lib to handle.
         '''
         # prepare for processing by joining lines together
-        text = '\ufdd1'.join(lines)
+        text = u'\ufdd1'.join(lines)
 
         # split words of jesus from the rest of the text.
         text = text.replace('\\wj ', '\n\\wj ')
@@ -1833,7 +1839,7 @@ def convert_to_osis(text, bookid='TEST'):
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
-        return text.split('\ufdd1')
+        return text.split(u'\ufdd1')
 
     def processwj2(lines):
         '''
@@ -1855,7 +1861,7 @@ def convert_to_osis(text, bookid='TEST'):
                 wjendtags.add(PARTAGS[i][1].strip())
 
         # prepare for processing by joining lines together
-        text = '\ufdd1'.join(lines)
+        text = u'\ufdd1'.join(lines)
 
         # split words of jesus from the rest of the text.
         text = text.replace('\\wj ', '\n\\wj ')
@@ -1881,7 +1887,7 @@ def convert_to_osis(text, bookid='TEST'):
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
-        return text.split('\ufdd1')
+        return text.split(u'\ufdd1')
 
     def postprocess(lines):
         '''
