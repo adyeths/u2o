@@ -448,17 +448,17 @@ SPECIALTEXT = {
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
     r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
-    r'\+add': ('<transChange type="added">', '</transChange>'),
-    r'\+nd': ('<divineName>', '</divineName>'),
-    r'\+pn': ('<name>', '</name>'),
-    r'\+qt': ('<seg type="otPassage">', '</seg>'),
-    r'\+sig': ('<signed>', '</signed>'),
-    r'\+ord': ('<hi type="super">', '</hi>'),
-    r'\+tl': ('<foreign>', '</foreign>'),
-    r'\+bk': ('<name type="x-usfm-bk">', '</name>'),
-    r'\+k': ('<seg type="keyword">', '</seg>'),
-    r'\+dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\+sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
+    r'\+add': ('<seg type="x-nested"><transChange type="added">', '</transChange></seg>'),
+    r'\+nd': ('<seg type="x-nested"><divineName>', '</divineName></seg>'),
+    r'\+pn': ('<seg type="x-nested"><name>', '</name></seg>'),
+    r'\+qt': ('<seg type="x-nested"><seg type="otPassage">', '</seg></seg>'),
+    r'\+sig': ('<seg type="x-nested"><signed>', '</signed></seg>'),
+    r'\+ord': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
+    r'\+tl': ('<seg type="x-nested"><foreign>', '</foreign></seg>'),
+    r'\+bk': ('<seg type="x-nested"><name type="x-usfm-bk">', '</name></seg>'),
+    r'\+k': ('<seg type="x-nested"><seg type="keyword">', '</seg></seg>'),
+    r'\+dc': ('<seg type="x-nested"><transChange type="added" editions="dc">', '</transChange></seg>'),
+    r'\+sls': ('<seg type="x-nested"><foreign type="x-secondaryLanguage">', '</foreign></seg>'),
 
     # tags for character styles
     r'\em': ('<hi type="emphasis">', '</hi>'),
@@ -468,12 +468,12 @@ SPECIALTEXT = {
     r'\no': ('<hi type="normal">', '</hi>'),
     r'\sc': ('<hi type="small-caps">', '</hi>'),
 
-    r'\+em': ('<hi type="emphasis">', '</hi>'),
-    r'\+bd': ('<hi type="bold">', '</hi>'),
-    r'\+it': ('<hi type="italic">', '</hi>'),
-    r'\+bdit': ('<hi type="bold"><hi type="italic">', '</hi></hi>'),
-    r'\+no': ('<hi type="normal">', '</hi>'),
-    r'\+sc': ('<hi type="small-caps">', '</hi>'),
+    r'\+em': ('<seg type="x-nested"><hi type="emphasis">', '</hi></seg>'),
+    r'\+bd': ('<seg type="x-nested"><hi type="bold">', '</hi></seg>'),
+    r'\+it': ('<seg type="x-nested"><hi type="italic">', '</hi></seg>'),
+    r'\+bdit': ('<seg type="x-nested"><hi type="bold"><hi type="italic">', '</hi></hi></seg>'),
+    r'\+no': ('<seg type="x-nested"><hi type="normal">', '</hi></seg>'),
+    r'\+sc': ('<seg type="x-nested"><hi type="small-caps">', '</hi></seg>'),
 
     # a few stray introduction and poetry tags that
     # work well being handled in this section.
@@ -482,10 +482,10 @@ SPECIALTEXT = {
     r'\rq': ('<reference type="source">', '</reference>'),
     r'\qac': ('<hi type="acrostic">', '</hi>'),
 
-    r'\+ior': ('<reference>', '</reference>'),
-    r'\+iqt': ('<q subType="x-introduction">', '</q>'),
-    r'\+rq': ('<reference type="source">', '</reference>'),
-    r'\+qac': ('<hi type="acrostic">', '</hi>')
+    r'\+ior': ('<seg type="x-nested"><reference>', '</reference></seg>'),
+    r'\+iqt': ('<seg type="x-nested"><q subType="x-introduction">', '</q></seg>'),
+    r'\+rq': ('<seg type="x-nested"><reference type="source">', '</reference></seg>'),
+    r'\+qac': ('<seg type="x-nested"><hi type="acrostic">', '</hi></seg>')
 }
 
 # special features
@@ -534,7 +534,7 @@ NOTETAGS2 = {
     # r'\xo': ('<reference type="x-anchorRef">', '</reference>'),
     # r'\xt': ('<reference type="annotateRef">', '</reference>'),
     # currently preferred handling of xo and xt...
-    r'\xo': ('', ''),
+    r'\xo': ('<seg type="x-usfm-xo">', '</seg>'),
     r'\xt': ('<reference>', '</reference>')
 }
 
