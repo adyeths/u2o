@@ -1001,7 +1001,8 @@ def reflow(text):
         # make sure some lines don't contain verse content
         for i in range(len(textlines)):
             for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
-                      r'\s3 ', r'\s4 ']:
+                      r'\s3 ', r'\s4 ', r'\th', r'\tc', r'\li', r'\ph',
+                      r'\io', 'ili']:
                 if textlines[i].startswith(j):
                     textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
                     textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
