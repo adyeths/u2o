@@ -97,7 +97,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2015-10-23'   # THIS SCRIPT revision date
+    'DATE': '2016-01-21'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -998,14 +998,19 @@ def reflow(text):
                             or textlines[i + 1].startswith(r'\p'):
                         textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
-        # make sure some lines don't contain verse content
+        # make sure some lines don't contain chapter or verse markers
         for i in range(len(textlines)):
             for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
-                      r'\s3 ', r'\s4 ', r'\th', r'\tc', r'\li', r'\ph',
-                      r'\io', 'ili']:
+                      r'\s3 ', r'\s4 ', r'\th', r'\tc']:
                 if textlines[i].startswith(j):
                     textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
                     textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+
+        # make sure some lines don't contain chapter markers
+        for i in range(len(textlines)):
+            for j in [r'\li', r'\ph', r'\io', 'ili']:
+                if textlines[i].startswith(j):
+                    textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
         text = '\n'.join(textlines)
 
