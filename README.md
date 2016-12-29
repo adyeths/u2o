@@ -9,7 +9,9 @@ _A better readme still needs to be created._
 
 The latter was developed for CrossWire, though it's been hardly touched by Chris since 2014.
 
-Since then usfm2osis was forked and further developed by others. That's what CrossWire is currently using.
+Since then usfm2osis was forked and further developed by others. See https://github.com/refdoc/Module-tools
+
+That's what CrossWire is currently using.
 
 See also https://github.com/JohnAustinDev/osis-converters which is used for the **IBT** modules repository.
 
