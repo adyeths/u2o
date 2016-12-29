@@ -1,7 +1,7 @@
 # u2o
 A fast USFM to OSIS bible format converter.
 
-_A better readme still needs to be created.
+_A better readme still needs to be created._
 
 **CrossWire Bible Society** has not adopted **u2o**.
 
