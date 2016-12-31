@@ -491,7 +491,7 @@ SPECIALTEXT = {
     r'\bk': ('<name type="x-usfm-bk">', '</name>'),
     r'\k': ('<seg type="keyword">', '</seg>'),
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
+    r'\sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
 
     # as above but for nested tags
     # DFH : wrapped most of these within a seg element with type="x-nested"
