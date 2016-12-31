@@ -97,7 +97,7 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2016-01-21'   # THIS SCRIPT revision date
+    'DATE': '2016-12-31'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -446,7 +446,7 @@ SPECIALTEXT = {
     r'\bk': ('<name type="x-usfm-bk">', '</name>'),
     r'\k': ('<seg type="keyword">', '</seg>'),
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
+    r'\sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
 
     r'\+add': ('<seg type="x-nested"><transChange type="added">',
                '</transChange></seg>'),
