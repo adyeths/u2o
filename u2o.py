@@ -13,6 +13,16 @@ Notes:
      it works fine for all of the usfm bibles that I have access to at this
      time.
 
+   * xop and sd# need better handling. There may be better ways to handle
+     lh and lf... need to investigate this.
+
+   * Some new USFM 3.0 tags are not implemented yet... as well as new forms 
+     for some other tags...
+         jmp...jmp*, qt*-s\* ... qt#-e\*
+         w...w*, fig...fig*
+
+   * table cell column spanning are not implemented
+
 Alternative Book Ordering:
     To have the books output in an order different from the built in canonical
     book order you will have to create a simple text file.
@@ -94,10 +104,10 @@ except ImportError:
 # -------------------------------------------------------------------------- #
 
 META = {
-    'USFM': '2.4',         # Targeted USFM version
+    'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
-    'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2016-12-31'   # THIS SCRIPT revision date
+    'VERSION': '0.6b',     # THIS SCRIPT version
+    'DATE': '2017-01-03'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -259,6 +269,14 @@ TITLETAGS = {
     r'\s2': ('<title>', '</title>'),
     r'\s3': ('<title>', '</title>'),
     r'\s4': ('<title>', '</title>'),
+
+    # ##### Semantic Whitespace ##### #
+    r'\sd': ('<milestone type="x-usfm-sd" />', ''),
+    r'\sd1': ('<milestone type="x-usfm-sd1" />', ''),
+    r'\sd2': ('<milestone type="x-usfm-sd2" />', ''),
+    r'\sd3': ('<milestone type="x-usfm-sd3" />', ''),
+    r'\sd4': ('<milestone type="x-usfm-sd4" />', ''),
+
     # ---------------------------------------------------------
 
     # ##### INTRODUCTIONS ##### #
@@ -351,6 +369,7 @@ PARTAGS = {
     # ##### PARAGRAPH/POETRY
     r'\p': (r'<p>', r' </p>'),
     r'\m': (r'<p type="x-noindent">', r' </p>'),
+    r'\po': (r'<p type="x-usfm-po">', r' </p>'),
     r'\pmo': (r'<p type="x-embedded-opening">', r' </p>'),
     r'\pm': (r'<p type="x-embedded">', r' </p>'),
     r'\pmc': (r'<p type="x-embedded-closing">', r' </p>'),
@@ -362,11 +381,18 @@ PARTAGS = {
     r'\pi4': (r'<p type="x-indented-4">', r' </p>'),
     r'\mi': (r'<p type="x-noindent-indented">', r' </p>'),
     r'\cls': (r'<closer>', r'</closer>'),
+    r'\lh': (r'<p type="x-usfm-lh">', r'</p>'),
+    r'\lf': (r'<p type="x-usfm-lf">', r'</p>'),
     r'\li': (r'<item type="x-indent-1">', r' </item>'),
     r'\li1': (r'<item type="x-indent-1">', r' </item>'),
     r'\li2': (r'<item type="x-indent-2">', r' </item>'),
     r'\li3': (r'<item type="x-indent-3">', r' </item>'),
     r'\li4': (r'<item type="x-indent-4">', r' </item>'),
+    r'\lim': (r'<item type="x-usfm-lim">', r' </item>'),
+    r'\lim1': (r'<item type="x-usfm-lim1">', r' </item>'),
+    r'\lim2': (r'<item type="x-usfm-lim2">', r' </item>'),
+    r'\lim3': (r'<item type="x-usfm-lim3">', r' </item>'),
+    r'\lim4': (r'<item type="x-usfm-lim4">', r' </item>'),
     r'\pc': (r'<p type="x-center">', r' </p>'),
     r'\pr': (r'<p type="x-right">', r' </p>'),
     r'\ph': (r'<item type="x-indent-1">', r' </item>'),
@@ -382,6 +408,7 @@ PARTAGS = {
     r'\qr': (r'<l type="x-right">', r' </l>'),
     r'\qc': (r'<l type="x-center">', r' </l>'),
     r'\qa': (r'<title type="acrostic">', r'</title>'),
+    r'\qd': (r'<l type="x-usfm-qd">', r'</l>'),
     r'\qm': (r'<l type="x-embedded" level="1">', r' </l>'),
     r'\qm1': (r'<l type="x-embedded" level="1">', r' </l>'),
     r'\qm2': (r'<l type="x-embedded" level="2">', r' </l>'),
@@ -437,6 +464,8 @@ CELLTAGS = {
 SPECIALTEXT = {
     # tags for special text
     r'\add': ('<transChange type="added">', '</transChange>'),
+    r'\addpn': ('<transChange type="added" subType="x-usfm-addpn">',
+                '</transChange>'),
     r'\nd': ('<divineName>', '</divineName>'),
     r'\pn': ('<name>', '</name>'),
     r'\qt': ('<seg type="otPassage">', '</seg>'),
@@ -450,6 +479,8 @@ SPECIALTEXT = {
 
     r'\+add': ('<seg type="x-nested"><transChange type="added">',
                '</transChange></seg>'),
+    r'\+addpn': ('<seg type="x-nested"><transChange type="added" subType="x-usfm-addpn">',
+                 '</transChange></seg>'),
     r'\+nd': ('<seg type="x-nested"><divineName>', '</divineName></seg>'),
     r'\+pn': ('<seg type="x-nested"><name>', '</name></seg>'),
     r'\+qt': ('<seg type="x-nested"><seg type="otPassage">', '</seg></seg>'),
@@ -479,6 +510,15 @@ SPECIALTEXT = {
     r'\+no': ('<seg type="x-nested"><hi type="normal">', '</hi></seg>'),
     r'\+sc': ('<seg type="x-nested"><hi type="small-caps">', '</hi></seg>'),
 
+    # a few stray list tags that work well being handled in this section.
+    r'\lik': ('<seg type="x-usfm-lik">', '</seg>'),
+    r'\liv': ('<seg type="x-usfm-liv">', '</seg>'),
+    r'\liv1': ('<seg type="x-usfm-liv1">', '</seg>'),
+    r'\liv2': ('<seg type="x-usfm-liv2">', '</seg>'),
+    r'\liv3': ('<seg type="x-usfm-liv3">', '</seg>'),
+    r'\liv4': ('<seg type="x-usfm-liv4">', '</seg>'),
+    r'\litl': ('<seg type="x-usfm-litl">', '</seg>'),
+
     # a few stray introduction and poetry tags that
     # work well being handled in this section.
     r'\ior': ('<reference>', '</reference>'),
@@ -499,7 +539,11 @@ SPECIALTEXT = {
 FEATURETAGS = {
     r'\ndx': ('', '<index="Index" level1="{}" /> '),
     r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r'\png': ('', '<index index="Geography" level1="{}" />'),
+    r'\rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
+    r'\rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
     r'\w': ('', '<index index="Glossary" level1="{}" />'),
+    r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
     r'\wg': ('', '<index index="Greek" level1="{}" />'),
     r'\wh': ('', '<index index="Hebrew" level1="{}" />')
 }
@@ -541,6 +585,8 @@ NOTETAGS2 = {
     # r'\xt': ('<reference type="annotateRef">', '</reference>'),
     # currently preferred handling of xo and xt...
     r'\xo': ('<seg type="x-usfm-xo">', '</seg>'),
+    r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
+    r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
     r'\xt': ('<reference>', '</reference>')
 }
 
