@@ -16,7 +16,7 @@ Notes:
    * xop and sd# need better handling. There may be better ways to handle
      lh and lf... need to investigate this.
 
-   * Some new USFM 3.0 tags are not implemented yet... as well as new forms 
+   * Some new USFM 3.0 tags are not implemented yet... as well as new forms
      for some other tags...
          jmp...jmp*, qt*-s\* ... qt#-e\*
          w...w*, fig...fig*
@@ -553,8 +553,8 @@ NOTETAGS = {
     r'\f': ('<note placement="foot">', '</note>'),
     r'\fe': ('<note placement="end">', '</note>'),
     r'\x': ('<note type="crossReference">', '</note>'),
-    r'\ef': ('<note placement="foot">', '</note>'),
-    r'\ex': ('<note type="crossReference">', '</note>')
+    r'\ef': ('<note placement="foot" subtype="x-extended">', '</note>'),
+    r'\ex': ('<note type="crossReference" subtype="x-extended">', '</note>')
 }
 
 # tags internal to footnotes and cross references
@@ -619,7 +619,7 @@ SPECIALTEXTRE_S = r'''
         # tag end marker
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in SPECIALTEXT.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
 
@@ -646,7 +646,7 @@ SPECIALFEATURESRE_S = r'''
         # tag end marker
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in FEATURETAGS.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
 del SPECIALFEATURESRE_S
 
@@ -679,7 +679,7 @@ NOTERE_S = r'''
         # footnote / cross reference end tag
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
 del NOTERE_S
 # ---
@@ -704,7 +704,7 @@ NOTEFIXRE_S = r'''
         # start of an additional tag or the end of the note.
         (?=\\[fx]|</note)
     '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS2.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
@@ -1148,7 +1148,7 @@ def getosisrefs(text):
     lk = Sword.VerseKey().parseVerseList(text.encode("utf8"))
     # get list of verses in our parsed verse list.
     osisrefs = []
-    for i in range(lk.getCount()):
+    for _ in range(lk.getCount()):
         osisrefs.append(Sword.VerseKey(lk.getText()).getOSISRef())
         lk.increment()
     return " ".join(osisrefs).decode("utf8")
@@ -1756,8 +1756,8 @@ def convert_to_osis(text, bookid='TEST'):
                 # generate chapter number
                 if chap == '':
                     lines[i] = '<chapter {} {} {} />{}'.format(
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                         'sID="{}.{}"'.format(bookid, cnum),
+                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                         'n="{}"'.format(cnum),
                         tmp[2])
                     chap = cnum
@@ -1767,15 +1767,15 @@ def convert_to_osis(text, bookid='TEST'):
                             '<verse eID="{}.{}.{}" />'.format(
                                 bookid, chap, verse),
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum),
                             tmp[2])
                     else:
                         lines[i] = '{}\n<chapter {} {} {} />{}'.format(
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum),
                             tmp[2])
 
@@ -1831,16 +1831,16 @@ def convert_to_osis(text, bookid='TEST'):
                 # generate verse tag
                 if verse == '':
                     lines[i] = '<verse {} {} {} />{}'.format(
-                        osisid,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                        osisid,
                         'n="{}"'.format(vnum),
                         tmp[2])
                     verse = vnum
                 else:
                     lines[i] = '<verse {} />\n<verse {} {} {} />{}'.format(
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
-                        osisid,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                        osisid,
                         'n="{}"'.format(vnum),
                         tmp[2])
                     verse = vnum
@@ -2042,7 +2042,7 @@ def convert_to_osis(text, bookid='TEST'):
         # to d titles that contain verses.
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<!-- d -->')]:
-            if lines[i + 1].startswith('<verse osisID') and \
+            if lines[i + 1].startswith('<verse sID') and \
                lines[i + 1].endswith('</title>') and \
                lines[i + 2].startswith('<verse eID'):
                 tmp1 = lines[i + 1].rpartition('<')
@@ -2065,18 +2065,18 @@ def convert_to_osis(text, bookid='TEST'):
                 pass
         # adjust placement of some chapter start tags
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
-                if lines[i + 1] == '</p>' and lines[i + 2] == '<p>':
+                if lines[i + 1] == '</p>' and lines[i + 2].startswith('<p'):
                     lines.insert(i + 2, lines.pop(i))
             except IndexError:
                 pass
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
                 if lines[i + 1] == '</p>' and \
                    lines[i + 2] == '</div>' and \
-                   lines[i + 3].startswith('<div '):
+                   lines[i + 3].startswith('<div'):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
@@ -2084,9 +2084,9 @@ def convert_to_osis(text, bookid='TEST'):
         # some chapter start tags have had div's appended to the end...
         # fix that.
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
-                if re.match('<chapter osisID[^>]+> </div>', lines[i]) and \
+                if re.match('<chapter sID[^>]+> </div>', lines[i]) and \
                    lines[i + 1].startswith('<div'):
                     lines.insert(i + 2, lines[i].replace(' </div>', ''))
                     lines[i] = '</div>'
@@ -2099,7 +2099,7 @@ def convert_to_osis(text, bookid='TEST'):
         # selah processing sometimes does weird things with l and lg tags
         # that needs to be fixed.
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             if lines[i].endswith('</l>') and \
                lines[i + 1] == '</lg>' and \
                lines[i - 1].startswith('<chapter eID') and \
@@ -2112,7 +2112,7 @@ def convert_to_osis(text, bookid='TEST'):
 
         # additional postprocessing for l and lg tags
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             if lines[i].endswith('</l>') and \
                lines[i - 1].startswith('<chapter eID') and \
                lines[i + 1] == '</lg>':
@@ -2380,8 +2380,11 @@ def processfiles(args):
     else:
         print("Sword lib not available. Cross References not processed.")
 
-    # apply NFC normalization to text
-    osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
+    # apply NFC normalization to text unless explicitly disabled.
+    if not args.n:
+        osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
+    else:
+        osisdoc = codecs.encode(osisdoc, 'utf-8')
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
@@ -2474,6 +2477,9 @@ def main():
                         action='store_true')
     parser.add_argument('-x',
                         help='disable OSIS validation and reformatting',
+                        action='store_true')
+    parser.add_argument('-n',
+                        help='disable unicode NFC normalization',
                         action='store_true')
     parser.add_argument('file',
                         help='file or files to process (wildcards allowed)',
