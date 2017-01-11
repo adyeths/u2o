@@ -116,7 +116,7 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
 <osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.bibletechnologies.net/2003/OSIS/namespace
-        http://www.bibletechnologies.net/OSIS/osisCore.2.1.1.xsd">
+        http://www.bibletechnologies.net/osisCore.2.1.1.xsd">
     <osisText osisIDWork="{}" osisRefWork="Bible" xml:lang="{}">
         <header>
             <work osisWork="{}">
