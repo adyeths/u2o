@@ -19,7 +19,7 @@ Notes:
    * Some new USFM 3.0 tags are not implemented yet... as well as new forms
      for some other tags...
          jmp...jmp*, qt*-s\* ... qt#-e\*
-         w...w*, fig...fig*
+         w...w*, fig...fig*, periph
 
    * table cell column spanning are not implemented
 
@@ -107,7 +107,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6b',     # THIS SCRIPT version
-    'DATE': '2017-01-03'   # THIS SCRIPT revision date
+    'DATE': '2017-01-10'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2284,7 +2284,7 @@ def processfiles(args):
             text = ifile.read()
 
         # get encoding. Abort processing if we don't know the encoding.
-        # default to utf-8 encoding if no encoding is specified.
+        # default to utf-8-sig encoding if no encoding is specified.
         try:
             if args.e is not None:
                 bookencoding = codecs.lookup(args.e).name
@@ -2293,7 +2293,11 @@ def processfiles(args):
                 if bookencoding is not None:
                     bookencoding = codecs.lookup(bookencoding).name
                 else:
-                    bookencoding = 'utf-8'
+                    bookencoding = 'utf-8-sig'
+            # use utf-8-sig in place of utf-8 encoding to eliminate errors that
+            # may occur if a Byte Order Mark is present in the input file.
+            if bookencoding == 'utf-8':
+                bookencoding = 'utf-8-sig'
         except LookupError:
             print('ERROR: Unknown encoding... aborting conversion.')
             sys.exit()
