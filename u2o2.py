@@ -106,12 +106,13 @@ META = {
     'USFM': '2.4',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6b',     # THIS SCRIPT version
-    'DATE': '2016-12-31'   # THIS SCRIPT revision date
+    'DATE': '2017-01-12'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
 
 # DFH: 2016-02-14 Replaced the URL for the xsd file 
+# DFH: 2017-01-12 The OSIS schema in this file needs to be replaced!
 OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
 <osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -491,7 +492,7 @@ SPECIALTEXT = {
     r'\bk': ('<name type="x-usfm-bk">', '</name>'),
     r'\k': ('<seg type="keyword">', '</seg>'),
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
+    r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
 
     # as above but for nested tags
     # DFH : wrapped most of these within a seg element with type="x-nested"

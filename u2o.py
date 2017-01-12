@@ -13,6 +13,16 @@ Notes:
      it works fine for all of the usfm bibles that I have access to at this
      time.
 
+   * xop and sd# need better handling. There may be better ways to handle
+     lh and lf... need to investigate this.
+
+   * Some new USFM 3.0 tags are not implemented yet... as well as new forms
+     for some other tags...
+         jmp...jmp*, qt*-s\* ... qt#-e\*
+         w...w*, fig...fig*, periph
+
+   * table cell column spanning are not implemented
+
 Alternative Book Ordering:
     To have the books output in an order different from the built in canonical
     book order you will have to create a simple text file.
@@ -94,10 +104,10 @@ except ImportError:
 # -------------------------------------------------------------------------- #
 
 META = {
-    'USFM': '2.4',         # Targeted USFM version
+    'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
-    'VERSION': '0.6a',     # THIS SCRIPT version
-    'DATE': '2016-01-21'   # THIS SCRIPT revision date
+    'VERSION': '0.6b',     # THIS SCRIPT version
+    'DATE': '2017-01-10'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -106,7 +116,7 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
 <osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.bibletechnologies.net/2003/OSIS/namespace
-        http://www.bibletechnologies.net/OSIS/osisCore.2.1.1.xsd">
+        http://www.bibletechnologies.net/osisCore.2.1.1.xsd">
     <osisText osisIDWork="{}" osisRefWork="Bible" xml:lang="{}">
         <header>
             <work osisWork="{}">
@@ -259,6 +269,14 @@ TITLETAGS = {
     r'\s2': ('<title>', '</title>'),
     r'\s3': ('<title>', '</title>'),
     r'\s4': ('<title>', '</title>'),
+
+    # ##### Semantic Whitespace ##### #
+    r'\sd': ('<milestone type="x-usfm-sd" />', ''),
+    r'\sd1': ('<milestone type="x-usfm-sd1" />', ''),
+    r'\sd2': ('<milestone type="x-usfm-sd2" />', ''),
+    r'\sd3': ('<milestone type="x-usfm-sd3" />', ''),
+    r'\sd4': ('<milestone type="x-usfm-sd4" />', ''),
+
     # ---------------------------------------------------------
 
     # ##### INTRODUCTIONS ##### #
@@ -351,6 +369,7 @@ PARTAGS = {
     # ##### PARAGRAPH/POETRY
     r'\p': (r'<p>', r' </p>'),
     r'\m': (r'<p type="x-noindent">', r' </p>'),
+    r'\po': (r'<p type="x-usfm-po">', r' </p>'),
     r'\pmo': (r'<p type="x-embedded-opening">', r' </p>'),
     r'\pm': (r'<p type="x-embedded">', r' </p>'),
     r'\pmc': (r'<p type="x-embedded-closing">', r' </p>'),
@@ -362,11 +381,18 @@ PARTAGS = {
     r'\pi4': (r'<p type="x-indented-4">', r' </p>'),
     r'\mi': (r'<p type="x-noindent-indented">', r' </p>'),
     r'\cls': (r'<closer>', r'</closer>'),
+    r'\lh': (r'<p type="x-usfm-lh">', r'</p>'),
+    r'\lf': (r'<p type="x-usfm-lf">', r'</p>'),
     r'\li': (r'<item type="x-indent-1">', r' </item>'),
     r'\li1': (r'<item type="x-indent-1">', r' </item>'),
     r'\li2': (r'<item type="x-indent-2">', r' </item>'),
     r'\li3': (r'<item type="x-indent-3">', r' </item>'),
     r'\li4': (r'<item type="x-indent-4">', r' </item>'),
+    r'\lim': (r'<item type="x-usfm-lim">', r' </item>'),
+    r'\lim1': (r'<item type="x-usfm-lim1">', r' </item>'),
+    r'\lim2': (r'<item type="x-usfm-lim2">', r' </item>'),
+    r'\lim3': (r'<item type="x-usfm-lim3">', r' </item>'),
+    r'\lim4': (r'<item type="x-usfm-lim4">', r' </item>'),
     r'\pc': (r'<p type="x-center">', r' </p>'),
     r'\pr': (r'<p type="x-right">', r' </p>'),
     r'\ph': (r'<item type="x-indent-1">', r' </item>'),
@@ -382,6 +408,7 @@ PARTAGS = {
     r'\qr': (r'<l type="x-right">', r' </l>'),
     r'\qc': (r'<l type="x-center">', r' </l>'),
     r'\qa': (r'<title type="acrostic">', r'</title>'),
+    r'\qd': (r'<l type="x-usfm-qd">', r'</l>'),
     r'\qm': (r'<l type="x-embedded" level="1">', r' </l>'),
     r'\qm1': (r'<l type="x-embedded" level="1">', r' </l>'),
     r'\qm2': (r'<l type="x-embedded" level="2">', r' </l>'),
@@ -437,6 +464,8 @@ CELLTAGS = {
 SPECIALTEXT = {
     # tags for special text
     r'\add': ('<transChange type="added">', '</transChange>'),
+    r'\addpn': ('<transChange type="added" subType="x-usfm-addpn">',
+                '</transChange>'),
     r'\nd': ('<divineName>', '</divineName>'),
     r'\pn': ('<name>', '</name>'),
     r'\qt': ('<seg type="otPassage">', '</seg>'),
@@ -446,10 +475,12 @@ SPECIALTEXT = {
     r'\bk': ('<name type="x-usfm-bk">', '</name>'),
     r'\k': ('<seg type="keyword">', '</seg>'),
     r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\sls': ('foreign type="x-secondaryLanguage">', '</foreign>'),
+    r'\sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
 
     r'\+add': ('<seg type="x-nested"><transChange type="added">',
                '</transChange></seg>'),
+    r'\+addpn': ('<seg type="x-nested"><transChange type="added" subType="x-usfm-addpn">',
+                 '</transChange></seg>'),
     r'\+nd': ('<seg type="x-nested"><divineName>', '</divineName></seg>'),
     r'\+pn': ('<seg type="x-nested"><name>', '</name></seg>'),
     r'\+qt': ('<seg type="x-nested"><seg type="otPassage">', '</seg></seg>'),
@@ -479,6 +510,15 @@ SPECIALTEXT = {
     r'\+no': ('<seg type="x-nested"><hi type="normal">', '</hi></seg>'),
     r'\+sc': ('<seg type="x-nested"><hi type="small-caps">', '</hi></seg>'),
 
+    # a few stray list tags that work well being handled in this section.
+    r'\lik': ('<seg type="x-usfm-lik">', '</seg>'),
+    r'\liv': ('<seg type="x-usfm-liv">', '</seg>'),
+    r'\liv1': ('<seg type="x-usfm-liv1">', '</seg>'),
+    r'\liv2': ('<seg type="x-usfm-liv2">', '</seg>'),
+    r'\liv3': ('<seg type="x-usfm-liv3">', '</seg>'),
+    r'\liv4': ('<seg type="x-usfm-liv4">', '</seg>'),
+    r'\litl': ('<seg type="x-usfm-litl">', '</seg>'),
+
     # a few stray introduction and poetry tags that
     # work well being handled in this section.
     r'\ior': ('<reference>', '</reference>'),
@@ -499,7 +539,11 @@ SPECIALTEXT = {
 FEATURETAGS = {
     r'\ndx': ('', '<index="Index" level1="{}" /> '),
     r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r'\png': ('', '<index index="Geography" level1="{}" />'),
+    r'\rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
+    r'\rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
     r'\w': ('', '<index index="Glossary" level1="{}" />'),
+    r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
     r'\wg': ('', '<index index="Greek" level1="{}" />'),
     r'\wh': ('', '<index index="Hebrew" level1="{}" />')
 }
@@ -509,8 +553,8 @@ NOTETAGS = {
     r'\f': ('<note placement="foot">', '</note>'),
     r'\fe': ('<note placement="end">', '</note>'),
     r'\x': ('<note type="crossReference">', '</note>'),
-    r'\ef': ('<note placement="foot">', '</note>'),
-    r'\ex': ('<note type="crossReference">', '</note>')
+    r'\ef': ('<note placement="foot" subtype="x-extended">', '</note>'),
+    r'\ex': ('<note type="crossReference" subtype="x-extended">', '</note>')
 }
 
 # tags internal to footnotes and cross references
@@ -541,6 +585,8 @@ NOTETAGS2 = {
     # r'\xt': ('<reference type="annotateRef">', '</reference>'),
     # currently preferred handling of xo and xt...
     r'\xo': ('<seg type="x-usfm-xo">', '</seg>'),
+    r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
+    r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
     r'\xt': ('<reference>', '</reference>')
 }
 
@@ -573,7 +619,7 @@ SPECIALTEXTRE_S = r'''
         # tag end marker
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in SPECIALTEXT.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
 
@@ -600,7 +646,7 @@ SPECIALFEATURESRE_S = r'''
         # tag end marker
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in FEATURETAGS.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
 del SPECIALFEATURESRE_S
 
@@ -633,7 +679,7 @@ NOTERE_S = r'''
         # footnote / cross reference end tag
         (?P=tag)\*
     '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
 del NOTERE_S
 # ---
@@ -658,7 +704,7 @@ NOTEFIXRE_S = r'''
         # start of an additional tag or the end of the note.
         (?=\\[fx]|</note)
     '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS2.keys()
-               if not _.startswith(r'\+')]))
+                         if not _.startswith(r'\+')]))
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
@@ -1102,7 +1148,7 @@ def getosisrefs(text):
     lk = Sword.VerseKey().parseVerseList(text.encode("utf8"))
     # get list of verses in our parsed verse list.
     osisrefs = []
-    for i in range(lk.getCount()):
+    for _ in range(lk.getCount()):
         osisrefs.append(Sword.VerseKey(lk.getText()).getOSISRef())
         lk.increment()
     return " ".join(osisrefs).decode("utf8")
@@ -1710,8 +1756,8 @@ def convert_to_osis(text, bookid='TEST'):
                 # generate chapter number
                 if chap == '':
                     lines[i] = '<chapter {} {} {} />{}'.format(
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                         'sID="{}.{}"'.format(bookid, cnum),
+                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                         'n="{}"'.format(cnum),
                         tmp[2])
                     chap = cnum
@@ -1721,15 +1767,15 @@ def convert_to_osis(text, bookid='TEST'):
                             '<verse eID="{}.{}.{}" />'.format(
                                 bookid, chap, verse),
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum),
                             tmp[2])
                     else:
                         lines[i] = '{}\n<chapter {} {} {} />{}'.format(
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum),
                             tmp[2])
 
@@ -1785,16 +1831,16 @@ def convert_to_osis(text, bookid='TEST'):
                 # generate verse tag
                 if verse == '':
                     lines[i] = '<verse {} {} {} />{}'.format(
-                        osisid,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                        osisid,
                         'n="{}"'.format(vnum),
                         tmp[2])
                     verse = vnum
                 else:
                     lines[i] = '<verse {} />\n<verse {} {} {} />{}'.format(
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
-                        osisid,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                        osisid,
                         'n="{}"'.format(vnum),
                         tmp[2])
                     verse = vnum
@@ -1996,7 +2042,7 @@ def convert_to_osis(text, bookid='TEST'):
         # to d titles that contain verses.
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<!-- d -->')]:
-            if lines[i + 1].startswith('<verse osisID') and \
+            if lines[i + 1].startswith('<verse sID') and \
                lines[i + 1].endswith('</title>') and \
                lines[i + 2].startswith('<verse eID'):
                 tmp1 = lines[i + 1].rpartition('<')
@@ -2019,18 +2065,18 @@ def convert_to_osis(text, bookid='TEST'):
                 pass
         # adjust placement of some chapter start tags
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
-                if lines[i + 1] == '</p>' and lines[i + 2] == '<p>':
+                if lines[i + 1] == '</p>' and lines[i + 2].startswith('<p'):
                     lines.insert(i + 2, lines.pop(i))
             except IndexError:
                 pass
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
                 if lines[i + 1] == '</p>' and \
                    lines[i + 2] == '</div>' and \
-                   lines[i + 3].startswith('<div '):
+                   lines[i + 3].startswith('<div'):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
@@ -2038,9 +2084,9 @@ def convert_to_osis(text, bookid='TEST'):
         # some chapter start tags have had div's appended to the end...
         # fix that.
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             try:
-                if re.match('<chapter osisID[^>]+> </div>', lines[i]) and \
+                if re.match('<chapter sID[^>]+> </div>', lines[i]) and \
                    lines[i + 1].startswith('<div'):
                     lines.insert(i + 2, lines[i].replace(' </div>', ''))
                     lines[i] = '</div>'
@@ -2053,7 +2099,7 @@ def convert_to_osis(text, bookid='TEST'):
         # selah processing sometimes does weird things with l and lg tags
         # that needs to be fixed.
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             if lines[i].endswith('</l>') and \
                lines[i + 1] == '</lg>' and \
                lines[i - 1].startswith('<chapter eID') and \
@@ -2066,7 +2112,7 @@ def convert_to_osis(text, bookid='TEST'):
 
         # additional postprocessing for l and lg tags
         for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter osisID')]:
+                  lines[_].startswith('<chapter sID')]:
             if lines[i].endswith('</l>') and \
                lines[i - 1].startswith('<chapter eID') and \
                lines[i + 1] == '</lg>':
@@ -2238,7 +2284,7 @@ def processfiles(args):
             text = ifile.read()
 
         # get encoding. Abort processing if we don't know the encoding.
-        # default to utf-8 encoding if no encoding is specified.
+        # default to utf-8-sig encoding if no encoding is specified.
         try:
             if args.e is not None:
                 bookencoding = codecs.lookup(args.e).name
@@ -2247,7 +2293,11 @@ def processfiles(args):
                 if bookencoding is not None:
                     bookencoding = codecs.lookup(bookencoding).name
                 else:
-                    bookencoding = 'utf-8'
+                    bookencoding = 'utf-8-sig'
+            # use utf-8-sig in place of utf-8 encoding to eliminate errors that
+            # may occur if a Byte Order Mark is present in the input file.
+            if bookencoding == 'utf-8':
+                bookencoding = 'utf-8-sig'
         except LookupError:
             print('ERROR: Unknown encoding... aborting conversion.')
             sys.exit()
@@ -2334,8 +2384,11 @@ def processfiles(args):
     else:
         print("Sword lib not available. Cross References not processed.")
 
-    # apply NFC normalization to text
-    osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
+    # apply NFC normalization to text unless explicitly disabled.
+    if not args.n:
+        osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
+    else:
+        osisdoc = codecs.encode(osisdoc, 'utf-8')
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
@@ -2428,6 +2481,9 @@ def main():
                         action='store_true')
     parser.add_argument('-x',
                         help='disable OSIS validation and reformatting',
+                        action='store_true')
+    parser.add_argument('-n',
+                        help='disable unicode NFC normalization',
                         action='store_true')
     parser.add_argument('file',
                         help='file or files to process (wildcards allowed)',
