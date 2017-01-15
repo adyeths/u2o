@@ -2059,7 +2059,9 @@ def convert_to_osis(text, bookid='TEST'):
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<chapter eID')]:
             try:
-                if "<title" in lines[i - 1]:
+                if '<title' in lines[i - 1]:
+                    lines.insert(i - 1, lines.pop(i))
+                elif lines[i - 1] == '</p>':
                     lines.insert(i - 1, lines.pop(i))
             except IndexError:
                 pass
@@ -2081,15 +2083,18 @@ def convert_to_osis(text, bookid='TEST'):
             except IndexError:
                 pass
 
-        # some chapter start tags have had div's appended to the end...
+        # some chapter start tags have had div's or p's appended to the end...
         # fix that.
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<chapter sID')]:
             try:
-                if re.match('<chapter sID[^>]+> </div>', lines[i]) and \
+                if re.match('<chapter sID[^>]+> ?</div>', lines[i]) and \
                    lines[i + 1].startswith('<div'):
                     lines.insert(i + 2, lines[i].replace(' </div>', ''))
                     lines[i] = '</div>'
+                elif re.match('<chapter sID[^>]+> ?<p>', lines[i]):
+                    lines.insert(i + 1, lines[i].replace('<p>', ''))
+                    lines[i] = '<p>'
             except IndexError:
                 pass
         lines = [_ for _ in lines if _ != '']
