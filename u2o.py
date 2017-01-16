@@ -70,6 +70,7 @@ import argparse
 import os.path
 import glob
 import re
+import shlex
 import codecs
 import unicodedata
 from contextlib import closing
@@ -1152,6 +1153,53 @@ def getosisrefs(text):
         osisrefs.append(Sword.VerseKey(lk.getText()).getOSISRef())
         lk.increment()
     return " ".join(osisrefs).decode("utf8")
+
+
+def parseattributes(tag, tagtext):
+    '''
+    helper function to separate attributes from text in usfm
+    '''
+
+    # defined attributes for tags
+    definedattributes = {
+        r'\w': ['lemma', 'strong', 'srcloc'],
+        r'\fig': ['alt', 'src', 'size', 'loc', 'copy', 'ref'],
+        r'\jmp': ['link-href', 'link-title', 'link-name'],
+        r'\qt-s': ['id', 'who'],
+        r'\qt-e': ['id'],
+        r'\periph': ['id']
+    }
+
+    # split attributes from text
+    text, _, attributestring = tagtext.partition('|')
+    attribs = {}
+
+    # extract attributes
+    attribs = {}
+    if "=" not in attributestring:
+        if tag == r'\w':
+            attribs["lemma"] = attributestring
+        else:
+            attribs['x-default'] = attributestring
+    else:
+        for i in shlex.split(attributestring):
+            tmp = i.split('=')
+            attribs[tmp[0]] = tmp[1]
+
+    # attribute validity check
+    isinvalid = False
+    if tag in definedattributes.keys():
+        attribtest = definedattributes[tag]
+        for i in attribs.keys():
+            if i not in attribtest and not i.startswith('x-'):
+                isinvalid = True
+    else:
+        for i in attribs.keys():
+            if not i.startswith('x-'):
+                isinvalid = True
+
+    # return our results
+    return(text, attributestring, attribs, isinvalid)
 
 # -------------------------------------------------------------------------- #
 
