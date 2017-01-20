@@ -7,21 +7,21 @@ Convert usfm bibles to osis
 Notes:
    * better handling of osisID's is probably needed.
 
-   * no attempt has been made to process any \z tags in this script.
+   * no attempt has been made to process any \z tags or x- attributes
+     in this script.
 
    * I can think of scenarios where this script may not work properly. However,
      it works fine for all of the usfm bibles that I have access to at this
      time.
 
-   * xop and sd# need better handling. There may be better ways to handle
-     lh and lf... need to investigate this.
+   * xop and sd# need better handling.
 
-   * Some new USFM 3.0 tags are not implemented yet... as well as new forms
-     for some other tags...
+   * There may be better ways to handle lh and lf
+
+   * Some new USFM 3.0 tags are not implemented yet...
          jmp...jmp*, qt*-s\* ... qt#-e\*
-         w...w*, fig...fig*, periph
 
-   * table cell column spanning are not implemented
+   * table cell column spanning is not implemented
 
 Alternative Book Ordering:
     To have the books output in an order different from the built in canonical
@@ -108,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6b',     # THIS SCRIPT version
-    'DATE': '2017-01-10'   # THIS SCRIPT revision date
+    'DATE': '2017-01-20'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -215,14 +215,14 @@ BOOKNAMES = {
 
 # identification tags
 IDTAGS = {
-    r'\sts': ('<milestone type="x-usfm-sts" n="', '" />'),
-    r'\toc1': ('<milestone type="x-usfm-toc1" n="', '" />'),
-    r'\toc2': ('<milestone type="x-usfm-toc2" n="', '" />'),
-    r'\toc3': ('<milestone type="x-usfm-toc3" n="', '" />'),
+    r'\sts': ('', '<milestone type="x-usfm-sts" n="{}" />'),
+    r'\toc1': ('', '<milestone type="x-usfm-toc1" n="{}" />'),
+    r'\toc2': ('', '<milestone type="x-usfm-toc2" n="{}" />'),
+    r'\toc3': ('', '<milestone type="x-usfm-toc3" n="{}" />'),
     # ebible.org bibles sometimes use a ztoc4 tag. If it's desired to process
     # this tag then simply uncomment the ztoc4 line here.
     # (No other ztags are even attempted in this converter.)
-    # r'\ztoc4': ('<milestone type=x-usfm-ztoc4 n="', '" />'),
+    # r'\ztoc4': ('', '<milestone type=x-usfm-ztoc4 n="{}" />'),
     r'\restore': ('<!-- restore - ', ' -->'),
     # the osis 2.1.1 user manual says the value of h h1 h2 and h3 tags should
     # be in the short attribute of a title.
@@ -231,15 +231,15 @@ IDTAGS = {
     #       bibles for The SWORD Project. So alternative conversions have been
     #       implemented to work around the issue.
     # ************************************************************************
-    # r'\h': ('<title type="runningHead" short="', '" />'),
-    # r'\h1': ('<title type="runningHead" n="1" short="', '" />'),
-    # r'\h2': ('<title type="runningHead" n="2" short="', '" />'),
-    # r'\h3': ('<title type="runningHead" n="3" short="', '" />')
+    # r'\h': ('', '<title type="runningHead" short="{}" />'),
+    # r'\h1': ('', '<title type="runningHead" n="1" short="{}" />'),
+    # r'\h2': ('', '<title type="runningHead" n="2" short="{}" />'),
+    # r'\h3': ('', '<title type="runningHead" n="3" short="{}" />')
     # ************************************************************************
-    r'\h': ('<milestone type="x-usfm-h" n="', '" />'),
-    r'\h1': ('<milestone type="x-usfm-h1" n="', '" />'),
-    r'\h2': ('<milestone type="x-usfm-h2" n="', '" />'),
-    r'\h3': ('<milestone type="x-usfm-h3" n="', '" />')
+    r'\h': ('', '<milestone type="x-usfm-h" n="{}" />'),
+    r'\h1': ('', '<milestone type="x-usfm-h1" n="{}" />'),
+    r'\h2': ('', '<milestone type="x-usfm-h2" n="{}" />'),
+    r'\h3': ('', '<milestone type="x-usfm-h3" n="{}" />')
 }
 
 # the osis 2.1.1 user manual says the value of id, ide, and rem should be
@@ -313,9 +313,6 @@ TITLETAGS = {
     r'\sp': ('<speaker>', '</speaker>'),
 
     # ##### chapter cl tags ##### #
-    #
-    # For whatever it's worth, I understand how this usfm tag is used.
-    # I just don't know what I need to do with it regarding osis.
     #
     # This is the best way I know how to convert these tags.
     #
@@ -538,11 +535,11 @@ SPECIALTEXT = {
 # special features
 # do not add \lit here... that is handled with TITLETAGS.
 FEATURETAGS = {
-    r'\ndx': ('', '<index="Index" level1="{}" /> '),
     r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
-    r'\png': ('', '<index index="Geography" level1="{}" />'),
     r'\rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
     r'\rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
+    r'\ndx': ('', '<index="Index" level1="{}" /> '),
+    r'\png': ('', '<index index="Geography" level1="{}" />'),
     r'\w': ('', '<index index="Glossary" level1="{}" />'),
     r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
     r'\wg': ('', '<index index="Greek" level1="{}" />'),
@@ -589,6 +586,24 @@ NOTETAGS2 = {
     r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
     r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
     r'\xt': ('<reference>', '</reference>')
+}
+
+# -------------------------------------------------------------------------- #
+
+# defined attributes for tags
+DEFINEDATTRIBUTES = {
+    r'\w': ['lemma', 'strong', 'srcloc'],
+    r'\fig': ['alt', 'src', 'size', 'loc', 'copy', 'ref'],
+    r'\jmp': ['link-href', 'link-title', 'link-name'],
+    r'\qt-s': ['id', 'who'],
+    r'\qt-e': ['id'],
+    r'\periph': ['id']
+}
+
+# defaultattributes for tags
+# x-default will be used as the default for undefined default attributes
+DEFAULTATTRIBUTES = {
+    r'\w': 'lemma'
 }
 
 # -------------------------------------------------------------------------- #
@@ -1160,16 +1175,6 @@ def parseattributes(tag, tagtext):
     helper function to separate attributes from text in usfm
     '''
 
-    # defined attributes for tags
-    definedattributes = {
-        r'\w': ['lemma', 'strong', 'srcloc'],
-        r'\fig': ['alt', 'src', 'size', 'loc', 'copy', 'ref'],
-        r'\jmp': ['link-href', 'link-title', 'link-name'],
-        r'\qt-s': ['id', 'who'],
-        r'\qt-e': ['id'],
-        r'\periph': ['id']
-    }
-
     # split attributes from text
     text, _, attributestring = tagtext.partition('|')
     attribs = {}
@@ -1177,10 +1182,7 @@ def parseattributes(tag, tagtext):
     # extract attributes
     attribs = {}
     if "=" not in attributestring:
-        if tag == r'\w':
-            attribs["lemma"] = attributestring
-        else:
-            attribs['x-default'] = attributestring
+        attribs[DEFAULTATTRIBUTES.get(tag, 'x-default')] = attributestring
     else:
         for i in shlex.split(attributestring):
             tmp = i.split('=')
@@ -1188,8 +1190,8 @@ def parseattributes(tag, tagtext):
 
     # attribute validity check
     isinvalid = False
-    if tag in definedattributes.keys():
-        attribtest = definedattributes[tag]
+    if tag in DEFINEDATTRIBUTES.keys():
+        attribtest = DEFINEDATTRIBUTES[tag]
         for i in attribs.keys():
             if i not in attribtest and not i.startswith('x-'):
                 isinvalid = True
@@ -1247,10 +1249,14 @@ def convert_to_osis(text, bookid='TEST'):
 
         line = text.partition(' ')
         if line[0] in IDTAGS.keys():
-            text = u'{}{}{}\ufdd0'.format(
-                IDTAGS[line[0]][0],
-                line[2].strip(),
-                IDTAGS[line[0]][1])
+            if IDTAGS[line[0]][0] == '':
+                text = u'{}\ufdd0'.format(
+                    IDTAGS[line[0]][1].format(line[2].strip()))
+            else:
+                text = u'{}{}{}\ufdd0'.format(
+                    IDTAGS[line[0]][0],
+                    line[2].strip(),
+                    IDTAGS[line[0]][1])
         elif line[0] in IDTAGS2:
             description.append(
                 '<description {} subType="x-{}">{}</description>'.format(
@@ -1316,11 +1322,27 @@ def convert_to_osis(text, bookid='TEST'):
             # is there ever a reason for a \b tag to appear in a title?
             # if there is, I will have to add \b processing here.
 
-            text = u'\ufdd0<!-- {} -->{}{}{}\ufdd0'.format(
-                line[0].replace('\\', ''),
-                titletags[line[0]][0],
-                line[2].strip(),
-                titletags[line[0]][1])
+            # TODO: finish handling periph tags with attributes
+            if line[0] == r'\periph':
+                if '|' in line[2]:
+                    osis, attributetext, attributes, isvalid = parseattributes(
+                        r'periph', line[2])
+                else:
+                    osis, attributetext, attributes, isvalid = (
+                        line[2], None, dict(), True)
+
+                text = u'\ufdd0<!-- {} -->{}{}{}{}\ufdd0'.format(
+                    line[0].replace('\\', ''),
+                    titletags[line[0]][0],
+                    osis.strip(),
+                    titletags[line[0]][1],
+                    '<!-- USFM Attributes - {} -->'.format(attributetext))
+            else:
+                text = u'\ufdd0<!-- {} -->{}{}{}\ufdd0'.format(
+                    line[0].replace('\\', ''),
+                    titletags[line[0]][0],
+                    line[2].strip(),
+                    titletags[line[0]][1])
 
         # process paragraphs
         elif line[0] in partags.keys():
@@ -1709,44 +1731,108 @@ def convert_to_osis(text, bookid='TEST'):
         def simplerepl(match):
             ''' simple regex replacement helper function '''
             tag = FEATURETAGS[match.group('tag')]
-            osis = match.group('osis')
-            if tag[0] == '':
-                return '{}{}'.format(osis, tag[1].format(osis))
+            rawosis = match.group('osis')
+            attributetext = None
+
+            if '|' in rawosis:
+                osis, attributetext, attributes, isvalid = parseattributes(
+                    tag, rawosis)
             else:
-                return '{}{}{}'.format(tag[0], osis, tag[1])
+                osis, attributetext, attributes, isvalid = (
+                    rawosis, None, dict(), True)
+            osis2 = osis
+
+            # handle w tag attributes
+            if tag == r'\w':
+                if 'lemma' in attributes.keys():
+                    osis2 = attributes['lemma']
+
+            # TODO: improve processing of tag attributes
+
+            if tag[0] == '':
+                outtext = '{}{}'.format(
+                    osis,
+                    tag[1].format(osis2))
+            else:
+                outtext = '{}{}{}'.format(
+                    tag[0],
+                    osis,
+                    tag[1])
+
+            if attributetext is not None:
+                outtext = "{}{}".format(
+                    outtext,
+                    '<!-- USFM Attributes: {} -->'.format(attributetext))
+
+            return outtext
         text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
 
-        # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
         if r'\fig' in text:
             text = text.replace(r'\fig ', '\n\\fig ')
             text = text.replace(r'\fig*', '\\fig*\n')
             tlines = text.split('\n')
             for i in range(len(tlines)):
                 if tlines[i].startswith(r'\fig '):
-                    fig = tlines[i][5:-5].split('|')
-                    figref = ''
-                    if len(fig[0]) > 0:
-                        fig[0] = '<!-- fig DESC - {} -->\n'.format(fig[0])
-                    if len(fig[1]) > 0:
-                        fig[1] = ' src="{}"'.format(fig[1])
-                    if len(fig[2]) > 0:
-                        fig[2] = ' size="{}"'.format(fig[2])
-                    if len(fig[3]) > 0:
-                        fig[3] = '<!-- fig LOC - {} -->\n'.format(fig[3])
-                    if len(fig[4]) > 0:
-                        fig[4] = ' rights="{}"'.format(fig[4])
-                    if len(fig[5]) > 0:
-                        fig[5] = '<caption>{}</caption>\n'.format(fig[5])
-                    # this is likely going to be very broken without
-                    # further processing of the references.
-                    if len(fig[6]) > 0:
-                        figref = '<reference {}>{}</reference>\n'.format(
-                            'type="annotateRef"', fig[6])
-                        fig[6] = ' annotateRef="{}"'.format(fig[6])
+                    # old style \fig handling
+                    # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
+                    if len(tlines[i][5:-5].split('|')) > 2:
+                        fig = tlines[i][5:-5].split('|')
+                        figref = ''
+                        if len(fig[0]) > 0:
+                            fig[0] = '<!-- fig DESC - {} -->\n'.format(fig[0])
+                        if len(fig[1]) > 0:
+                            fig[1] = ' src="{}"'.format(fig[1])
+                        if len(fig[2]) > 0:
+                            fig[2] = ' size="{}"'.format(fig[2])
+                        if len(fig[3]) > 0:
+                            fig[3] = '<!-- fig LOC - {} -->\n'.format(fig[3])
+                        if len(fig[4]) > 0:
+                            fig[4] = ' rights="{}"'.format(fig[4])
+                        if len(fig[5]) > 0:
+                            fig[5] = '<caption>{}</caption>\n'.format(fig[5])
+                        # this is likely going to be very broken without
+                        # further processing of the references.
+                        if len(fig[6]) > 0:
+                            figref = '<reference {}>{}</reference>\n'.format(
+                                'type="annotateRef"', fig[6])
+                            fig[6] = ' annotateRef="{}"'.format(fig[6])
 
-                    tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
-                                         fig[2], fig[4], fig[6], '>', '\n',
-                                         figref, fig[5], '</figure>'])
+                        tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
+                                             fig[2], fig[4], fig[6], '>', '\n',
+                                             figref, fig[5], '</figure>'])
+                    else:
+                        # new style \fig handling
+                        figattr = parseattributes(r'\fig', tlines[i][5:-5])
+                        fig = []
+                        figparts = {
+                            'alt': '<!-- fig ALT - {} -->\n',
+                            'src': ' src="{}"',
+                            'size': ' size="{}"',
+                            'loc': '<!-- fig LOC - {} -->\n',
+                            'copy': ' rights="{}"'
+                        }
+                        for _ in ['alt', 'src', 'size', 'loc', 'copy']:
+                            if _ in figattr[2]:
+                                fig.append(figparts[_].format(
+                                    figattr[2][_]))
+                            else:
+                                fig.append('')
+                            # this is likely going to be very broken without
+                            # further processing of the references.
+                            if 'ref' in figattr[2]:
+                                figref = '{}{}{}\n'.format(
+                                    '<reference type="annotateRef">',
+                                    figattr[2]['ref'],
+                                    '</reference>\n')
+                                fig.append(' annotateRef="{}"'.format(
+                                    figattr[2]['ref']))
+                            else:
+                                figref = ''
+                                fig.append('')
+
+                        tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
+                                             fig[2], fig[4], fig[5], '>', '\n',
+                                             figref, '</figure>'])
             text = ''.join(tlines)
         return text
 
