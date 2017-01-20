@@ -2546,7 +2546,10 @@ def processfiles(args):
                     remove_blank_text=True)
                 _ = et.fromstring(testosis.encode('utf-8'), vparser)
                 print('Validation passed!')
-                osisdoc = et.tostring(_, pretty_print=True, encoding='utf-8')
+                osisdoc = et.tostring(_,
+                                      pretty_print=True,
+                                      xml_declaration=True,
+                                      encoding='utf-8')
             except et.XMLSyntaxError as err:
                 print('Validation failed: {}'.format(str(err)))
         # no validation, just pretty printing...
@@ -2555,7 +2558,10 @@ def processfiles(args):
             if not args.d:
                 vparser = et.XMLParser(remove_blank_text=True)
                 _ = et.fromstring(testosis.encode('utf-8'), vparser)
-                osisdoc = et.tostring(_, pretty_print=True, encoding='utf-8')
+                osisdoc = et.tostring(_,
+                                      pretty_print=True,
+                                      xml_declaration=True,
+                                      encoding='utf-8')
     else:
         if not args.x:
             print('LXML needs to be installed for validation.')
