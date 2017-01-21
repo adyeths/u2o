@@ -14,12 +14,12 @@ Notes:
      it works fine for all of the usfm bibles that I have access to at this
      time.
 
-   * xop and sd# need better handling.
+   * jmp, xop, and sd# need better handling.
 
    * There may be better ways to handle lh and lf
 
-   * Some new USFM 3.0 tags are not implemented yet...
-         jmp...jmp*, qt*-s\* ... qt#-e\*
+   * USFM milestone quotations tags (qt*-s\* ... qt#-e\*)
+     are not implemented yet.
 
    * table cell column spanning is not implemented
 
@@ -543,7 +543,11 @@ FEATURETAGS = {
     r'\w': ('', '<index index="Glossary" level1="{}" />'),
     r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
     r'\wg': ('', '<index index="Greek" level1="{}" />'),
-    r'\wh': ('', '<index index="Hebrew" level1="{}" />')
+    r'\wh': ('', '<index index="Hebrew" level1="{}" />'),
+
+    # This should be converted to an 'a' tag. More work needs
+    # to be done before that can happen though.
+    r'\jmp': ('<seg type="x-usfm-jmp">', '</seg>')
 }
 
 # footnote and cross reference tags
@@ -1322,21 +1326,34 @@ def convert_to_osis(text, bookid='TEST'):
             # is there ever a reason for a \b tag to appear in a title?
             # if there is, I will have to add \b processing here.
 
-            # TODO: finish handling periph tags with attributes
             if line[0] == r'\periph':
+                # handle usfm attributes if present
                 if '|' in line[2]:
                     osis, attributetext, attributes, isvalid = parseattributes(
                         r'periph', line[2])
                 else:
                     osis, attributetext, attributes, isvalid = (
-                        line[2], None, dict(), True)
+                        line[2], '', dict(), True)
+                if attributetext is not None:
+                    attributetext = '{}{}{}'.format(
+                        '<!-- USFM Attributes - ',
+                        attributetext,
+                        ' -->')
+                starttag = titletags[line[0]][0]
+                endtag = titletags[line[0]][1]
 
+                # process id attribute
+                if 'id' in attributes:
+                    idattribute = ' n="{}">'.format(attributes['id'])
+                    starttag = starttag.replace('>', idattribute)
+
+                # finished processing periph now...
                 text = u'\ufdd0<!-- {} -->{}{}{}{}\ufdd0'.format(
                     line[0].replace('\\', ''),
-                    titletags[line[0]][0],
+                    starttag,
                     osis.strip(),
-                    titletags[line[0]][1],
-                    '<!-- USFM Attributes - {} -->'.format(attributetext))
+                    endtag,
+                    attributetext)
             else:
                 text = u'\ufdd0<!-- {} -->{}{}{}\ufdd0'.format(
                     line[0].replace('\\', ''),
@@ -1730,20 +1747,21 @@ def convert_to_osis(text, bookid='TEST'):
 
         def simplerepl(match):
             ''' simple regex replacement helper function '''
-            tag = FEATURETAGS[match.group('tag')]
+            matchtag = match.group('tag')
+            tag = FEATURETAGS[matchtag]
             rawosis = match.group('osis')
             attributetext = None
 
             if '|' in rawosis:
                 osis, attributetext, attributes, isvalid = parseattributes(
-                    tag, rawosis)
+                    matchtag, rawosis)
             else:
                 osis, attributetext, attributes, isvalid = (
                     rawosis, None, dict(), True)
             osis2 = osis
 
             # handle w tag attributes
-            if tag == r'\w':
+            if matchtag == r'\w':
                 if 'lemma' in attributes.keys():
                     osis2 = attributes['lemma']
 
@@ -1797,11 +1815,8 @@ def convert_to_osis(text, bookid='TEST'):
                                 'type="annotateRef"', fig[6])
                             fig[6] = ' annotateRef="{}"'.format(fig[6])
 
-                        tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
-                                             fig[2], fig[4], fig[6], '>', '\n',
-                                             figref, fig[5], '</figure>'])
+                    # new style \fig handling
                     else:
-                        # new style \fig handling
                         figattr = parseattributes(r'\fig', tlines[i][5:-5])
                         fig = []
                         figparts = {
@@ -1817,6 +1832,8 @@ def convert_to_osis(text, bookid='TEST'):
                                     figattr[2][_]))
                             else:
                                 fig.append('')
+                            # caption absent in new style fig attributes
+                            fig.append('')
                             # this is likely going to be very broken without
                             # further processing of the references.
                             if 'ref' in figattr[2]:
@@ -1829,10 +1846,11 @@ def convert_to_osis(text, bookid='TEST'):
                             else:
                                 figref = ''
                                 fig.append('')
+                    # build our osis figure tag
+                    tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
+                                         fig[2], fig[4], fig[6], '>', '\n',
+                                         figref, fig[5], '</figure>'])
 
-                        tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
-                                             fig[2], fig[4], fig[5], '>', '\n',
-                                             figref, '</figure>'])
             text = ''.join(tlines)
         return text
 
