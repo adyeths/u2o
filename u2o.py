@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf8 -*-
 
-r'''
-Convert usfm bibles to osis
+r"""
+Convert usfm bibles to osis.
 
 Notes:
    * better handling of osisID's is probably needed.
@@ -17,9 +17,6 @@ Notes:
    * jmp, xop, and sd# need better handling.
 
    * There may be better ways to handle lh and lf
-
-   * USFM milestone quotations tags (qt*-s\* ... qt#-e\*)
-     are not implemented yet.
 
    * table cell column spanning is not implemented
 
@@ -54,7 +51,7 @@ running this script than CPython.
 
 This script is public domain. You may do whatever you want with it.
 
-'''
+"""
 
 #
 #    uFDD0     - used to mark line breaks during processing
@@ -108,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6b',     # THIS SCRIPT version
-    'DATE': '2017-01-20'   # THIS SCRIPT revision date
+    'DATE': '2017-01-28'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -424,7 +421,10 @@ OTHERTAGS = {
     r'\ie': '<!-- ie -->',  # handled with partags... probably not needed here.
     r'\ib ': '<!-- b -->',  # this tag is handled exactly like b.
     r'\b ': '<!-- b -->',
-    r'\nb ': '<!-- nb -->'
+    r'\nb ': '<!-- nb -->',
+
+    # translators chunk marker
+    r'\ts': '<!-- ts -->'
 }
 
 # table cell tags
@@ -792,6 +792,7 @@ USFMRE = re.compile(r'''
 
     # character style closing tags ends with an asterisk.
     \*?
+
 ''', re.U + re.VERBOSE)
 
 # -------------------------------------------------------------------------- #
@@ -971,10 +972,13 @@ OFCQJyEEPw==
 
 
 def convertcl(text):
-    '''
-    convert cl tags that appear only before chapter one to
+    """
+    cl tag format conversion.
+
+    Convert cl tags that appear only before chapter one to
     the form that appears after each chapter marker.
-    '''
+
+    """
     lines = text.split('\n')
 
     # count number of cl tags in text
@@ -1001,10 +1005,13 @@ def convertcl(text):
 
 
 def reflow(text):
-    '''
-    Reflow the text for processing, placing all paragraph style tags on their
-    own line. This makes it significantly easier to handle paragraph markup.
-    '''
+    """
+    Reflow text for Processing.
+
+    Place all paragraph style tags on their own line.
+    This makes it significantly easier to handle paragraph markup.
+
+    """
     # ####################################################################### #
     # The titlepar function depends on how this routine was written in order  #
     # to function properly. Don't make changes here unless you know what      #
@@ -1098,9 +1105,7 @@ def reflow(text):
 
 
 def getbookid(text):
-    '''
-    get book id from file text
-    '''
+    """ get book id from file text. """
     bookid = None
     lines = [i for i in text.split('\n')
              if i.startswith('\\id ')]
@@ -1118,9 +1123,7 @@ def getbookid(text):
 
 
 def getencoding(text):
-    '''
-    get encoding from file text.
-    '''
+    """ get encoding from file text. """
     encoding = None
     lines = [i.decode('utf8') for i in text.split(b'\n')
              if i.startswith(b'\\ide')]
@@ -1131,10 +1134,13 @@ def getencoding(text):
 
 
 def markintroend(lines):
-    '''
-    loop through lines of text and mark start and end of introductions
+    """
+    Mark end of introductions.
+
+    Loop through lines of text and mark start and end of introductions
     to aid in adding div's to introduction sections.
-    '''
+
+    """
     x = len(lines)
     i = 0
     intro = False
@@ -1161,9 +1167,7 @@ def markintroend(lines):
 
 
 def getosisrefs(text):
-    '''
-    generate references for text using the Sword library.
-    '''
+    """ generate references for text using the Sword library. """
     # parse passage list
     lk = Sword.VerseKey().parseVerseList(text.encode("utf8"))
     # get list of verses in our parsed verse list.
@@ -1175,9 +1179,7 @@ def getosisrefs(text):
 
 
 def parseattributes(tag, tagtext):
-    '''
-    helper function to separate attributes from text in usfm
-    '''
+    """ helper function to separate attributes from text in usfm. """
 
     # split attributes from text
     text, _, attributestring = tagtext.partition('|')
@@ -1204,17 +1206,18 @@ def parseattributes(tag, tagtext):
             if not i.startswith('x-'):
                 isinvalid = True
 
-    # return our results
     return(text, attributestring, attribs, isinvalid)
 
 # -------------------------------------------------------------------------- #
 
 
 def convert_to_osis(text, bookid='TEST'):
-    '''
+    """
     convert usfm file to osis.
+
     This is where most of the processing is handled.
-    '''
+
+    """
     # ---------------------------------------------------------------------- #
 
     description = []
@@ -1222,7 +1225,7 @@ def convert_to_osis(text, bookid='TEST'):
     # ---------------------------------------------------------------------- #
 
     def preprocess(text):
-        ''' preprocess text '''
+        """ preprocess text. """
 
         # preprocessing...
         if '&' in text:
@@ -1244,12 +1247,12 @@ def convert_to_osis(text, bookid='TEST'):
         return text.strip()
 
     def identification(text):
-        '''
-        process identification tags
+        """
+        process identification tags.
 
-        id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3,
-        restore
-        '''
+        id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore
+
+        """
 
         line = text.partition(' ')
         if line[0] in IDTAGS.keys():
@@ -1273,12 +1276,13 @@ def convert_to_osis(text, bookid='TEST'):
     # ---------------------------------------------------------------------- #
 
     def titlepar(text):
-        '''
-         Process title and paragraph tags
+        """
+         Process title and paragraph tags.
 
          * Only one procedure is used for all of these due
            to how simple it is to handle these tags.
-         '''
+
+        """
 
         # local copies of global variables.
         partags = PARTAGS
@@ -1427,9 +1431,7 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def fixgroupings(lines):
-        '''
-        fix linegroups in poetry, lists, etc.
-        '''
+        """ fix linegroups in poetry, lists, etc. """
         # append a blank line. (needed in some cases)
         lines.append('')
 
@@ -1649,8 +1651,8 @@ def convert_to_osis(text, bookid='TEST'):
     # ---------------------------------------------------------------------- #
 
     def specialtext(text):
-        '''
-        process special text and character styles
+        """
+        process special text and character styles.
 
         add, add*, bk, bk*, dc, dc*, k, k*, lit, nd, nd*, ord, ord*, pn, pn*,
         qt, qt*, sig, sig*, sls, sls*, tl, tl*, wj, wj*
@@ -1659,7 +1661,8 @@ def convert_to_osis(text, bookid='TEST'):
 
 
         * lit tags are handled in the titlepar function
-        '''
+
+        """
 
         def simplerepl(match):
             ''' simple regex replacement helper function '''
@@ -1679,16 +1682,12 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def footnotecrossrefmarkers(text):
-        '''
-        process footnote and cross reference markers
-        '''
+        """ process footnote and cross reference markers. """
 
         def notefix(notetext):
-            '''
-            additional footnote and cross reference tag processing
-            '''
+            """ additional footnote and cross reference tag processing. """
             def notefixsub(fnmatch):
-                ''' simple regex replacement helper function '''
+                """ simple regex replacement helper function. """
                 tag = NOTETAGS2[fnmatch.groups()[0]]
                 txt = fnmatch.groups()[1]
                 return ''.join([tag[0], txt, tag[1]])
@@ -1701,7 +1700,7 @@ def convert_to_osis(text, bookid='TEST'):
             return notetext
 
         def simplerepl(match):
-            ''' simple regex replacement helper function '''
+            """ simple regex replacement helper function. """
             tag = NOTETAGS[match.group('tag')]
             notetext = match.group('osis').replace('\n', ' ')
             if '<transChange' in notetext:
@@ -1741,12 +1740,10 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def specialfeatures(text):
-        '''
-        Process special features.
-        '''
+        """ Process special features. """
 
         def simplerepl(match):
-            ''' simple regex replacement helper function '''
+            """ simple regex replacement helper function. """
             matchtag = match.group('tag')
             tag = FEATURETAGS[matchtag]
             rawosis = match.group('osis')
@@ -1852,17 +1849,72 @@ def convert_to_osis(text, bookid='TEST'):
                                          figref, fig[5], '</figure>'])
 
             text = ''.join(tlines)
+
+        # Process usfm milestone quotation tags... up to 5 levels.
+        for i in [r'\qt-', r'\qt1-', r'\qt2-', r'\qt3-', r'\qt4-', r'\qt5-']:
+            if i in text:
+                for i in [r'\qt-', r'\qt1-', r'\qt2-',
+                          r'\qt3-' r'\qt4-', r'\qt5-']:
+                    if i in text:
+                        text = text.replace(i, "\n{}".format(i))
+                text = text.replace(r'\*', '\\*\n')
+                tlines = text.split('\n')
+
+                for i in range(len(tlines)):
+                    # make sure we're processing milestone \qt tags
+                    if tlines[i].endswith(r'\*'):
+                        if tlines[i].startswith(r'\qt-') or \
+                           tlines[i].startswith(r'\qt1-') or \
+                           tlines[i].startswith(r'\qt2-') or \
+                           tlines[i].startswith(r'\qt3-') or \
+                           tlines[i].startswith(r'\qt4-') or \
+                           tlines[i].startswith(r'\qt5-'):
+                            # replace with milestone osis tags
+                            newline = ''
+                            tlines[i] = tlines[i].strip().replace(r'\*', '')
+                            tag, _, qttext = tlines[i].partition(' ')
+                            # milestone start tag
+                            if tag.endswith(r'-s'):
+                                _, attributetext, attributes, isvalid = parseattributes(
+                                    r'\qt-s', qttext)
+                                newline = r'<q'
+                                if 'id' in attributes:
+                                    newline = "{}{}".format(
+                                        newline,
+                                        r' sID="{}"'.format(attributes['id']))
+                                if 'who' in attributes:
+                                    newline = "{}{}".format(
+                                        newline,
+                                        r' who="{}"'.format(
+                                            attributes['who']))
+                                newline = "{}{}".format(
+                                    newline,
+                                    r' />')
+                            # milestone end tag
+                            elif tag.endswith(r'-e'):
+                                _, attributetext, attributes, isvalid = parseattributes(
+                                    r'\qt-e', qttext)
+                                newline = r'<q'
+                                if 'id' in attributes:
+                                    newline = "{}{}".format(
+                                        newline,
+                                        r' eID="{}"'.format(attributes['id']))
+                                newline = "{}{}".format(
+                                    newline,
+                                    r' />')
+                            # replace line with osis milestone tag
+                            if newline != '':
+                                tlines[i] = newline
+                # rejoin lines
+                text = ''.join(tlines)
+                break
         return text
 
     def chapverse(lines):
-        '''
-        Process chapter and verse tags
-        '''
+        """ Process chapter and verse tags. """
 
         def verserange(text):
-            '''
-            generate list for verse ranges
-            '''
+            """ generate list for verse ranges. """
             low, high = text.split('-')
             if low.isdigit() and high.isdigit():
                 return [str(i) for i in range(int(low), int(high) + 1)]
@@ -2013,12 +2065,13 @@ def convert_to_osis(text, bookid='TEST'):
         return lines
 
     def processwj(lines):
-        '''
+        """
         create milestone form of q tags for words of jesus.
 
         NOTE: Not currently used as this seems to be problematic for the
               sword lib to handle.
-        '''
+
+        """
         # prepare for processing by joining lines together
         text = u'\ufdd1'.join(lines)
 
@@ -2046,12 +2099,13 @@ def convert_to_osis(text, bookid='TEST'):
         return text.split(u'\ufdd1')
 
     def processwj2(lines):
-        '''
+        """
         alternate processing of wj tags.
 
         This attempts to insert q start and end tags in appropriate locations
         in order to avoid crossing container boundaries.
-        '''
+
+        """
         # get lists of tags where lines need to be broken for processing
         wjstarttags = set()
         wjendtags = set()
@@ -2094,9 +2148,7 @@ def convert_to_osis(text, bookid='TEST'):
         return text.split(u'\ufdd1')
 
     def postprocess(lines):
-        '''
-        fix some formatting issues that may be present after processing
-        '''
+        """ attempt to fix some formatting issues. """
         # resplit lines for post processing,
         # removing leading and trailing whitespace, and b comments
         lines = [i.strip() for i in '\n'.join(lines).split('\n') if
@@ -2311,6 +2363,9 @@ def convert_to_osis(text, bookid='TEST'):
             if j in lines[i]:
                 lines[i] = specialfeatures(lines[i])
                 break
+        for j in [r'\qt-', r'\qt1-', r'\qt2-', r'\qt3-', r'\qt4-', r'\qt5-']:
+            if j in lines[i]:
+                lines[i] = specialfeatures(lines[i])
 
         # paragraph style formatting.
         lines[i] = titlepar(lines[i])
@@ -2350,9 +2405,7 @@ def convert_to_osis(text, bookid='TEST'):
 # -------------------------------------------------------------------------- #
 
 def processreferences(text):
-    '''
-    process cross references in osis text.
-    '''
+    """ process cross references in osis text. """
     crossrefnote = re.compile(
         r'(<note type="crossReference">)(.*?)(</note>)', re.U)
     reftag = re.compile(
@@ -2361,7 +2414,7 @@ def processreferences(text):
     lines = text.split('\n')
 
     def simplerepl(match):
-        ''' simple regex replacement helper function '''
+        """ simple regex replacement helper function. """
         text = match.group(2)
         osisrefs = getosisrefs(text)
 
@@ -2393,9 +2446,7 @@ def processreferences(text):
 
 
 def doconvert(args):
-    '''
-    convert our text and return our results
-    '''
+    """ convert our text and return our results. """
     text, verbose = args
 
     # convert cl lines to form that follows each chapter marker instead of
@@ -2423,9 +2474,7 @@ def doconvert(args):
 
 
 def processfiles(args):
-    '''
-    Main routine to process usfm files.
-    '''
+    """ Main routine to process usfm files. """
     books = {}
     descriptions = {}
     booklist = []
@@ -2604,10 +2653,13 @@ def processfiles(args):
 # -------------------------------------------------------------------------- #
 
 def main():
-    '''
+    """
+    main routine.
+
     Process command line arguments and pass options
     to usfm processing routine.
-    '''
+
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='''
@@ -2673,6 +2725,7 @@ def main():
         processfiles(args)
 
 # -------------------------------------------------------------------------- #
+
 
 if __name__ == '__main__':
     main()
