@@ -1887,8 +1887,12 @@ def convert_to_osis(text, bookid='TEST'):
                                         newline,
                                         r' who="{}"'.format(
                                             attributes['who']))
-                                newline = "{}{}".format(
+                                qlevel = '1'
+                                if tag[3] in ['2', '3', '4', '5']:
+                                    qlevel = tag[3]
+                                newline = "{}{}{}".format(
                                     newline,
+                                    ' level="{}"'.format(qlevel),
                                     r' />')
                             # milestone end tag
                             elif tag.endswith(r'-e'):
@@ -1899,8 +1903,17 @@ def convert_to_osis(text, bookid='TEST'):
                                     newline = "{}{}".format(
                                         newline,
                                         r' eID="{}"'.format(attributes['id']))
-                                newline = "{}{}".format(
+                                qlevel = '1'
+                                if tag[3] in ['2', '3', '4', '5']:
+                                    qlevel = tag[3]
+
+                                # I don't know if I need the level attribute
+                                # on the milestone end tag. I put it here
+                                # just to be sure though. I will remove it
+                                # later if it doesn't belong here.
+                                newline = "{}{}{}".format(
                                     newline,
+                                    ' level="{}"'.format(qlevel),
                                     r' />')
                             # replace line with osis milestone tag
                             if newline != '':
