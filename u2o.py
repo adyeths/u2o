@@ -104,8 +104,8 @@ except ImportError:
 META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
-    'VERSION': '0.6b',     # THIS SCRIPT version
-    'DATE': '2017-01-28'   # THIS SCRIPT revision date
+    'VERSION': '0.6',      # THIS SCRIPT version
+    'DATE': '2017-02-07'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2273,21 +2273,28 @@ def convert_to_osis(text, bookid='TEST'):
         # -- # -- # -- #
 
         # adjust placement of some chapter end tags
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter eID')]:
-            try:
-                if '<title' in lines[i - 1]:
-                    lines.insert(i - 1, lines.pop(i))
-                elif lines[i - 1] == '</p>':
-                    lines.insert(i - 1, lines.pop(i))
-            except IndexError:
-                pass
+        for i in range(3):
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<chapter eID')]:
+                try:
+                    if '<title' in lines[j - 1]:
+                        lines.insert(j - 1, lines.pop(j))
+                    elif 'chapterLabel' in lines[j - 1]:
+                        lines.insert(j - 1, lines.pop(j))
+                    elif lines[j - 1] == '</p>':
+                        lines.insert(j - 1, lines.pop(j))
+                except IndexError:
+                    pass
         # adjust placement of some chapter start tags
         for i in [_ for _ in range(len(lines)) if
                   lines[_].startswith('<chapter sID')]:
             try:
                 if lines[i + 1] == '</p>' and lines[i + 2].startswith('<p'):
                     lines.insert(i + 2, lines.pop(i))
+                elif lines[i + 1] == '</p>' and \
+                     'chapterLabel' in lines[i + 2] and \
+                     lines[i + 3].startswith('<p'):
+                    lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
         for i in [_ for _ in range(len(lines)) if
