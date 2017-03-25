@@ -1271,6 +1271,11 @@ def convert_to_osis(text, bookid='TEST'):
                     line[0][1:],
                     line[2].strip()))
             text = ''
+            # fix problems with url's in rem lines resulting from processing
+            # of special spacing in preprocessing section.
+            if u'<lb type="x-optional" />' in description[-1]:
+                    description[-1] = description[-1].replace(
+                        u'<lb type="x-optional" />', u'//')
         return text
 
     # ---------------------------------------------------------------------- #
