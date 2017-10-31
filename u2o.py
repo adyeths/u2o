@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-02-07'   # THIS SCRIPT revision date
+    'DATE': '2017-10-31'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1716,18 +1716,18 @@ def convert_to_osis(text, bookid='TEST'):
             return '{}{}{}'.format(tag[0], notetext, tag[1])
         text = NOTERE.sub(simplerepl, text, 0)
 
+        # process additional footnote tags if present
+        if r'\f' in text or r'\x' in text:
+            text = notefix(text)
+
         # handle fp tags
         if r'\fp ' in text:
             textopen = text.partition('>')
             text = '{}><div type="paragraph">{}'.format(textopen[0],
                                                         textopen[2])
             textclose = text.rpartition('<')
-            text = '{}</div>{}'.format(textclose[0], textclose[2])
+            text = '{}</div><{}'.format(textclose[0], textclose[2])
             text = text.replace(r'\fp ', r'</div><div type="paragraph">')
-
-        # process additional footnote tags if present
-        if r'\f' in text or r'\x' in text:
-            text = notefix(text)
 
         # study bible index categories
         if r'\cat ' in text:
