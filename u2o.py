@@ -57,6 +57,9 @@ This script is public domain. You may do whatever you want with it.
 #    uFDD0     - used to mark line breaks during processing
 #    uFDD1     - used to preserve line breaks during wj processing
 #
+#    uFDD2     - used at start of footnotes to help process \fp markers
+#    uFDD3     - used at end of footnotes to help process \fp markers
+#
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
 #
@@ -105,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-10-31'   # THIS SCRIPT revision date
+    'DATE': '2017-11-01'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -552,10 +555,11 @@ FEATURETAGS = {
 
 # footnote and cross reference tags
 NOTETAGS = {
-    r'\f': ('<note placement="foot">', '</note>'),
-    r'\fe': ('<note placement="end">', '</note>'),
+    r'\f': ('<note placement="foot">\uFDD2', '\uFDD3</note>'),
+    r'\fe': ('<note placement="end">\uFDD2', '\uFDD3</note>'),
     r'\x': ('<note type="crossReference">', '</note>'),
-    r'\ef': ('<note placement="foot" subtype="x-extended">', '</note>'),
+    r'\ef': ('<note placement="foot" subtype="x-extended">\uFDD2',
+             '\uFDD3</note>'),
     r'\ex': ('<note type="crossReference" subtype="x-extended">', '</note>')
 }
 
@@ -1722,12 +1726,11 @@ def convert_to_osis(text, bookid='TEST'):
 
         # handle fp tags
         if r'\fp ' in text:
-            textopen = text.partition('>')
-            text = '{}><div type="paragraph">{}'.format(textopen[0],
-                                                        textopen[2])
-            textclose = text.rpartition('<')
-            text = '{}</div><{}'.format(textclose[0], textclose[2])
+            text = text.replace('\uFDD2', '<div type="paragraph">')
+            text = text.replace('\uFDD3', '</div>')
             text = text.replace(r'\fp ', r'</div><div type="paragraph">')
+        else:
+            text = text.replace('\uFDD2', '').replace('\uFDD3', '')
 
         # study bible index categories
         if r'\cat ' in text:
