@@ -1726,9 +1726,16 @@ def convert_to_osis(text, bookid='TEST'):
 
         # handle fp tags
         if r'\fp ' in text:
-            text = text.replace('\uFDD2', '<div type="paragraph">')
-            text = text.replace('\uFDD3', '</div>')
-            text = text.replace(r'\fp ', r'</div><div type="paragraph">')
+            # p tags would be ideal but won't work here...
+            # div's would be the next best choice, but they aren't allowed in
+            # footnotes...
+            # So... the only choice I can think of to use next is seg...
+            # Not ideal, but it's better than nothing I guess.
+            # I also added a line break to separate the seg tags...
+            # I have no idea how else to handle the fp tag conversion.
+            text = text.replace('\uFDD2', '<seg type="x-usfm-fp">')
+            text = text.replace('\uFDD3', '</seg>')
+            text = text.replace(r'\fp ', r'</seg><lb /><seg type="x-usfm-fp">')
         else:
             text = text.replace('\uFDD2', '').replace('\uFDD3', '')
 
