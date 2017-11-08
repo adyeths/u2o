@@ -1278,8 +1278,8 @@ def convert_to_osis(text, bookid='TEST'):
             # fix problems with url's in rem lines resulting from processing
             # of special spacing in preprocessing section.
             if u'<lb type="x-optional" />' in description[-1]:
-                    description[-1] = description[-1].replace(
-                        u'<lb type="x-optional" />', u'//')
+                description[-1] = description[-1].replace(
+                    u'<lb type="x-optional" />', u'//')
         return text
 
     # ---------------------------------------------------------------------- #
@@ -1968,16 +1968,19 @@ def convert_to_osis(text, bookid='TEST'):
                     tmp[2] = CPRE.sub('', tmp[2])
                 # get alternate chapter number from \ca tags
                 # this will be added to the chapter osisID
-                if r'\ca ' in lines[i]:
-                    cvatag = CVARE.search(tmp[2]).group('tag')
-                    if cvatag == r'\ca':
-                        caid = CVARE.search(tmp[2]).group('num')
-                        tmp[2] = CVARE.sub('', tmp[2])
-                        caid = ' {}.{}'.format(bookid, caid)
-                    else:
-                        caid = ''
-                else:
-                    caid = ''
+                caid = ''
+                # Commented out since The SWORD Project can't handle this...
+                # Handled in postprocessing routine now.
+                # if r'\ca ' in lines[i]:
+                #     cvatag = CVARE.search(tmp[2]).group('tag')
+                #     if cvatag == r'\ca':
+                #         caid = CVARE.search(tmp[2]).group('num')
+                #         tmp[2] = CVARE.sub('', tmp[2])
+                #         caid = ' {}.{}'.format(bookid, caid)
+                #     else:
+                #         caid = ''
+                # else:
+                #     caid = ''
 
                 # generate chapter number
                 if chap == '':
@@ -2022,16 +2025,19 @@ def convert_to_osis(text, bookid='TEST'):
                     vnum = VPRE.search(tmp[2]).group('num')
                     tmp[2] = VPRE.sub('', tmp[2])
                 # add va to osis id.
-                if r'\va ' in lines[i]:
-                    vatag = CVARE.search(tmp[2]).group('tag')
-                    if vatag == r'\va':
-                        vaid = CVARE.search(tmp[2]).group('num')
-                        tmp[2] = CVARE.sub('', tmp[2])
-                        vaid = ' {}.{}.{}'.format(bookid, chap, vaid)
-                    else:
-                        vaid = ''
-                else:
-                    vaid = ''
+                vaid = ''
+                # Commented out since The SWORD Project can't handle this...
+                # Handled in postprocessing routine now.
+                # if r'\va ' in lines[i]:
+                #     vatag = CVARE.search(tmp[2]).group('tag')
+                #     if vatag == r'\va':
+                #         vaid = CVARE.search(tmp[2]).group('num')
+                #         tmp[2] = CVARE.sub('', tmp[2])
+                #         vaid = ' {}.{}.{}'.format(bookid, chap, vaid)
+                #     else:
+                #         vaid = ''
+                # else:
+                #     vaid = ''
 
                 # handle verse ranges
                 if '-' in vnum:
@@ -2176,18 +2182,21 @@ def convert_to_osis(text, bookid='TEST'):
         lines = [i.strip() for i in '\n'.join(lines).split('\n') if
                  i.strip() != '' and i.strip() != '<!-- b -->']
 
-        # do something with unhandled va and vp tags...
-        # this is not ideal, but eliminates the odd stray va and vp tags that
-        # would otherwise pass through this script unprocessed.
-        # I don't know how else to handle these tags.
-        # I may have to add \ca and \cp handling here as well.
+        # Convert all ca and va tags, and unhandled vp tags, to milestones...
         for i in range(len(lines)):
-            while r'\va ' in lines[i]:
-                vanum = CVARE.search(lines[i]).group('num')
-                lines[i] = CVARE.sub(
-                    '<milestone type="x-usfm-va" n="{}" />'.format(vanum),
-                    lines[i],
-                    1)
+            while r'\ca ' in lines[i] or r'\va ' in lines[i]:
+                cvanum = CVARE.search(lines[i]).group('num')
+                cvatag = CVARE.search(lines[i]).group('tag')
+                if cvatag == r'\ca':
+                    lines[i] = CVARE.sub(
+                        '<milestone type="x-usfm-ca" n="{}" />'.format(cvanum),
+                        lines[i],
+                        1)
+                else:
+                    lines[i] = CVARE.sub(
+                        '<milestone type="x-usfm-va" n="{}" />'.format(cvanum),
+                        lines[i],
+                        1)
             while r'\vp ' in lines[i]:
                 vpnum = VPRE.search(lines[i]).group('num')
                 lines[i] = VPRE.sub(
