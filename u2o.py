@@ -532,7 +532,12 @@ SPECIALTEXT = {
                '</q></seg>'),
     r'\+rq': ('<seg type="x-nested"><reference type="source">',
               '</reference></seg>'),
-    r'\+qac': ('<seg type="x-nested"><hi type="acrostic">', '</hi></seg>')
+    r'\+qac': ('<seg type="x-nested"><hi type="acrostic">', '</hi></seg>'),
+
+    # ca and va tags... because simpler handling was needed...
+    r'\ca': ('<milestone type="x-usfm-ca" n="', '" />'),
+    r'\va': ('<milestone type="x-usfm-va" n="', '" />')
+
 }
 
 # special features
@@ -1057,6 +1062,10 @@ def reflow(text):
         # always make sure \cp tag has a space preceding it if present
         if r'\cp' in text:
             text = text.replace(r'\cp', r' \cp')
+
+        # always make sure \ca tag has a space preceding it if present
+        if r'\ca' in text:
+            text = text.replace(r'\ca', r' \ca')
 
         # always make sure chapter markers are on a separate line from titles.
         textlines = text.split('\n')
@@ -1970,7 +1979,7 @@ def convert_to_osis(text, bookid='TEST'):
                 # this will be added to the chapter osisID
                 caid = ''
                 # Commented out since The SWORD Project can't handle this...
-                # Handled in postprocessing routine now.
+                # Handled with specialtext now.
                 # if r'\ca ' in lines[i]:
                 #     cvatag = CVARE.search(tmp[2]).group('tag')
                 #     if cvatag == r'\ca':
@@ -2027,7 +2036,7 @@ def convert_to_osis(text, bookid='TEST'):
                 # add va to osis id.
                 vaid = ''
                 # Commented out since The SWORD Project can't handle this...
-                # Handled in postprocessing routine now.
+                # Handled with specialtext now.
                 # if r'\va ' in lines[i]:
                 #     vatag = CVARE.search(tmp[2]).group('tag')
                 #     if vatag == r'\va':
@@ -2182,21 +2191,8 @@ def convert_to_osis(text, bookid='TEST'):
         lines = [i.strip() for i in '\n'.join(lines).split('\n') if
                  i.strip() != '' and i.strip() != '<!-- b -->']
 
-        # Convert all ca and va tags, and unhandled vp tags, to milestones...
+        # Convert unhandled vp tags, to milestones...
         for i in range(len(lines)):
-            while r'\ca ' in lines[i] or r'\va ' in lines[i]:
-                cvanum = CVARE.search(lines[i]).group('num')
-                cvatag = CVARE.search(lines[i]).group('tag')
-                if cvatag == r'\ca':
-                    lines[i] = CVARE.sub(
-                        '<milestone type="x-usfm-ca" n="{}" />'.format(cvanum),
-                        lines[i],
-                        1)
-                else:
-                    lines[i] = CVARE.sub(
-                        '<milestone type="x-usfm-va" n="{}" />'.format(cvanum),
-                        lines[i],
-                        1)
             while r'\vp ' in lines[i]:
                 vpnum = VPRE.search(lines[i]).group('num')
                 lines[i] = VPRE.sub(
