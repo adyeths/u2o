@@ -108,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-01'   # THIS SCRIPT revision date
+    'DATE': '2017-11-09'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2328,8 +2328,12 @@ def convert_to_osis(text, bookid='TEST'):
             try:
                 if re.match('<chapter sID[^>]+> ?</div>', lines[i]) and \
                    lines[i + 1].startswith('<div'):
-                    lines.insert(i + 2, lines[i].replace(' </div>', ''))
+                    lines.insert(i + 2, lines[i].replace('</div>', ''))
                     lines[i] = '</div>'
+                elif re.match('<chapter sID[^>]+> ?<div', lines[i]):
+                    tmp = lines[i].replace('<div', '\n<div').split('\n', 1)
+                    lines[i] = tmp[0]
+                    lines.insert(i + 1, tmp[1])
                 elif re.match('<chapter sID[^>]+> ?<p>', lines[i]):
                     lines.insert(i + 1, lines[i].replace('<p>', ''))
                     lines[i] = '<p>'
