@@ -108,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-09'   # THIS SCRIPT revision date
+    'DATE': '2017-11-13'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -286,16 +286,24 @@ TITLETAGS = {
     # ---------------------------------------------------------
 
     # ##### INTRODUCTIONS ##### #
-    r'\imt': ('<title type="main">', '</title>'),
-    r'\imt1': ('<title level="1" type="main">', '</title>'),
-    r'\imt2': ('<title level="2" type="main">', '</title>'),
-    r'\imt3': ('<title level="3" type="main">', '</title>'),
-    r'\imt4': ('<title level="4" type="main">', '</title>'),
-    r'\imte': ('<title type="main">', '</title>'),
-    r'\imte1': ('<title level="1" type="main">', '</title>'),
-    r'\imte2': ('<title level="2" type="main">', '</title>'),
-    r'\imte3': ('<title level="3" type="main">', '</title>'),
-    r'\imte4': ('<title level="4" type="main">', '</title>'),
+    r'\imt': ('<title type="main" subtype="x-introduction">', '</title>'),
+    r'\imt1': ('<title level="1" type="main" subtype="x-introduction">',
+               '</title>'),
+    r'\imt2': ('<title level="2" type="main" subtype="x-introduction">',
+               '</title>'),
+    r'\imt3': ('<title level="3" type="main" subtype="x-introduction">',
+               '</title>'),
+    r'\imt4': ('<title level="4" type="main" subtype="x-introduction">',
+               '</title>'),
+    r'\imte': ('<title type="main" subtype="x-introduction">', '</title>'),
+    r'\imte1': ('<title level="1" type="main" subtype="x-introduction">',
+                '</title>'),
+    r'\imte2': ('<title level="2" type="main" subtype="x-introduction">',
+                '</title>'),
+    r'\imte3': ('<title level="3" type="main" subtype="x-introduction">',
+                '</title>'),
+    r'\imte4': ('<title level="4" type="main" subtype="x-introduction">',
+                '</title>'),
     # r'\ib': ('', ''),
 
     # ##### Normal Title Section ##### #
@@ -346,27 +354,37 @@ TITLETAGS = {
 # paragraph and poetry/prose tags
 PARTAGS = {
     # INTRODUCTIONS
-    r'\iot': (r'<item type="x-head">', r'</item>'),
-    r'\io': (r'<item type="x-indent-1">', r'</item>'),
-    r'\io1': (r'<item type="x-indent-1">', r'</item>'),
-    r'\io2': (r'<item type="x-indent-2">', r'</item>'),
-    r'\io3': (r'<item type="x-indent-3">', r'</item>'),
-    r'\io4': (r'<item type="x-indent-4">', r'</item>'),
-    r'\ip': (r'<p>', r' </p>'),
-    r'\im': (r'<p type="x-noindent">', r' </p>'),
-    r'\ipq': (r'<p type="x-quote">', r' </p>'),
-    r'\imq': (r'<p type="x-noindent-quote">', r' </p>'),
-    r'\ipi': (r'<p type="x-indented">', r' </p>'),
-    r'\imi': (r'<p type="x-noindent-indented">', r' </p>'),
-    r'\ili': (r'<item type="x-indent-1">', r' </item>'),
-    r'\ili1': (r'<item type="x-indent-1">', r' </item>'),
-    r'\ili2': (r'<item type="x-indent-2">', r' </item>'),
-    r'\ipr': (r'<p type="x-right">', r' </p>'),
-    r'\iq': (r'<l level="1">', r' </l>'),
-    r'\iq1': (r'<l level="1">', r' </l>'),
-    r'\iq2': (r'<l level="2">', r' </l>'),
-    r'\iq3': (r'<l level="3">', r' </l>'),
-    r'\iex': (r'<div type="bridge">', r'</div>'),
+    r'\iot': (r'<item type="x-head" subtype="x-introduction">', r'</item>'),
+    r'\io': (r'<item type="x-indent-1" subtype="x-introduction">',
+             r'</item>'),
+    r'\io1': (r'<item type="x-indent-1" subtype="x-introduction">',
+              r'</item>'),
+    r'\io2': (r'<item type="x-indent-2" subtype="x-introduction">',
+              r'</item>'),
+    r'\io3': (r'<item type="x-indent-3" subtype="x-introduction">',
+              r'</item>'),
+    r'\io4': (r'<item type="x-indent-4" subtype="x-introduction">',
+              r'</item>'),
+    r'\ip': (r'<p subtype="x-introduction">', r' </p>'),
+    r'\im': (r'<p type="x-noindent" subtype="x-introduction">', r' </p>'),
+    r'\ipq': (r'<p type="x-quote" subtype="x-introduction">', r' </p>'),
+    r'\imq': (r'<p type="x-noindent-quote" subtype="x-introduction">',
+              r' </p>'),
+    r'\ipi': (r'<p type="x-indented" subtype="x-introduction">', r' </p>'),
+    r'\imi': (r'<p type="x-noindent-indented" subtype="x-introduction">',
+              r' </p>'),
+    r'\ili': (r'<item type="x-indent-1" subtype="x-introduction">',
+              r' </item>'),
+    r'\ili1': (r'<item type="x-indent-1" subtype="x-introduction">',
+               r' </item>'),
+    r'\ili2': (r'<item type="x-indent-2" subtype="x-introduction">',
+               r' </item>'),
+    r'\ipr': (r'<p type="x-right" subtype="x-introduction">', r' </p>'),
+    r'\iq': (r'<l level="1" subtype="x-introduction">', r' </l>'),
+    r'\iq1': (r'<l level="1" subtype="x-introduction">', r' </l>'),
+    r'\iq2': (r'<l level="2" subtype="x-introduction">', r' </l>'),
+    r'\iq3': (r'<l level="3" subtype="x-introduction">', r' </l>'),
+    r'\iex': (r'<div type="bridge" subtype="x-introduction">', r'</div>'),
     r'\ie': (r'<!-- ie -->', r''),
 
     # ##### PARAGRAPH/POETRY
@@ -527,12 +545,13 @@ SPECIALTEXT = {
 
     # a few stray introduction and poetry tags that
     # work well being handled in this section.
-    r'\ior': ('<reference>', '</reference>'),
+    r'\ior': ('<reference subtype="x-introduction">', '</reference>'),
     r'\iqt': ('<q subType="x-introduction">', '</q>'),
     r'\rq': ('<reference type="source">', '</reference>'),
     r'\qac': ('<hi type="acrostic">', '</hi>'),
 
-    r'\+ior': ('<seg type="x-nested"><reference>', '</reference></seg>'),
+    r'\+ior': ('<seg type="x-nested"><reference subtype="x-introduction">',
+               '</reference></seg>'),
     r'\+iqt': ('<seg type="x-nested"><q subType="x-introduction">',
                '</q></seg>'),
     r'\+rq': ('<seg type="x-nested"><reference type="source">',
@@ -987,7 +1006,7 @@ OFCQJyEEPw==
 
 def convertcl(text):
     """
-    cl tag format conversion.
+    CL tag format conversion.
 
     Convert cl tags that appear only before chapter one to
     the form that appears after each chapter marker.
@@ -1123,7 +1142,7 @@ def reflow(text):
 
 
 def getbookid(text):
-    """ get book id from file text. """
+    """Get book id from file text."""
     bookid = None
     lines = [i for i in text.split('\n')
              if i.startswith('\\id ')]
@@ -1141,7 +1160,7 @@ def getbookid(text):
 
 
 def getencoding(text):
-    """ get encoding from file text. """
+    """Get encoding from file text."""
     encoding = None
     lines = [i.decode('utf8') for i in text.split(b'\n')
              if i.startswith(b'\\ide')]
@@ -1185,7 +1204,7 @@ def markintroend(lines):
 
 
 def getosisrefs(text):
-    """ generate references for text using the Sword library. """
+    """Generate references for text using the Sword library."""
     # parse passage list
     lk = Sword.VerseKey().parseVerseList(text.encode("utf8"))
     # get list of verses in our parsed verse list.
@@ -1197,8 +1216,7 @@ def getosisrefs(text):
 
 
 def parseattributes(tag, tagtext):
-    """ helper function to separate attributes from text in usfm. """
-
+    """Helper function to separate attributes from text in usfm."""
     # split attributes from text
     text, _, attributestring = tagtext.partition('|')
     attribs = {}
@@ -1231,7 +1249,7 @@ def parseattributes(tag, tagtext):
 
 def convert_to_osis(text, bookid='TEST'):
     """
-    convert usfm file to osis.
+    Convert usfm file to osis.
 
     This is where most of the processing is handled.
 
@@ -1243,8 +1261,7 @@ def convert_to_osis(text, bookid='TEST'):
     # ---------------------------------------------------------------------- #
 
     def preprocess(text):
-        """ preprocess text. """
-
+        """Preprocess text."""
         # preprocessing...
         if '&' in text:
             text = text.replace('&', '&amp;')
@@ -1266,12 +1283,11 @@ def convert_to_osis(text, bookid='TEST'):
 
     def identification(text):
         """
-        process identification tags.
+        Process identification tags.
 
-        id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore
+        id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore.
 
         """
-
         line = text.partition(' ')
         if line[0] in IDTAGS.keys():
             if IDTAGS[line[0]][0] == '':
@@ -1300,13 +1316,12 @@ def convert_to_osis(text, bookid='TEST'):
 
     def titlepar(text):
         """
-         Process title and paragraph tags.
+        Process title and paragraph tags.
 
-         * Only one procedure is used for all of these due
-           to how simple it is to handle these tags.
+        * Only one procedure is used for all of these due
+          to how simple it is to handle these tags.
 
         """
-
         # local copies of global variables.
         partags = PARTAGS
         othertags = OTHERTAGS
@@ -1454,7 +1469,7 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def fixgroupings(lines):
-        """ fix linegroups in poetry, lists, etc. """
+        """Fix linegroups in poetry, lists, etc."""
         # append a blank line. (needed in some cases)
         lines.append('')
 
@@ -1675,7 +1690,7 @@ def convert_to_osis(text, bookid='TEST'):
 
     def specialtext(text):
         """
-        process special text and character styles.
+        Process special text and character styles.
 
         add, add*, bk, bk*, dc, dc*, k, k*, lit, nd, nd*, ord, ord*, pn, pn*,
         qt, qt*, sig, sig*, sls, sls*, tl, tl*, wj, wj*
@@ -1686,9 +1701,8 @@ def convert_to_osis(text, bookid='TEST'):
         * lit tags are handled in the titlepar function
 
         """
-
         def simplerepl(match):
-            ''' simple regex replacement helper function '''
+            """Simple regex replacement helper function."""
             tag = SPECIALTEXT[match.group('tag')]
             return '{}{}{}'.format(tag[0], match.group('osis'), tag[1])
         text = SPECIALTEXTRE.sub(simplerepl, text, 0)
@@ -1705,12 +1719,11 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def footnotecrossrefmarkers(text):
-        """ process footnote and cross reference markers. """
-
+        """Process footnote and cross reference markers."""
         def notefix(notetext):
-            """ additional footnote and cross reference tag processing. """
+            """Additional footnote and cross reference tag processing."""
             def notefixsub(fnmatch):
-                """ simple regex replacement helper function. """
+                """Simple regex replacement helper function."""
                 tag = NOTETAGS2[fnmatch.groups()[0]]
                 txt = fnmatch.groups()[1]
                 return ''.join([tag[0], txt, tag[1]])
@@ -1723,7 +1736,7 @@ def convert_to_osis(text, bookid='TEST'):
             return notetext
 
         def simplerepl(match):
-            """ simple regex replacement helper function. """
+            """Simple regex replacement helper function."""
             tag = NOTETAGS[match.group('tag')]
             notetext = match.group('osis').replace('\n', ' ')
             if '<transChange' in notetext:
@@ -1763,10 +1776,9 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def specialfeatures(text):
-        """ Process special features. """
-
+        """Process special features."""
         def simplerepl(match):
-            """ simple regex replacement helper function. """
+            """Simple regex replacement helper function."""
             matchtag = match.group('tag')
             tag = FEATURETAGS[matchtag]
             rawosis = match.group('osis')
@@ -1898,8 +1910,8 @@ def convert_to_osis(text, bookid='TEST'):
                             tag, _, qttext = tlines[i].partition(' ')
                             # milestone start tag
                             if tag.endswith(r'-s'):
-                                _, attributetext, attributes, isvalid = parseattributes(
-                                    r'\qt-s', qttext)
+                                _, attributetext, attributes, isvalid = \
+                                    parseattributes(r'\qt-s', qttext)
                                 newline = r'<q'
                                 if 'id' in attributes:
                                     newline = "{}{}".format(
@@ -1919,8 +1931,8 @@ def convert_to_osis(text, bookid='TEST'):
                                     r' />')
                             # milestone end tag
                             elif tag.endswith(r'-e'):
-                                _, attributetext, attributes, isvalid = parseattributes(
-                                    r'\qt-e', qttext)
+                                _, attributetext, attributes, isvalid = \
+                                    parseattributes(r'\qt-e', qttext)
                                 newline = r'<q'
                                 if 'id' in attributes:
                                     newline = "{}{}".format(
@@ -1947,10 +1959,9 @@ def convert_to_osis(text, bookid='TEST'):
         return text
 
     def chapverse(lines):
-        """ Process chapter and verse tags. """
-
+        """Process chapter and verse tags."""
         def verserange(text):
-            """ generate list for verse ranges. """
+            """Generate list for verse ranges."""
             low, high = text.split('-')
             if low.isdigit() and high.isdigit():
                 return [str(i) for i in range(int(low), int(high) + 1)]
@@ -2108,7 +2119,7 @@ def convert_to_osis(text, bookid='TEST'):
 
     def processwj(lines):
         """
-        create milestone form of q tags for words of jesus.
+        Create milestone form of q tags for words of Jesus.
 
         NOTE: Not currently used as this seems to be problematic for the
               sword lib to handle.
@@ -2142,7 +2153,7 @@ def convert_to_osis(text, bookid='TEST'):
 
     def processwj2(lines):
         """
-        alternate processing of wj tags.
+        Alternate processing of wj tags.
 
         This attempts to insert q start and end tags in appropriate locations
         in order to avoid crossing container boundaries.
@@ -2190,7 +2201,7 @@ def convert_to_osis(text, bookid='TEST'):
         return text.split(u'\ufdd1')
 
     def postprocess(lines):
-        """ attempt to fix some formatting issues. """
+        """Attempt to fix some formatting issues."""
         # resplit lines for post processing,
         # removing leading and trailing whitespace, and b comments
         lines = [i.strip() for i in '\n'.join(lines).split('\n') if
@@ -2310,9 +2321,9 @@ def convert_to_osis(text, bookid='TEST'):
             try:
                 if lines[i + 1] == '</p>' and lines[i + 2].startswith('<p'):
                     lines.insert(i + 2, lines.pop(i))
-                elif lines[i + 1] == '</p>' and \
-                     'chapterLabel' in lines[i + 2] and \
-                     lines[i + 3].startswith('<p'):
+                elif lines[i + 1] == '</p>' \
+                        and 'chapterLabel' in lines[i + 2] \
+                        and lines[i + 3].startswith('<p'):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
@@ -2448,7 +2459,7 @@ def convert_to_osis(text, bookid='TEST'):
 # -------------------------------------------------------------------------- #
 
 def processreferences(text):
-    """ process cross references in osis text. """
+    """Process cross references in osis text."""
     crossrefnote = re.compile(
         r'(<note type="crossReference">)(.*?)(</note>)', re.U)
     reftag = re.compile(
@@ -2457,7 +2468,7 @@ def processreferences(text):
     lines = text.split('\n')
 
     def simplerepl(match):
-        """ simple regex replacement helper function. """
+        """Simple regex replacement helper function."""
         text = match.group(2)
         osisrefs = getosisrefs(text)
 
@@ -2489,7 +2500,7 @@ def processreferences(text):
 
 
 def doconvert(args):
-    """ convert our text and return our results. """
+    """Convert our text and return our results."""
     text, verbose = args
 
     # convert cl lines to form that follows each chapter marker instead of
@@ -2517,7 +2528,7 @@ def doconvert(args):
 
 
 def processfiles(args):
-    """ Main routine to process usfm files. """
+    """Main routine to process usfm files."""
     books = {}
     descriptions = {}
     booklist = []
@@ -2701,7 +2712,7 @@ def processfiles(args):
 
 def main():
     """
-    main routine.
+    Main routine.
 
     Process command line arguments and pass options
     to usfm processing routine.
