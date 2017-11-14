@@ -210,10 +210,25 @@ BOOKNAMES = {
     'NDX': 'GAZETTEER', 'OTH': 'X-OTHER'
 }
 
-# list of noncanonical book id's
-NONCANONICAL = ['XXA', 'XXB', 'XXC', 'XXD', 'XXE', 'XXF', 'XXG',
-                'FRONT', 'INTRODUCTION', 'BACK', 'CONCORDANCE',
-                'GLOSSARY', 'INDEX', 'GAZETTEER', 'X-OTHER']
+# noncanonical book id's
+NONCANONICAL = {
+    'FRONT': 'front',
+    'INTRODUCTION': 'introduction',
+    'XXA': 'x-other',
+    'XXB': 'x-other',
+    'XXC': 'x-other',
+    'XXD': 'x-other',
+    'XXE': 'x-other',
+    'XXF': 'x-other',
+    'XXG': 'x-other',
+    'BACK': 'back',
+    'CONCORDANCE': 'concordance',
+    'GLOSSARY': 'glossary',
+    'INDEX': 'index',
+    'GAZETTEER': 'gazetteer',
+    'X-OTHER': 'x-other'
+}
+
 
 # -------------------------------------------------------------------------- #
 # TAG MAPPINGS
@@ -2595,13 +2610,18 @@ def processfiles(args):
     for bookid, descriptiontext, newtext in results:
         # store our converted text for output
         if bookid != 'TEST':
-            canonical = {
-                True: '',
-                False: ' canonical="true"'
-            }[bookid in NONCANONICAL]
-            books[bookid] = \
-                '<div type="book" osisID="{}"{}>\n{}\n</div>\n\n'.format(
-                    bookid, canonical, newtext)
+            if bookid in NONCANONICAL:
+                books[bookid] = \
+                    '<div type="{}" osisID="{}">\n{}\n</div>\n\n'.format(
+                        NONCANONICAL[bookid],
+                        bookid,
+                        newtext)
+            else:
+                books[bookid] = \
+                    '<div type="book" osisID="{}" {}>\n{}\n</div>\n\n'.format(
+                        bookid,
+                        'canonical="true"',
+                        newtext)
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
