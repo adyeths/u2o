@@ -2612,9 +2612,8 @@ def processfiles(args):
         if bookid != 'TEST':
             if bookid in NONCANONICAL:
                 books[bookid] = \
-                    '<div type="{}" osisID="{}">\n{}\n</div>\n\n'.format(
+                    '<div type="{}">\n{}\n</div>\n\n'.format(
                         NONCANONICAL[bookid],
-                        bookid,
                         newtext)
             else:
                 books[bookid] = \
