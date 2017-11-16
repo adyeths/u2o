@@ -7,8 +7,7 @@ Convert usfm bibles to osis.
 Notes:
    * better handling of osisID's is probably needed.
 
-   * no attempt has been made to process any \z tags or x- attributes
-     in this script.
+   * no attempt has been made to process any x- attributes in this script.
 
    * I can think of scenarios where this script may not work properly. However,
      it works fine for all of the usfm bibles that I have access to at this
@@ -690,6 +689,30 @@ SPECIALTEXTRE_S = r'''
                          if not _.startswith(r'\+')]))
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
+
+# match z tags that have both a start and end marker
+ZTAGS_S = r'''
+        # put z tags that have a start and end marker into named group 'tag'
+        (?P<tag>
+
+            # tags always start with a backslash
+            \\
+
+            # match alphanumeric characters
+            z(?:[A-Za-z0-9]+)
+        )
+
+        # there is always at least one space separating the tag and the content
+        \s+
+
+        # put the tag content into a named group called 'osis'
+        (?P<osis>.*?)
+
+        # tag end marker
+        (?P=tag)\*
+    '''
+ZTAGSRE = re.compile(ZTAGS_S, re.U + re.VERBOSE)
+del ZTAGS_S
 
 # matches special feature tags
 # Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
@@ -1973,6 +1996,24 @@ def convert_to_osis(text, bookid='TEST'):
                 break
         return text
 
+    def ztags(text):
+        """Process z tags that have both a start and end marker."""
+        def simplerepl(match):
+            """Simple regex replacement helper function."""
+            return '<seg type="x-usfm-z{}">{}</seg>'.format(
+                match.group('tag').replace(r'\z', ''),
+                match.group('osis'))
+        text = ZTAGSRE.sub(simplerepl, text, 0)
+        # milestone z tags… this may need more work…
+        if r'\z' in text:
+            words = text.split(' ')
+            for i in enumerate(words):
+                if i[1].startswith(r'\z'):
+                    words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
+                        i[1].replace(r'\z', ''))
+            text = ' '.join(words)
+        return text
+
     def chapverse(lines):
         """Process chapter and verse tags."""
         def verserange(text):
@@ -2435,6 +2476,10 @@ def convert_to_osis(text, bookid='TEST'):
         for j in [r'\qt-', r'\qt1-', r'\qt2-', r'\qt3-', r'\qt4-', r'\qt5-']:
             if j in lines[i]:
                 lines[i] = specialfeatures(lines[i])
+
+        # z tags if present
+        if r'\z' in lines[i]:
+            lines[i] = ztags(lines[i])
 
         # paragraph style formatting.
         lines[i] = titlepar(lines[i])
