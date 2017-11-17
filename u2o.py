@@ -660,8 +660,9 @@ DEFAULTATTRIBUTES = {
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
 
-# squeeze whitespace into single space character
-SQUEEZE = re.compile(r'\s+', re.U + re.M + re.DOTALL)
+# squeeze all regular spaces, carriage returns, and newlines
+# into a single space.
+SQUEEZE = re.compile(r'[ \n\r]+', re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
