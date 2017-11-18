@@ -107,7 +107,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-13'   # THIS SCRIPT revision date
+    'DATE': '2017-11-17'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -662,7 +662,7 @@ DEFAULTATTRIBUTES = {
 
 # squeeze all regular spaces, carriage returns, and newlines
 # into a single space.
-SQUEEZE = re.compile(r'[ \n\r]+', re.U + re.M + re.DOTALL)
+SQUEEZE = re.compile(r'[ \t\n\r]+', re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
