@@ -2544,7 +2544,8 @@ def processreferences(text):
                     '<reference osisRef="{}">{}</reference>'.format(osisrefs,
                                                                     text))
             else:
-                outtext = text
+                outtext = r'<note type="crossReference">{}</note>'.format(
+                    text)
         return outtext
 
     # process reference tags in document
