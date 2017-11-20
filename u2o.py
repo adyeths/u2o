@@ -71,6 +71,7 @@ import glob
 import re
 import shlex
 import codecs
+import datetime
 import unicodedata
 from contextlib import closing
 
@@ -107,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-17'   # THIS SCRIPT revision date
+    'DATE': '2017-11-19'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -119,6 +120,10 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
         http://www.bibletechnologies.net/osisCore.2.1.1.xsd">
     <osisText osisIDWork="{}" osisRefWork="Bible" xml:lang="{}">
         <header>
+            <revisionDesc>
+                <date>{}</date>
+                <p>Converted from USFM source using u2o.py</p>
+            </revisionDesc>
             <work osisWork="{}">
                 <title>{}</title>
                 {}
@@ -2699,6 +2704,8 @@ def processfiles(args):
     osisdoc = '{}{}{}\n'.format(
         OSISHEADER.format(args.workid,
                           args.l,
+                          datetime.datetime.now().strftime(
+                            "%Y.%m.%dT%H.%M.%S"),
                           args.workid,
                           args.workid,
                           '\n'.join(tmp2),
