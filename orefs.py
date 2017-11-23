@@ -33,16 +33,30 @@ import re
 #    uFDEA     - marks start of book abbreviation during processing
 #    uFDEB     - marks end of book abbreviation during processing
 
+# VARIABLES THAT CONTROL HOW VERSE REFERENCES ARE PARSED
+SEPM = ";"  # separates multiple references
+SEPC = ":"  # separates chapter from verse
+SEPP = ","  # separates multiple verses or verse ranges
+SEPR = "-"  # separates verse ranges
+SEPRNORM = ["–", "—"]  # used to normalize verse ranges
+
+# book tag format string
+BTAG = "\uFDEA{}\uFDEB"
+
 
 def getabbrevs(text):
     """Get book abbreviations from toc2 and toc3 usfm tags."""
     abbrevs = OrderedDict()
+    abbrevs2 = OrderedDict()
     book = ""
     lines = text.split("\n")
+    num = 0
     for i in [_ for _ in lines if 'type="book"' in _]:
+        num += 1
         bkline = lines.index(i)
         book = i.partition('osisID="')[2].split('"')[0]
-        abbrevs[book] = []
+        abbrevs[book] = ["{:03}".format(num)]
+        abbrevs2["{:03}".format(num)] = book
         for j in range(bkline, bkline + 10):
             if "x-usfm-toc2" in lines[j]:
                 abbr = lines[j].partition('n="')[2].split('"')[0]
@@ -50,10 +64,10 @@ def getabbrevs(text):
             elif "x-usfm-toc3" in lines[j]:
                 abbr = lines[j].partition('n="')[2].split('"')[0]
                 abbrevs[book].append(abbr)
-    return abbrevs
+    return abbrevs, abbrevs2
 
 
-def processreferences(text, abbr):
+def processreferences(text, abbr, abbr2):
     """Process cross references in osis text."""
     crossrefnote = re.compile(
         r'(<note type="crossReference">)(.*?)(</note>)', re.U)
@@ -65,7 +79,7 @@ def processreferences(text, abbr):
     def simplerepl(match):
         """Simple regex replacement helper function."""
         text = match.group(2)
-        osisrefs = getosisrefs(text, abbr)
+        osisrefs = getosisrefs(text, abbr, abbr2)
 
         # process reference tags
         if match.group(1) == '<reference>':
@@ -93,14 +107,18 @@ def processreferences(text, abbr):
     return '\n'.join(lines)
 
 
-def getosisrefs(text, abbr):
+def getosisrefs(text, abbr, abbr2):
     """Attempt to get a list of osis refs from a line of text."""
     # skip reference processing if there is already a reference tag present.
     if "<reference" in text:
         return text
 
+    # --- normalize verse reference ranges
+    for i in SEPRNORM:
+        text = text.replace(i, SEPR)
+
     # --- break multiple references part
-    newtext = text.split(";")
+    newtext = text.split(SEPM)
     if not isinstance(newtext, list):
         newtext = [newtext]
     newtext = [_.strip() for _ in newtext]
@@ -108,26 +126,23 @@ def getosisrefs(text, abbr):
     # --- process book part of references
     lastbook = None
     for i in reversed(abbr):
-        tag = "".join(["\ufdea",
-                       i,
-                       "\ufdeb"])
+        tag = BTAG.format(abbr[i][0])
+
         for j in enumerate(newtext):
             try:
-                if "\ufdea" not in newtext[j[0]]:
-                    if abbr[i][0] in newtext[j[0]]:
-                        newtext[j[0]] = newtext[j[0]].replace(abbr[i][0], tag)
+                if tag[0] not in newtext[j[0]]:
+                    newtext[j[0]] = newtext[j[0]].replace(abbr[i][1], tag)
+                    newtext[j[0]] = newtext[j[0]].replace(abbr[i][2], tag)
+                    if tag[0] in newtext[j[0]]:
                         lastbook = tag
-                    elif abbr[i][1] in newtext[j[0]]:
-                        newtext[j[0]] = newtext[j[0]].replace(abbr[i][1], tag)
-                        lastbook = tag
-                if "\ufdea" in newtext[j[0]]:
+                if tag[0] in newtext[j[0]]:
                     tmp = newtext[j[0]].partition(" ")
                     try:
-                        newtext[j[0]] = "".join([
-                            tmp[0][tmp[0].index("\ufdea"):],
+                        newtext[j[0]] = " ".join([
+                            tmp[0][tmp[0].index(tag[0]):],
                             tmp[2]])
                     except ValueError:
-                        newtext[j[0]] = "".join([tmp[0], tmp[2]])
+                        newtext[j[0]] = " ".join([tmp[0], tmp[2]])
             except IndexError:
                 pass
             # add last book to reference where it was omitted.
@@ -137,99 +152,117 @@ def getosisrefs(text, abbr):
                     nobook = False
                     break
             if nobook and lastbook is not None:
-                newtext[j[0]] = "{}{}".format(lastbook, newtext[j[0]])
+                newtext[j[0]] = "{} {}".format(lastbook, newtext[j[0]])
 
-    # remove invalid references
+    # remove bad book references
     for i in enumerate(newtext):
-        chk = i[1].find("\ufdeb")
-        if chk != -1:
-            if i[1][chk + 1] not in "123456789":
-                tmp = newtext[i[0]]
-                print("{} {}".format(
-                    "WARNING: Reference not processed...",
-                    tmp.replace("\ufdea", "").replace("\ufdeb", "")),
-                      file=sys.stderr)
-                newtext[i[0]] = None
+        chk = i[1].partition(BTAG[-1])
+        if chk[2] == "":
+            print("{} {}".format("WARNING: (book) Reference not processed…",
+                                 newtext[i[0]]),
+                  file=sys.stderr)
+            newtext[i[0]] = None
     newtext = [_ for _ in newtext if _ is not None]
 
     # --- process chapter/verse part of references
     refs = []
     for i in newtext:
-        # replace dashes with a regular hyphen
-        for _ in ["–", "—"]:
-            i = i.replace(_, "-")
-
         # book part
-        bcv = i.partition("\ufdeb")
-        bkref = bcv[0].replace("\ufdea", "")
+        bcv = i.partition(BTAG[-1])
+        bkref = bcv[0].partition(BTAG[0])[2]
 
         # chapverse part
-        chapverse = bcv[2].replace(".", ":").partition(":")
+        if SEPC in bcv[2]:
+            chapverse = bcv[2].lstrip(" ").partition(SEPC)
+        else:
+            # handle books that only have 1 chapter
+            chapverse = "1:{}".format(bcv[2].lstrip(" ")).partition(SEPC)
         chap = chapverse[0]
         vrs = chapverse[2]
-        vchk = [_ for _ in vrs if _ not in "0123456789,-"]
-        if len(vchk) > 0:
-            print("{}... {} {}".format(
-                "WARNING: Reference not processed",
-                bkref,
-                bcv[2]),
-                  file=sys.stderr)
-            continue
 
         # verses separated by commas
-        if "," in vrs:
-            vrs = vrs.split(",")
+        if SEPP in vrs:
+            vrs = vrs.split(SEPP)
             for j in vrs:
-                if "-" in j:
-                    if ":" not in vrs:
-                        rng = j.split("-")
+                if SEPR in j:
+                    if SEPC not in vrs:
+                        rng = j.split(SEPR)
                         try:
                             for num in range(int(rng[0]), int(rng[1]) + 1):
-                                refs.append("{}.{}.{}".format(bkref,
+                                refs.append("{}.{}.{}".format(abbr2[bkref],
                                                               chap,
                                                               str(num)))
                         except ValueError:
-                            print("{}... {} {}".format(
+                            print("{}… {} {}".format(
                                 "WARNING: Reference not processed",
-                                bkref,
+                                abbr2[bkref],
                                 bcv[2]),
                                   file=sys.stderr)
                     else:
-                        print("{}... {} {}".format(
+                        print("{}… {} {}".format(
                             "WARNING: Reference not processed",
-                            bkref,
+                            abbr2[bkref],
                             bcv[2]),
                               file=sys.stderr)
                 else:
-                    refs.append("{}.{}.{}".format(bkref, chap, j))
+                    if " " in j:
+                        tmp = j.split(" ")
+                        if len(tmp) > 2:
+                            print("{}… {} {}".format(
+                                "WARNING: Reference not processed",
+                                abbr2[bkref],
+                                bcv[2]),
+                                  file=sys.stderr)
+                        else:
+                            refs.append("{}:{}.{}.{}".format(
+                                tmp[1],
+                                abbr2[bkref],
+                                chap,
+                                tmp[0]))
+                    else:
+                        refs.append("{}.{}.{}".format(abbr2[bkref], chap, j))
         # verse not separated by commas
         else:
-            if "-" in vrs:
-                rng = vrs.split("-")
-                if ":" not in vrs:
+            if SEPR in vrs:
+                rng = vrs.split(SEPR)
+                if SEPC not in vrs:
                     try:
                         for num in range(int(rng[0]), int(rng[1]) + 1):
-                            refs.append("{}.{}.{}".format(bkref,
+                            refs.append("{}.{}.{}".format(abbr2[bkref],
                                                           chap,
                                                           str(num)))
                     except ValueError:
-                        print("{}... {} {}".format(
+                        print("{}… {} {}".format(
                             "WARNING: Reference not processed",
-                            bkref,
+                            abbr2[bkref],
                             bcv[2]),
                               file=sys.stderr)
                 else:
-                    print("{}... {} {}".format(
+                    print("{}… {} {}".format(
                         "WARNING: Reference not processed",
-                        bkref,
+                        abbr2[bkref],
                         bcv[2]),
                           file=sys.stderr)
             else:
-                refs.append("{}.{}.{}".format(bkref, chap, vrs))
+                if " " in vrs:
+                    tmp = vrs.split(" ")
+                    if len(tmp) > 2:
+                        print("{}… {} {}".format(
+                            "WARNING: Reference not processed",
+                            abbr2[bkref],
+                            bcv[2]),
+                              file=sys.stderr)
+                    else:
+                        refs.append("{}:{}.{}.{}".format(
+                            tmp[1],
+                            abbr2[bkref],
+                            chap,
+                            tmp[0]))
+                else:
+                    refs.append("{}.{}.{}".format(abbr2[bkref], chap, vrs))
 
     # --- return joined references
     return " ".join(refs)
-
 
 # -------------------------------------------------------------------------- #
 
@@ -243,10 +276,10 @@ def processfile(args):
 
     if args.v:
         print("Getting book names and abbreviations from osis file...")
-    bookabbrevs = getabbrevs(text)
+    bookabbrevs, bookabbrevs2 = getabbrevs(text)
     if args.v:
         print("Processing cross references...")
-    text = processreferences(text, bookabbrevs)
+    text = processreferences(text, bookabbrevs, bookabbrevs2)
 
     with open(args.o, "wb") as ofile:
         if args.v:
