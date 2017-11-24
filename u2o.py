@@ -2770,6 +2770,15 @@ def processfiles(args):
     if len(usfmtagset) > 0:
         print('Unhandled USFM Tags: {}'.format(', '.join(sorted(usfmtagset))))
 
+    # simple whitespace cleanups before writing to file...
+    osisdoc = osisdoc.decode('utf-8')
+    for i in ((' <note', '<note'),
+              (' </p>', '</p>'),
+              (' </item>', '</item>'),
+              (' </l>', '</l>')):
+        osisdoc = osisdoc.replace(i[0], i[1])
+    osisdoc = osisdoc.encode('utf-8')
+
     # write doc to file
     outfile = '{}.osis'.format(args.workid)
     if args.o is not None:
