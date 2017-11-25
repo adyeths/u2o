@@ -272,7 +272,7 @@ def getosisrefs(text, abbr, abbr2):
                                 chap,
                                 tmp[0]))
                     else:
-                        tmp = vrschk(j[0])
+                        tmp = vrschk(j)
                         if tmp is False:
                             referror(" ".join([abbr2[bkref], j]), abbr2)
                             continue
