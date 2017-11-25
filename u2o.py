@@ -108,7 +108,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-19'   # THIS SCRIPT revision date
+    'DATE': '2017-11-25'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2627,6 +2627,9 @@ def processfiles(args):
                 bookencoding = 'utf-8-sig'
         except LookupError:
             print('ERROR: Unknown encoding... aborting conversion.')
+            print(r'       \ide line for {} says --> {}'.format(
+                fname,
+                bookencoding))
             sys.exit()
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
@@ -2705,7 +2708,7 @@ def processfiles(args):
         OSISHEADER.format(args.workid,
                           args.l,
                           datetime.datetime.now().strftime(
-                            "%Y.%m.%dT%H.%M.%S"),
+                              "%Y.%m.%dT%H.%M.%S"),
                           args.workid,
                           args.workid,
                           '\n'.join(tmp2),
