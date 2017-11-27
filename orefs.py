@@ -5,6 +5,7 @@ from __future__ import print_function, unicode_literals
 import sys
 import argparse
 import os.path
+import configparser
 from collections import OrderedDict
 import re
 
@@ -12,13 +13,13 @@ import re
 
 # NOTES AND KNOWN LIMITATIONS:
 #
-#   REQUIRES the presence of toc2 and toc3 tags. If these are not
-#   present, there won't be any way to determine the book part for
-#   the osisRef attribute.
+#   For automatic determination of book abbreviations, the presence
+#   of toc2 and toc3 tags is required. If these are not present, there
+#   won't be any way to determine the book part for the osisRef attribute.
 #
-#   If the references use abbreviations or book names not specified
-#   in any of the toc2 or toc3 tags, then the processing of the
-#   reference WILL fail.
+#   ALTERNATIVELY, a separate config file can be used to manually specify
+#   book names and abbreviations. See the README-orefs.md file for more
+#   information and example config file contents.
 #
 
 # SPECIAL CHARACTERS USED DURING PROCESSING:
@@ -34,6 +35,24 @@ SEPRNORM = ["–", "—"]  # used to normalize verse ranges
 
 # book tag format string
 BTAG = "\uFDEA{}\uFDEB"
+
+# list of OSIS bible books
+BOOKLIST = [
+    'Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam',
+    '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'PrMan', 'Jub', '1En', 'Ezra',
+    'Neh', 'Tob', 'Jdt', 'Esth', 'EsthGr', '1Meq', '2Meq', '3Meq', 'Job',
+    'Ps', 'AddPs', '5ApocSyrPss', 'Odes', 'Prov', 'Reproof', 'Eccl', 'Song',
+    'Wis', 'Sir', 'PssSol', 'Isa', 'Jer', 'Lam', 'Bar', 'EpJer', '2Bar',
+    'EpBar', '4Bar', 'Ezek', 'Dan', 'DanGr', 'PrAzar', 'Sus', 'Bel', 'Hos',
+    'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag',
+    'Zech', 'Mal',
+    '1Esd', '2Esd', '4Ezra', '5Ezra', '6Ezra', '1Macc', '2Macc', '3Macc',
+    '4Macc',
+    'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal',
+    'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm',
+    'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev',
+    'EpLao'
+]
 
 
 def getabbrevs(text):
@@ -56,6 +75,49 @@ def getabbrevs(text):
             elif "x-usfm-toc3" in lines[j]:
                 abbr = lines[j].partition('n="')[2].split('"')[0]
                 abbrevs[book].append(abbr)
+    return abbrevs, abbrevs2
+
+
+def readconfig(fname):
+    """Read a config file and return the values."""
+    # set up config parser and read our config file...
+    config = configparser.ConfigParser(allow_no_value=True)
+    config.optionxform = str
+    config.read(fname)
+
+    # variables used while reading config file
+    delimiters = OrderedDict()
+    abbr = OrderedDict()
+
+    # get default part of config...
+    for i in ["SEPM", "SEPP", "SEPC", "SEPR", "SEPRNORM"]:
+        globals()[i] = config["DEFAULT"][i]
+    if globals()["SEPRNORM"] == "":
+        globals()["SEPRNORM"] = list(globals()["SEPR"])
+    else:
+        globals()["SEPRNORM"] = list(globals()["SEPRNORM"])
+
+    # get abbreviations
+    for i in BOOKLIST:
+        if i in config["ABBR"]:
+            abbr[i] = {
+                True: config["ABBR"][i],
+                False: None
+            }[config["ABBR"][i] != ""]
+
+    # fix abbreviation lists
+    abbrevs = OrderedDict()
+    abbrevs2 = OrderedDict()
+    num = 0
+    for i in abbr:
+        num += 1
+        if abbr[i] is not None:
+            abbr[i] = [i.strip() for i in abbr[i].split(",")]
+            abbr[i].insert(0, "{:03}".format(num))
+            abbrevs[i] = abbr[i]
+            abbrevs2[abbr[i][0]] = i
+
+    # return our abbreviations and configuration
     return abbrevs, abbrevs2
 
 
@@ -158,8 +220,8 @@ def getosisrefs(text, abbr, abbr2):
         for j in enumerate(newtext):
             try:
                 if tag[0] not in newtext[j[0]]:
-                    newtext[j[0]] = newtext[j[0]].replace(abbr[i][1], tag)
-                    newtext[j[0]] = newtext[j[0]].replace(abbr[i][2], tag)
+                    for k in abbr[i][1:]:
+                        newtext[j[0]] = newtext[j[0]].replace(k, tag)
                     if tag[0] in newtext[j[0]]:
                         lastbook = tag
                 if tag[0] in newtext[j[0]]:
@@ -364,8 +426,15 @@ def processfile(args):
         text = ifile.read()
 
     if args.v:
-        print("Getting book names and abbreviations from osis file...")
-    bookabbrevs, bookabbrevs2 = getabbrevs(text)
+        print("Getting book names and abbreviations...")
+    if args.c is not None:
+        if args.v:
+            print("Using config file for abbreviations...")
+        bookabbrevs, bookabbrevs2 = readconfig(args.c)
+    else:
+        if args.v:
+            print("Extracting book names and abbreviations from osis file...")
+        bookabbrevs, bookabbrevs2 = getabbrevs(text)
     if args.v:
         print("Processing cross references...")
     text = processreferences(text, bookabbrevs, bookabbrevs2)
@@ -403,6 +472,9 @@ def main():
     parser.add_argument("-o",
                         help="name of output file",
                         required=True, metavar="FILE")
+    parser.add_argument("-c",
+                        help="config file to use",
+                        metavar="FILE")
     args = parser.parse_args()
 
     if not os.path.isfile(args.i):
