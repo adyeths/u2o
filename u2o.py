@@ -62,6 +62,8 @@ This script is public domain. You may do whatever you want with it.
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
 #
+#    uFDE2     - used to separate attributes in usfm tags
+#
 
 from __future__ import print_function, unicode_literals
 import sys
@@ -69,7 +71,6 @@ import argparse
 import os.path
 import glob
 import re
-import shlex
 import codecs
 import datetime
 import unicodedata
@@ -108,7 +109,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-25'   # THIS SCRIPT revision date
+    'DATE': '2017-11-29'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -872,6 +873,10 @@ USFMRE = re.compile(r'''
 
 ''', re.U + re.VERBOSE)
 
+
+ATTRIBRE = re.compile(r' +(\S+=\'")', re.U + re.DOTALL)
+
+
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY REFLOW ROUTINE
 
@@ -1270,9 +1275,15 @@ def parseattributes(tag, tagtext):
     if "=" not in attributestring:
         attribs[DEFAULTATTRIBUTES.get(tag, 'x-default')] = attributestring
     else:
-        for i in shlex.split(attributestring):
-            tmp = i.split('=')
-            attribs[tmp[0]] = tmp[1]
+        tmp = ATTRIBRE.sub(r'\uFDE2\1', attributestring)
+        for i in tmp.split("\uFDE2"):
+            for j in i.split('='):
+                if tmp[1].startswith('"') and tmp[1].endswith('"'):
+                    attribs[tmp[0]] = tmp[1].strip('"')
+                elif tmp[1].startswith("'") and tmp[1].endswith("'"):
+                    attribs[tmp[0]] = tmp[1].strip("'")
+                else:
+                    attribs[tmp[0]] = tmp[1]
 
     # attribute validity check
     isinvalid = False
