@@ -469,6 +469,7 @@ OTHERTAGS = {
     r'\ib ': '<!-- b -->',  # this tag is handled exactly like b.
     r'\b ': '<!-- b -->',
     r'\nb ': '<!-- nb -->',
+    r'\nb': '<!-- nb -->',
 
     # translators chunk marker
     r'\ts': '<!-- ts -->'
