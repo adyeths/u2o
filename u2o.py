@@ -7,7 +7,8 @@ Convert usfm bibles to osis.
 Notes:
    * better handling of osisID's is probably needed.
 
-   * no attempt has been made to process any x- attributes in this script.
+   * no attempt has been made to process any x- attributes in this script
+     other than x-morph as found in bibles located on the ebible.org website.
 
    * I can think of scenarios where this script may not work properly. However,
      it works fine for all of the usfm bibles that I have access to at this
@@ -602,6 +603,9 @@ FEATURETAGS = {
     r'\jmp': ('<seg type="x-usfm-jmp">', '</seg>')
 }
 
+# special strongs feature tag...
+STRONGSTAG = ('<w {}{}>', '</w> ')
+
 # footnote and cross reference tags
 NOTETAGS = {
     r'\f': ('<note placement="foot">\uFDD2', '\uFDD3</note>'),
@@ -874,7 +878,7 @@ USFMRE = re.compile(r'''
 ''', re.U + re.VERBOSE)
 
 
-ATTRIBRE = re.compile(r' +(\S+=\'")', re.U + re.DOTALL)
+ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 
 
 # -------------------------------------------------------------------------- #
@@ -1275,15 +1279,10 @@ def parseattributes(tag, tagtext):
     if "=" not in attributestring:
         attribs[DEFAULTATTRIBUTES.get(tag, 'x-default')] = attributestring
     else:
-        tmp = ATTRIBRE.sub(r'\uFDE2\1', attributestring)
+        tmp = ATTRIBRE.sub('\uFDE2\\1', attributestring)
         for i in tmp.split("\uFDE2"):
-            for j in i.split('='):
-                if tmp[1].startswith('"') and tmp[1].endswith('"'):
-                    attribs[tmp[0]] = tmp[1].strip('"')
-                elif tmp[1].startswith("'") and tmp[1].endswith("'"):
-                    attribs[tmp[0]] = tmp[1].strip("'")
-                else:
-                    attribs[tmp[0]] = tmp[1]
+            attr = i.partition('=')
+            attribs[attr[0]] = attr[2].strip('"')
 
     # attribute validity check
     isinvalid = False
@@ -1848,16 +1847,30 @@ def convert_to_osis(text, bookid='TEST'):
             osis2 = osis
 
             # handle w tag attributes
+            tag2 = None
             if matchtag == r'\w':
                 if 'lemma' in attributes.keys():
                     osis2 = attributes['lemma']
+                if 'strong' in attributes.keys():
+                    tag2 = STRONGSTAG
+                    strong1 = 'lemma="strong:{}"'.format(attributes['strong'])
+                    strong2 = ''
+                if 'x-morph' in attributes.keys():
+                    if tag == STRONGSTAG:
+                        strong2 = ' morph="{}"'.format(attributes['x-morph'])
 
             # TODO: improve processing of tag attributes
 
-            if tag[0] == '':
+            if tag[0] == '' and tag2 is None:
                 outtext = '{}{}'.format(
                     osis,
                     tag[1].format(osis2))
+            elif tag2 is not None:
+                # process strongs
+                outtext = '{}{}{}'.format(
+                    tag2[0].format(strong1, strong2),
+                    osis,
+                    tag2[1])
             else:
                 outtext = '{}{}{}'.format(
                     tag[0],
@@ -2789,7 +2802,8 @@ def processfiles(args):
     for i in ((' <note', '<note'),
               (' </p>', '</p>'),
               (' </item>', '</item>'),
-              (' </l>', '</l>')):
+              (' </l>', '</l>'),
+              ('</w><w', '</w> <w')):
         osisdoc = osisdoc.replace(i[0], i[1])
     osisdoc = osisdoc.encode('utf-8')
 
