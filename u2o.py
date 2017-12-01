@@ -75,6 +75,7 @@ import re
 import codecs
 import datetime
 import unicodedata
+from collections import OrderedDict
 from contextlib import closing
 
 # try to import multiprocessing
@@ -459,21 +460,20 @@ PARTAGS = {
 }
 
 # other introduction and poetry tags
-OTHERTAGS = {
-    # selah is handled in a special manner.
-    r'\qs ': '<selah>',
-    r'\qs*': '</selah>',
-
-    # these get special  handling.
-    r'\ie': '<!-- ie -->',  # handled with partags... probably not needed here.
-    r'\ib ': '<!-- b -->',  # this tag is handled exactly like b.
-    r'\b ': '<!-- b -->',
-    r'\nb ': '<!-- nb -->',
-    r'\nb': '<!-- nb -->',
-
-    # translators chunk marker
-    r'\ts': '<!-- ts -->'
-}
+OTHERTAGS = OrderedDict()
+for _ in [
+        # selah is handled in a special manner…
+        (r'\qs ', '<selah>'),
+        (r'\qs*', '</selah>'),
+        # these tags get special handling…
+        (r'\ie', '<!-- ie -->'),  # handled with partags… may not need here…
+        (r'\ib ', '<!-- b -->'),  # handled exactly like \b
+        (r'\b ', '<!-- b -->'),
+        (r'\nb ', '<!-- nb -->'),
+        (r'\nb', '<!-- nb -->'),
+        # translators chunk marker…
+        (r'\ts', '<!-- ts -->')]:
+    OTHERTAGS[_[0]] = _[1]
 
 # table cell tags
 CELLTAGS = {
