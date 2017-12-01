@@ -599,6 +599,16 @@ FEATURETAGS = {
     r'\wg': ('', '<index index="Greek" level1="{}" />'),
     r'\wh': ('', '<index index="Hebrew" level1="{}" />'),
 
+    r'\+pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r'\+rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
+    r'\+rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
+    r'\+ndx': ('', '<index="Index" level1="{}" /> '),
+    r'\+png': ('', '<index index="Geography" level1="{}" />'),
+    r'\+w': ('', '<index index="Glossary" level1="{}" />'),
+    r'\+wa': ('', '<index index="Aramaic" level1="{}" />'),
+    r'\+wg': ('', '<index index="Greek" level1="{}" />'),
+    r'\+wh': ('', '<index index="Hebrew" level1="{}" />'),
+
     # This should be converted to an 'a' tag. More work needs
     # to be done before that can happen though.
     r'\jmp': ('<seg type="x-usfm-jmp">', '</seg>')
@@ -732,8 +742,9 @@ SPECIALFEATURESRE_S = r'''
         # put the special features tags into a named group called 'tag'
         (?P<tag>
 
-            # tags always start with a backslash
-            \\
+            # tags always start with a backslash and may have a + symbol which
+            # indicates that it's a nested character style.
+            \\\+?
 
             # this matches all of the known usfm special features except
             # for fig which is handled in a different manner.
@@ -1849,7 +1860,7 @@ def convert_to_osis(text, bookid='TEST'):
 
             # handle w tag attributes
             tag2 = None
-            if matchtag == r'\w':
+            if matchtag in [r'\w', r'\+w']:
                 if 'lemma' in attributes.keys():
                     osis2 = attributes['lemma']
                 if 'strong' in attributes.keys():
@@ -2500,7 +2511,7 @@ def convert_to_osis(text, bookid='TEST'):
         lines[i] = specialtext(lines[i])
 
         # special features if present
-        for j in [r'\ndx', r'\pro', r'\w', r'\fig']:
+        for j in [r'\ndx', r'\pro', r'\w', r'\+w', r'\fig']:
             if j in lines[i]:
                 lines[i] = specialfeatures(lines[i])
                 break
