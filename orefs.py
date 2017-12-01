@@ -118,6 +118,7 @@ def readconfig(fname):
         num += 1
         if abbr[i] is not None:
             abbr[i] = [i.strip() for i in abbr[i].split(",")]
+            abbr[i] = sorted(abbr[i], key=len, reverse=True)
             abbr[i].insert(0, "{:03}".format(num))
             abbrevs[i] = abbr[i]
             abbrevs2[abbr[i][0]] = i
