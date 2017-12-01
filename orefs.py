@@ -21,6 +21,11 @@ import re
 #   book names and abbreviations. See the README-orefs.md file for more
 #   information and example config file contents.
 #
+#   A beginning config file can be automatically generated now using the
+#   following command:
+#
+#       orefs.py -i OSISFILE -o CONFIGFILE -c create
+#
 
 # SPECIAL CHARACTERS USED DURING PROCESSING:
 #    uFDEA     - marks start of book abbreviation during processing
@@ -119,6 +124,30 @@ def readconfig(fname):
 
     # return our abbreviations and configuration
     return abbrevs, abbrevs2
+
+
+def genconf(text):
+    """Generate contents of a config file."""
+    # set up config parser
+    config = configparser.ConfigParser(allow_no_value=True)
+    config.optionxform = str
+    for i in (("SEPM", SEPM),
+              ("SEPP", SEPP),
+              ("SEPC", SEPC),
+              ("SEPR", SEPR),
+              ("SEPRNORM", "".join(SEPRNORM))):
+        config["DEFAULT"][i[0]] = i[1]
+
+    # create ABBR section of config…
+    config["ABBR"] = {}
+    for i in BOOKLIST:
+        config["ABBR"][i] = ""
+    abbr1, abbr2 = getabbrevs(text)
+    for i in abbr1.keys():
+        config["ABBR"][i] = ", ".join(abbr1[i][1:])
+
+    # return our generate configuration
+    return config
 
 
 def processreferences(text, abbr, abbr2):
@@ -428,21 +457,31 @@ def processfile(args):
     if args.v:
         print("Getting book names and abbreviations...")
     if args.c is not None:
-        if args.v:
-            print("Using config file for abbreviations...")
-        bookabbrevs, bookabbrevs2 = readconfig(args.c)
+        if args.c == "create":
+            if args.v:
+                print("Creating config file...")
+            generatedconf = genconf(text)
+        else:
+            if args.v:
+                print("Using config file for abbreviations...")
+            bookabbrevs, bookabbrevs2 = readconfig(args.c)
     else:
         if args.v:
             print("Extracting book names and abbreviations from osis file...")
         bookabbrevs, bookabbrevs2 = getabbrevs(text)
-    if args.v:
-        print("Processing cross references...")
-    text = processreferences(text, bookabbrevs, bookabbrevs2)
-
-    with open(args.o, "wb") as ofile:
+    if args.c != "create":
         if args.v:
-            print("Writing output to {} ".format(args.o))
-        ofile.write(text.encode("utf8"))
+            print("Processing cross references...")
+        text = processreferences(text, bookabbrevs, bookabbrevs2)
+
+    if args.v:
+        print("Writing output to {} ".format(args.o))
+    if args.c == "create":
+        with open(args.o, "w") as ofile:
+            generatedconf.write(ofile)
+    else:
+        with open(args.o, "wb") as ofile:
+            ofile.write(text.encode("utf8"))
 
     if args.v:
         print("Done.")
@@ -473,8 +512,10 @@ def main():
                         help="name of output file",
                         required=True, metavar="FILE")
     parser.add_argument("-c",
-                        help="config file to use",
-                        metavar="FILE")
+                        help="\n".join([
+                            "config file to use.",
+                            "create means to generate a config file."]),
+                        metavar="FILE|create")
     args = parser.parse_args()
 
     if not os.path.isfile(args.i):
