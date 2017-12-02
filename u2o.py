@@ -615,7 +615,7 @@ FEATURETAGS = {
 }
 
 # special strongs feature tag...
-STRONGSTAG = ('<w {}{}>', '</w> ')
+STRONGSTAG = ('<w {}{}>', '</w>')
 
 # footnote and cross reference tags
 NOTETAGS = {
@@ -1890,9 +1890,12 @@ def convert_to_osis(text, bookid='TEST'):
                     tag[1])
 
             if attributetext is not None:
-                outtext = "{}{}".format(
-                    outtext,
-                    '<!-- USFM Attributes: {} -->'.format(attributetext))
+                # problems can occur when strongs numbers are present...
+                # this avoids those problems.
+                if matchtag not in [r'\w', r'\+w']:
+                    outtext = "{}{}".format(
+                        outtext,
+                        '<!-- USFM Attributes: {} -->'.format(attributetext))
 
             return outtext
         text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
