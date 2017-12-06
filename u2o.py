@@ -657,7 +657,28 @@ NOTETAGS2 = {
     r'\xo': ('<seg type="x-usfm-xo">', '</seg>'),
     r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
     r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
-    r'\xt': ('<reference>', '</reference>')
+    r'\xt': ('<reference>', '</reference>'),
+
+    # nested versions of internal footnote tags
+    r'\+fm': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
+    r'\+fdc': ('<seg type="x-nested"><seg editions="dc">', '</seg></seg>'),
+    r'\+fr': ('<seg type="x-nested"><reference type="annotateRef">',
+              '</reference></seg>'),
+    r'\+fk': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
+    r'\+fq': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
+    r'\+fqa': ('<seg type="x-nested"><rdg type="alternate">', '</rdg></seg>'),
+    r'\+fl': ('<seg type="x-nested"><seg type="x-usfm-fl">', '</seg></seg>'),
+    r'\+fv': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
+    r'\+ft': ('', ''),
+    r'\+xot': ('<seg type="x-nested"><seg editions="ot">', '</seg></seg>'),
+    r'\+xnt': ('<seg type="x-nested"><seg editions="nt">', '</seg></seg>'),
+    r'\+xdc': ('<seg type="x-nested"><seg editions="dc">', '</seg></seg>'),
+    r'\+xk': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
+    r'\+xq': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
+    r'\+xo': ('<seg type="x-nested"><seg type="x-usfm-xo">', '</seg></seg>'),
+    r'\+xop': ('<seg type="x-nested"><seg type="x-usfm-xop">', '</seg></seg>'),
+    r'\+xta': ('<seg type="x-nested"><seg type="x-usfm-xta">', '</seg></seg>'),
+    r'\+xt': ('<seg type="x-nested"><reference>', '</reference></seg>')
 }
 
 # -------------------------------------------------------------------------- #
@@ -800,8 +821,9 @@ del NOTERE_S
 # Automatically build NOTEFIXRE regex string from NOTETAGS2 dict.
 NOTEFIXRE_S = r'''
         (
-            # tags always start with a backslash
-            \\
+            # tags always start with a backslash and may have a + symbol which
+            # indicates that it's a nested character style.
+            \\\+?
 
             # this matches all of the footnote/crossref specific usfm tags that
             # appear inside footnotes and cross references.
@@ -1796,7 +1818,11 @@ def convert_to_osis(text, bookid='TEST'):
             notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
             for i in [r'\fm*', r'\fdc*', r'\fr*', r'\fk*', r'\fq*', r'\fqa*',
                       r'\fl*', r'\fv*', r'\ft*', r'\xo*', r'\xk*', r'\xq*',
-                      r'\xt*', r'\xot*', r'\xnt*', r'\xdc*']:
+                      r'\xt*', r'\xot*', r'\xnt*', r'\xdc*',
+                      r'\+fm*', r'\+fdc*', r'\+fr*', r'\+fk*', r'\+fq*',
+                      r'\+fqa*', r'\+fl*', r'\+fv*', r'\+ft*', r'\+xo*',
+                      r'\+xk*', r'\+xq*', r'\+xt*', r'\+xot*', r'\+xnt*',
+                      r'\+xdc*']:
                 if i in notetext:
                     notetext = notetext.replace(i, '')
             return notetext
@@ -1814,8 +1840,9 @@ def convert_to_osis(text, bookid='TEST'):
         text = NOTERE.sub(simplerepl, text, 0)
 
         # process additional footnote tags if present
-        if r'\f' in text or r'\x' in text:
-            text = notefix(text)
+        for i in [r'\f', r'\x', r'\+f', r'\+x']:
+            if i in text:
+                text = notefix(text)
 
         # handle fp tags
         if r'\fp ' in text:
