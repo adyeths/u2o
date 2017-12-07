@@ -838,7 +838,7 @@ NOTEFIXRE_S = r'''
 
         # This marks the end of the tag. It matches against either the
         # start of an additional tag or the end of the note.
-        (?=\\[fx]|</note)
+        (?=\\\+[fx]|</note)
     '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS2.keys()
                          if not _.startswith(r'\+')]))
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
