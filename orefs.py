@@ -300,94 +300,26 @@ def getosisrefs(text, abbr, abbr2):
             continue
         vrs = chapverse[2]
 
-        # verses and ranges separated by commas
-        if SEPP in vrs:
-            vrs = vrs.split(SEPP)
-            for j in vrs:
-                # verse range
-                if SEPR in j:
-                    rng = j.split(SEPR)
-                    # additional chapter specified
-                    if SEPC in vrs:
-                        rng2 = rng[1].split(SEPC)
-                        rng2[0] = chapchk(rng2[0])
-                        if rng2[0] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        rng[0] = vrschk(rng[0])
-                        if rng[0] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        rng2[1] = vrschk(rng2[1])
-                        if rng2[1] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        refs.append("{}.{}.{}-{}.{}.{}".format(
-                            abbr2[bkref],
-                            chap,
-                            rng[0],
-                            abbr2[bkref],
-                            rng2[0],
-                            rng2[1]))
-                    # no additional chapter...
-                    else:
-                        rng[0] = vrschk(rng[0])
-                        if rng[0] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        rng[1] = vrschk(rng[1])
-                        if rng[1] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        refs.append("{}.{}.{}-{}.{}.{}".format(
-                            abbr2[bkref],
-                            chap,
-                            rng[0],
-                            abbr2[bkref],
-                            chap,
-                            rng[1]))
-                # not a verse range
-                else:
-                    if " " in j:
-                        tmp = j.split(" ")
-                        if len(tmp) > 2:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                        else:
-                            # This may not produce correct results…
-                            tmp[0] = vrschk(tmp[0])
-                            if tmp[0] is False:
-                                referror(" ".join([abbr2[bkref], j]), abbr2)
-                                continue
-                            refs.append("{}:{}.{}.{}".format(
-                                tmp[1],
-                                abbr2[bkref],
-                                chap,
-                                tmp[0]))
-                    else:
-                        tmp = vrschk(j)
-                        if tmp is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        refs.append("{}.{}.{}".format(abbr2[bkref], chap, tmp))
-        # verse not separated by commas
-        else:
+        # verses and ranges (handles multiple references separated by SEPP)
+        vrs = vrs.split(SEPP)
+        for j in vrs:
             # verse range
-            if SEPR in vrs:
-                rng = vrs.split(SEPR)
+            if SEPR in j:
+                rng = j.split(SEPR)
                 # additional chapter specified
-                if SEPC in vrs:
+                if SEPC in rng[1]:
                     rng2 = rng[1].split(SEPC)
                     rng2[0] = chapchk(rng2[0])
                     if rng2[0] is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     rng[0] = vrschk(rng[0])
                     if rng[0] is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     rng2[1] = vrschk(rng2[1])
                     if rng2[1] is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
@@ -396,15 +328,15 @@ def getosisrefs(text, abbr, abbr2):
                         abbr2[bkref],
                         rng2[0],
                         rng2[1]))
-                # no additional chapter specified
+                # no additional chapter...
                 else:
                     rng[0] = vrschk(rng[0])
                     if rng[0] is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     rng[1] = vrschk(rng[1])
                     if rng[1] is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
@@ -415,32 +347,27 @@ def getosisrefs(text, abbr, abbr2):
                         rng[1]))
             # not a verse range
             else:
-                if " " in vrs:
-                    tmp = vrs.split(" ")
+                if " " in j:
+                    tmp = j.split(" ")
                     if len(tmp) > 2:
-                        print("{}… {} {}".format(
-                            "WARNING: Reference not processed",
-                            abbr2[bkref],
-                            bcv[2]),
-                              file=sys.stderr)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                     else:
-                        tmp2 = vrschk(tmp[0])
-                        if tmp2 is False:
-                            referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        # This may not produce correct results…
+                        tmp[0] = vrschk(tmp[0])
+                        if tmp[0] is False:
+                            referror(" ".join([abbr2[bkref], j]), abbr2)
                             continue
-                        tmp = tmp2
                         refs.append("{}:{}.{}.{}".format(
                             tmp[1],
                             abbr2[bkref],
                             chap,
                             tmp[0]))
                 else:
-                    tmp = vrschk(vrs)
+                    tmp = vrschk(j)
                     if tmp is False:
-                        referror(" ".join([abbr2[bkref], bcv[2]]), abbr2)
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
-                    vrs = tmp
-                    refs.append("{}.{}.{}".format(abbr2[bkref], chap, vrs))
+                    refs.append("{}.{}.{}".format(abbr2[bkref], chap, tmp))
 
     # --- return joined references
     return " ".join(refs)
