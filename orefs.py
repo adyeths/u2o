@@ -156,19 +156,26 @@ def processreferences(text, abbr, abbr2):
     crossrefnote = re.compile(
         r'(<note type="crossReference">)(.*?)(</note>)', re.U)
     reftag = re.compile(
-        r'(<reference>)(.*?)(</reference>)', re.U)
+        r'(<reference[^>]*>)(.*?)(</reference>)', re.U)
 
     lines = text.split('\n')
+
+    currentbook = ""
 
     def simplerepl(match):
         """Simple regex replacement helper function."""
         text = match.group(2)
-        osisrefs = getosisrefs(text, abbr, abbr2)
+        osisrefs = getosisrefs(text, currentbook, abbr, abbr2)
 
         # process reference tags
         if match.group(1) == '<reference>':
             outtext = r'<reference osisRef="{}">{}</reference>'.format(
                 osisrefs, text)
+        elif "annotateRef" in match.group(1):
+            outtext = r'<reference {} {}>{}</reference>'.format(
+                'type="annotateRef"',
+                'osisRef="{}"'.format(osisrefs),
+                text)
         else:
             # only process references if no reference tag is present in text.
             if '<reference ' not in text:
@@ -180,18 +187,18 @@ def processreferences(text, abbr, abbr2):
                     text)
         return outtext
 
-    # process reference tags in document
-    for i in (_ for _ in range(len(lines)) if "<reference>" in lines[_]):
-        lines[i] = reftag.sub(simplerepl, lines[i], 0)
-
-    # insert reference tags in cross reference notes
-    for i in (_ for _ in range(len(lines)) if "crossReference" in lines[_]):
-        lines[i] = crossrefnote.sub(simplerepl, lines[i], 0)
+    for i in (_ for _ in range(len(lines))):
+        if 'div type="book"' in lines[i]:
+            currentbook = lines[i].split('osisID="')[1].split('"')[0]
+        if "<reference" in lines[i]:
+            lines[i] = reftag.sub(simplerepl, lines[i], 0)
+        if "crossReference" in lines[i]:
+            lines[i] = crossrefnote.sub(simplerepl, lines[i], 0)
 
     return '\n'.join(lines)
 
 
-def getosisrefs(text, abbr, abbr2):
+def getosisrefs(text, currentbook, abbr, abbr2):
     """Attempt to get a list of osis refs from a line of text."""
     # skip reference processing if there is already a reference tag present.
     if "<reference" in text:
@@ -216,7 +223,7 @@ def getosisrefs(text, abbr, abbr2):
             rval = str(int(num))
         except ValueError:
             try:
-                if num[-1] in "ABab":
+                if num[-1] in "ABCDabcd":
                     rval = "{}!{}".format(str(int(num[:-1])), num[-1])
             except ValueError:
                 pass
@@ -243,7 +250,7 @@ def getosisrefs(text, abbr, abbr2):
     newtext = [_.strip() for _ in newtext]
 
     # --- process book part of references
-    lastbook = None
+    lastbook = BTAG.format(abbr[currentbook][0])
     for i in reversed(abbr):
         tag = BTAG.format(abbr[i][0])
 
