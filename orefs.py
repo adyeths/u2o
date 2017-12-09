@@ -168,14 +168,11 @@ def processreferences(text, abbr, abbr2):
         osisrefs = getosisrefs(text, currentbook, abbr, abbr2)
 
         # process reference tags
-        if match.group(1) == '<reference>':
-            outtext = r'<reference osisRef="{}">{}</reference>'.format(
-                osisrefs, text)
-        elif "annotateRef" in match.group(1):
-            outtext = r'<reference {} {}>{}</reference>'.format(
-                'type="annotateRef"',
-                'osisRef="{}"'.format(osisrefs),
-                text)
+        if match.group(1).startswith('<reference'):
+            reftagstart = match.group(1).replace('>', ' {}>').format(
+                'osisRef="{}"'.format(osisrefs))
+            outtext = '{}{}</reference>'.format(
+                reftagstart, text)
         else:
             # only process references if no reference tag is present in text.
             if '<reference ' not in text:
