@@ -346,7 +346,17 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                         vrsrange[1]))
             # not a verse range
             else:
-                if " " in j:
+                if SEPC in j:
+                    chapverse2 = j.split(SEPC)
+                    chapverse2[0] = chapchk(chapverse2[0])
+                    chapverse2[1] = vrschk(chapverse2[1])
+                    if False in chapverse2:
+                        referror(" ".join([abbr2[bkref], j]), abbr2)
+                        continue
+                    refs.append("{}.{}.{}".format(abbr2[bkref],
+                                                  chapverse2[0],
+                                                  chapverse2[1]))
+                elif " " in j:
                     tmp = j.split(" ")
                     if len(tmp) > 2:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
