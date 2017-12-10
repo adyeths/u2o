@@ -239,6 +239,11 @@ def getosisrefs(text, currentbook, abbr, abbr2):
     for i in SEPRNORM:
         text = text.replace(i, SEPR)
 
+    # --- filter out directional formatting characters
+    for i in ['\u200E', '\u200F', '\u061C', '\u202A', '\u202B', '\u202C',
+              '\u202D', '\u202E', '\u2066', '\u2067', '\u2068', '\u2069']:
+        text = text.replace(i, '')
+
     # --- break multiple references part
     newtext = text.split(SEPM)
     if not isinstance(newtext, list):
