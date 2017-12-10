@@ -91,7 +91,6 @@ def readconfig(fname):
     config.read(fname)
 
     # variables used while reading config file
-    delimiters = OrderedDict()
     abbr = OrderedDict()
 
     # get default part of config...
@@ -143,7 +142,7 @@ def genconf(text):
     config["ABBR"] = {}
     for i in BOOKLIST:
         config["ABBR"][i] = ""
-    abbr1, abbr2 = getabbrevs(text)
+    abbr1, _ = getabbrevs(text)
     for i in abbr1.keys():
         config["ABBR"][i] = ", ".join(abbr1[i][1:])
 
@@ -304,51 +303,42 @@ def getosisrefs(text, currentbook, abbr, abbr2):
             continue
         vrs = chapverse[2]
 
-        # verses and ranges (handles multiple references separated by SEPP)
+        # split references into multiple parts separated by SEPP
         vrs = vrs.split(SEPP)
         for j in vrs:
-            # verse range
-            if SEPR in j:
-                rng = j.split(SEPR)
-                # additional chapter specified
-                if SEPC in rng[1]:
-                    rng2 = rng[1].split(SEPC)
-                    rng2[0] = chapchk(rng2[0])
-                    if rng2[0] is False:
-                        referror(" ".join([abbr2[bkref], j]), abbr2)
-                        continue
-                    rng[0] = vrschk(rng[0])
-                    if rng[0] is False:
-                        referror(" ".join([abbr2[bkref], j]), abbr2)
-                        continue
-                    rng2[1] = vrschk(rng2[1])
-                    if rng2[1] is False:
+            # split on verse ranges
+            vrsrange = j.split(SEPR)
+            if len(vrsrange) > 1:
+                # split 2nd part of verse range at SEPC
+                vrsrange2 = vrsrange[1].split(SEPC)
+                if len(vrsrange2) > 1:
+                    # additional chapter specified
+                    vrsrange2[0] = chapchk(vrsrange2[0])
+                    vrsrange2[1] = vrschk(vrsrange2[1])
+                    if False in vrsrange2:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
                         chap,
-                        rng[0],
+                        vrsrange[0],
                         abbr2[bkref],
-                        rng2[0],
-                        rng2[1]))
-                # no additional chapter...
+                        vrsrange2[0],
+                        vrsrange2[1]))
                 else:
-                    rng[0] = vrschk(rng[0])
-                    if rng[0] is False:
-                        referror(" ".join([abbr2[bkref], j]), abbr2)
-                        continue
-                    rng[1] = vrschk(rng[1])
-                    if rng[1] is False:
+                    # no additional chapter specified
+                    vrsrange[0] = vrschk(vrsrange[0])
+                    vrsrange[1] = vrschk(vrsrange[1])
+                    if False in vrsrange:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
                         chap,
-                        rng[0],
+                        vrsrange[0],
                         abbr2[bkref],
                         chap,
-                        rng[1]))
+                        vrsrange[1]))
             # not a verse range
             else:
                 if " " in j:
