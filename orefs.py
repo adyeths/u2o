@@ -267,10 +267,19 @@ def getosisrefs(text, currentbook, abbr, abbr2):
         for j in enumerate(newtext):
             try:
                 if tag[0] not in newtext[j[0]]:
-                    for k in abbr[i][1:]:
-                        newtext[j[0]] = newtext[j[0]].replace(k, tag)
+                    # ### new method using a simple regular expression
+                    restr = r'\b{}\b'.format('|'.join(
+                        [re.escape(_) for _ in abbr[i][1:]]))
+                    newtext[j[0]] = re.sub(restr,
+                                           tag,
+                                           newtext[j[0]],
+                                           flags=re.U)
+                    # ### old method using a simple string replace
+                    # for k in abbr[i][1:]:
+                    #     newtext[j[0]] = newtext[j[0]].replace(k, tag)
                     if tag[0] in newtext[j[0]]:
                         lastbook = tag
+
                 if tag[0] in newtext[j[0]]:
                     tmp = newtext[j[0]].partition(" ")
                     try:
