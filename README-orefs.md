@@ -24,6 +24,10 @@ I chose 3. It gave me something to do when I had nothing else more pressing that
 
 I added the ability to specify an external config file for the orefs utility. It has 2 sections. The first section is for specifying alternatives to the default delimiters used for cross reference parsing. The second section is for manually specifying the book names and abbreviations used for parsing cross references instead of having it done automatically.
 
+## Unprocessed references
+
+When orefs encounters reference text that it can't generate an osisRef value for, it inserts the XML comment `<!-- orefs - unprocessed reference -->` at the end of the reference text to make it easy to locate where the problem occurred.
+
 ## Example config file
 
 The following is an example config file I used when I was testing this script. NOTE: All parts of the config file are required.
