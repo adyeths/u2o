@@ -96,15 +96,6 @@ try:
 except ImportError:
     pass
 
-# try to import the Sword lib so that we can
-# create proper osis references
-HAVESWORD = False
-try:
-    import Sword
-    HAVESWORD = True
-except ImportError:
-    pass
-
 # -------------------------------------------------------------------------- #
 
 META = {
@@ -1288,18 +1279,6 @@ def markintroend(lines):
         lines.append(u'\ufde1')
 
     return lines
-
-
-def getosisrefs(text):
-    """Generate references for text using the Sword library."""
-    # parse passage list
-    lk = Sword.VerseKey().parseVerseList(text.encode("utf8"))
-    # get list of verses in our parsed verse list.
-    osisrefs = []
-    for _ in range(lk.getCount()):
-        osisrefs.append(Sword.VerseKey(lk.getText()).getOSISRef())
-        lk.increment()
-    return " ".join(osisrefs).decode("utf8")
 
 
 def parseattributes(tag, tagtext):
@@ -2590,47 +2569,6 @@ def convert_to_osis(text, bookid='TEST'):
 
 # -------------------------------------------------------------------------- #
 
-def processreferences(text):
-    """Process cross references in osis text."""
-    crossrefnote = re.compile(
-        r'(<note type="crossReference">)(.*?)(</note>)', re.U)
-    reftag = re.compile(
-        r'(<reference>)(.*?)(</reference>)', re.U)
-
-    lines = text.split('\n')
-
-    def simplerepl(match):
-        """Simple regex replacement helper function."""
-        text = match.group(2)
-        osisrefs = getosisrefs(text)
-
-        # process reference tags
-        if match.group(1) == '<reference>':
-            outtext = r'<reference osisRef="{}">{}</reference>'.format(
-                osisrefs, text)
-        else:
-            # only process references if no reference tag is present in text.
-            if '<reference ' not in text:
-                outtext = r'<note type="crossReference">{}</note>'.format(
-                    '<reference osisRef="{}">{}</reference>'.format(osisrefs,
-                                                                    text))
-            else:
-                outtext = r'<note type="crossReference">{}</note>'.format(
-                    text)
-        return outtext
-
-    # process reference tags in document
-    for i in (_ for _ in range(len(lines)) if "<reference>" in lines[_]):
-        lines[i] = reftag.sub(simplerepl, lines[i], 0)
-
-    # insert reference tags in cross reference notes
-    for i in (_ for _ in range(len(lines)) if "crossReference" in lines[_]):
-        lines[i] = crossrefnote.sub(simplerepl, lines[i], 0)
-
-    return '\n'.join(lines)
-
-# -------------------------------------------------------------------------- #
-
 
 def doconvert(args):
     """Convert our text and return our results."""
@@ -2783,12 +2721,9 @@ def processfiles(args):
         '\n'.join(tmp),
         OSISFOOTER)
 
-    # process cross references if the Sword library is available
-    if HAVESWORD:
-        if '<note type="crossReference"' in osisdoc or '<reference' in osisdoc:
-            osisdoc = processreferences(osisdoc)
-    else:
-        print("Sword lib not available. Cross References not processed.")
+    # Print note about references not being processed.
+    print('NOTE: References have not been processed.')
+    print('      Use orefs to add osisRef attributes to references.')
 
     # apply NFC normalization to text unless explicitly disabled.
     if not args.n:
