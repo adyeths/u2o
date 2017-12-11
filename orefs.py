@@ -163,21 +163,27 @@ def processreferences(text, abbr, abbr2):
 
     def simplerepl(match):
         """Simple regex replacement helper function."""
+        errortext = ""
         text = match.group(2)
-        osisrefs = getosisrefs(text, currentbook, abbr, abbr2)
+        osisrefs, oreferror = getosisrefs(text, currentbook, abbr, abbr2)
+
+        if oreferror:
+            errortext = '<!-- orefs - unprocessed reference -->'
 
         # process reference tags
         if match.group(1).startswith('<reference'):
             reftagstart = match.group(1).replace('>', ' {}>').format(
                 'osisRef="{}"'.format(osisrefs))
-            outtext = '{}{}</reference>'.format(
-                reftagstart, text)
+            outtext = '{}{}{}</reference>'.format(
+                reftagstart, text, errortext)
         else:
             # only process references if no reference tag is present in text.
             if '<reference ' not in text:
                 outtext = r'<note type="crossReference">{}</note>'.format(
-                    '<reference osisRef="{}">{}</reference>'.format(osisrefs,
-                                                                    text))
+                    '<reference osisRef="{}">{}{}</reference>'.format(
+                        osisrefs,
+                        text,
+                        errortext))
             else:
                 outtext = r'<note type="crossReference">{}</note>'.format(
                     text)
@@ -198,7 +204,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
     """Attempt to get a list of osis refs from a line of text."""
     # skip reference processing if there is already a reference tag present.
     if "<reference" in text:
-        return text
+        return text, False
 
     # --- helper functions
     def chapchk(num):
@@ -234,6 +240,9 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                                 abbr[i])
         print("WARNING: Reference not processed… {}".format(text),
               file=sys.stderr)
+
+    # --- flag used to indicate an error processing references
+    oreferror = False
 
     # --- normalize range separator
     for i in SEPRNORM:
@@ -286,6 +295,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
         chk = i[1].partition(BTAG[-1])
         if chk[2] == "":
             referror(newtext[i[0]], abbr2)
+            oreferror = True
             newtext[i[0]] = None
     newtext = [_ for _ in newtext if _ is not None]
 
@@ -305,6 +315,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
         chap = chapchk(chapverse[0])
         if chap is False:
             referror(i, abbr2)
+            oreferror = True
             continue
         vrs = chapverse[2]
 
@@ -322,6 +333,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                     vrsrange2[1] = vrschk(vrsrange2[1])
                     if False in vrsrange2:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
+                        oreferror = True
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
@@ -336,6 +348,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                     vrsrange[1] = vrschk(vrsrange[1])
                     if False in vrsrange:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
+                        oreferror = True
                         continue
                     refs.append("{}.{}.{}-{}.{}.{}".format(
                         abbr2[bkref],
@@ -354,6 +367,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                     chapverse2[1] = vrschk(chapverse2[1])
                     if False in chapverse2:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
+                        oreferror = True
                         continue
                     refs.append("{}.{}.{}".format(abbr2[bkref],
                                                   chapverse2[0],
@@ -364,11 +378,12 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                     tmp = vrschk(j)
                     if tmp is False:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
+                        oreferror = True
                         continue
                     refs.append("{}.{}.{}".format(abbr2[bkref], chap, tmp))
 
     # --- return joined references
-    return " ".join(refs)
+    return " ".join(refs), oreferror
 
 # -------------------------------------------------------------------------- #
 
