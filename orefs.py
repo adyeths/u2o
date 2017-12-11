@@ -348,6 +348,8 @@ def getosisrefs(text, currentbook, abbr, abbr2):
             else:
                 if SEPC in j:
                     chapverse2 = j.split(SEPC)
+                    if " " in chapverse2[1]:
+                        chapverse2[1] = chapverse2[1].split(" ")[0]
                     chapverse2[0] = chapchk(chapverse2[0])
                     chapverse2[1] = vrschk(chapverse2[1])
                     if False in chapverse2:
@@ -356,22 +358,9 @@ def getosisrefs(text, currentbook, abbr, abbr2):
                     refs.append("{}.{}.{}".format(abbr2[bkref],
                                                   chapverse2[0],
                                                   chapverse2[1]))
-                elif " " in j:
-                    tmp = j.split(" ")
-                    if len(tmp) > 2:
-                        referror(" ".join([abbr2[bkref], j]), abbr2)
-                    else:
-                        # This may not produce correct results…
-                        tmp[0] = vrschk(tmp[0])
-                        if tmp[0] is False:
-                            referror(" ".join([abbr2[bkref], j]), abbr2)
-                            continue
-                        refs.append("{}:{}.{}.{}".format(
-                            tmp[1],
-                            abbr2[bkref],
-                            chap,
-                            tmp[0]))
                 else:
+                    if " " in j:
+                        j = j.split(" ")[0]
                     tmp = vrschk(j)
                     if tmp is False:
                         referror(" ".join([abbr2[bkref], j]), abbr2)
