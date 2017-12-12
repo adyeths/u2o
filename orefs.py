@@ -59,6 +59,9 @@ BOOKLIST = [
     'EpLao'
 ]
 
+# list of books with one chapter
+ONECHAP = ['Obad', 'Phlm', '2John', '3John', 'Jude']
+
 
 def getabbrevs(text):
     """Get book abbreviations from toc2 and toc3 usfm tags."""
@@ -318,18 +321,24 @@ def getosisrefs(text, currentbook, abbr, abbr2):
         # chapverse part
         if SEPC in bcv[2]:
             chapverse = bcv[2].lstrip(" ").partition(SEPC)
-        else:
-            # handle books that only have 1 chapter
+        # handle books that only have 1 chapter
+        elif abbr2[bkref] in ONECHAP:
             chapverse = "1:{}".format(bcv[2].lstrip(" ")).partition(SEPC)
+        # verseless reference... we can't process those yet.
+        else:
+            referror(i, abbr2)
+            oreferror = True
+            continue
+
+        # check chapter number for validity
         chap = chapchk(chapverse[0])
         if chap is False:
             referror(i, abbr2)
             oreferror = True
             continue
-        vrs = chapverse[2]
 
         # split references into multiple parts separated by SEPP
-        vrs = vrs.split(SEPP)
+        vrs = chapverse[2].split(SEPP)
         for j in vrs:
             # split on verse ranges
             vrsrange = j.split(SEPR)
