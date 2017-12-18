@@ -69,6 +69,7 @@ This script is public domain. You may do whatever you want with it.
 from __future__ import print_function, unicode_literals
 import sys
 import argparse
+import os
 import os.path
 import glob
 import re
@@ -102,7 +103,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-11-29'   # THIS SCRIPT revision date
+    'DATE': '2017-12-17'   # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -114,7 +115,7 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
         http://www.bibletechnologies.net/osisCore.2.1.1.xsd">
     <osisText osisIDWork="{}" osisRefWork="Bible" xml:lang="{}">
         <header>
-            <revisionDesc>
+            <revisionDesc resp="{}">
                 <date>{}</date>
                 <p>Converted from USFM source using u2o.py</p>
             </revisionDesc>
@@ -2606,6 +2607,12 @@ def processfiles(args):
 
     files = []
 
+    # get username from operating system
+    username = {
+        True: os.getenv("LOGNAME"),
+        False: os.getenv("USERNAME")
+    }[os.getenv("USERNAME") is None]
+
     # read all files
     if args.v:
         print('Reading files... ')
@@ -2711,6 +2718,7 @@ def processfiles(args):
     osisdoc = '{}{}{}\n'.format(
         OSISHEADER.format(args.workid,
                           args.l,
+                          username,
                           datetime.datetime.now().strftime(
                               "%Y.%m.%dT%H.%M.%S"),
                           args.workid,
