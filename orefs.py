@@ -4,7 +4,9 @@
 from __future__ import print_function, unicode_literals
 import sys
 import argparse
+import os
 import os.path
+import datetime
 import configparser
 from collections import OrderedDict
 import re
@@ -61,6 +63,13 @@ BOOKLIST = [
 
 # list of books with one chapter
 ONECHAP = ['Obad', 'Phlm', '2John', '3John', 'Jude']
+
+# revisionDesc
+REVISIONDESC = '''<revisionDesc resp="{}">
+        <date>{}</date>
+        <p>osisRef attributes added using orefs.py</p>
+      </revisionDesc>
+      '''
 
 
 def getabbrevs(text):
@@ -432,6 +441,19 @@ def processfile(args):
         if args.v:
             print("Processing cross references...")
         text = processreferences(text, bookabbrevs, bookabbrevs2)
+
+    # add new revisionDesc to osis file...
+    username = {
+        True: os.getenv("LOGNAME"),
+        False: os.getenv("USERNAME")
+    }[os.getenv("USERNAME") is None]
+    textsplit = text.partition("<revisionDesc")
+    text = "".join([textsplit[0],
+                    REVISIONDESC.format(
+                        username,
+                        datetime.datetime.now().strftime("%Y.%m.%dT%H.%M.%S")),
+                    textsplit[1],
+                    textsplit[2]])
 
     if args.v:
         print("Writing output to {} ".format(args.o))
