@@ -448,12 +448,18 @@ def processfile(args):
         False: os.getenv("USERNAME")
     }[os.getenv("USERNAME") is None]
     textsplit = text.partition("<revisionDesc")
-    text = "".join([textsplit[0],
-                    REVISIONDESC.format(
-                        username,
-                        datetime.datetime.now().strftime("%Y.%m.%dT%H.%M.%S")),
-                    textsplit[1],
-                    textsplit[2]])
+    if len(textsplit[1]) > 0:
+        # -- only add if there is already a revisionDesc tag present
+        # -- just in case this was run on something processed by
+        # -- another usfm to osis converter that didn't add a
+        # -- revisionDesc tag to the osis document.
+        text = "".join([textsplit[0],
+                        REVISIONDESC.format(
+                            username,
+                            datetime.datetime.now().strftime(
+                                "%Y.%m.%dT%H.%M.%S")),
+                        textsplit[1],
+                        textsplit[2]])
 
     if args.v:
         print("Writing output to {} ".format(args.o))
