@@ -265,6 +265,10 @@ def getosisrefs(text, currentbook, abbr, abbr2):
               '\u202D', '\u202E', '\u2066', '\u2067', '\u2068', '\u2069']:
         text = text.replace(i, '')
 
+    # --- strip whitespace and parenthesis that may surround references.
+    text = text.strip()
+    text = text.lstrip('(').rstrip(')')
+
     # --- break multiple references part
     newtext = text.split(SEPM)
     if not isinstance(newtext, list):
