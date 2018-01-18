@@ -239,7 +239,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
             try:
                 if num[-1] in "ABCDabcd":
                     rval = "{}!{}".format(str(int(num[:-1])), num[-1])
-            except ValueError:
+            except (ValueError, IndexError):
                 pass
         return rval
 
