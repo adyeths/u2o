@@ -103,7 +103,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2017-12-17'   # THIS SCRIPT revision date
+    'DATE': '2018-1-25'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -640,13 +640,8 @@ NOTETAGS2 = {
     r'\xk': ('<catchWord>', '</catchWord>'),
     r'\xq': ('<catchWord>', '</catchWord>'),
     # there is no mapping in the osis manual for the xo usfm tag
-    # old handling of this tag is commented out.
-    # r'\xo': ('<reference type="annotateRef">', '</reference>'),
-    # potential alternate handling of xo and xt...
-    # r'\xo': ('<reference type="x-anchorRef">', '</reference>'),
-    # r'\xt': ('<reference type="annotateRef">', '</reference>'),
-    # currently preferred handling of xo and xt...
-    r'\xo': ('<seg type="x-usfm-xo">', '</seg>'),
+    r'\xo': ('<reference type="annotateRef" subType="x-origin">',
+             '</reference>'),
     r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
     r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
     r'\xt': ('<reference>', '</reference>'),
@@ -667,7 +662,8 @@ NOTETAGS2 = {
     r'\+xdc': ('<seg type="x-nested"><seg editions="dc">', '</seg></seg>'),
     r'\+xk': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
     r'\+xq': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
-    r'\+xo': ('<seg type="x-nested"><seg type="x-usfm-xo">', '</seg></seg>'),
+    r'\+xo': ('<seg type="x-nested"><reference type="annotateRef" subType="x-origin">',
+              '</reference></seg>'),
     r'\+xop': ('<seg type="x-nested"><seg type="x-usfm-xop">', '</seg></seg>'),
     r'\+xta': ('<seg type="x-nested"><seg type="x-usfm-xta">', '</seg></seg>'),
     r'\+xt': ('<seg type="x-nested"><reference>', '</reference></seg>')
