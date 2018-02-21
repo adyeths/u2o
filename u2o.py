@@ -917,14 +917,11 @@ PARFLOW.update([r'\ide', r'\rem', r'\tr', r'\pb', r'\periph'])
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
 PARCHECK = set(PARTAGS.keys())
-try:
-    PARCHECK.remove(r'\iex')
-except KeyError:
-    pass
-try:
-    PARCHECK.remove(r'\ie')
-except KeyError:
-    pass
+for i in [r'\iex', r'\ie', r'\qa']:
+    try:
+        PARCHECK.remove(i)
+    except KeyError:
+        pass
 
 # title tags... used by reflow subroutine below.
 # use TITLETAGS keys to eliminate unnecessary duplication
@@ -1131,76 +1128,80 @@ def reflow(text):
 
     # test for paragraph markup before mangling the text
     for i in PARCHECK:
-        if i in text:
+        if re.search(r'\\{}\b'.format(i.lstrip(r'\\')), text, re.U+re.M+re.DOTALL):
             mangletext = True
             break
 
     # process text with paragraph formatting
-    if mangletext:
-        text = SQUEEZE.sub(' ', text)
-        # put (almost) all paragraph style tags on separate lines.
-        # would regex be faster than a simple string operation here?
-        for i in PARFLOW:
-            if i in text:
-                text = text.replace(r'{} '.format(i), '\n{} '.format(i))
+    text = SQUEEZE.sub(' ', text)
+    # put (almost) all paragraph style tags on separate lines.
+    # would regex be faster than a simple string operation here?
+    for i in PARFLOW:
+        if i in text:
+            text = text.replace(r'{} '.format(i), '\n{} '.format(i))
 
-        # always make sure \cl and \cd appear on newlines if present
-        # since we handle those with titles.
-        if r'\cl ' in text:
-            text = text.replace(r'\cl ', '\n\\cl ')
-        if r'\cd ' in text:
-            text = text.replace(r'\cd ', '\n\\cd ')
+    # always make sure \cl and \cd appear on newlines if present
+    # since we handle those with titles.
+    if r'\cl ' in text:
+        text = text.replace(r'\cl ', '\n\\cl ')
+    if r'\cd ' in text:
+        text = text.replace(r'\cd ', '\n\\cd ')
 
-        # always add a newline after \ie (may miss some of these tags)
-        if r'\ie ' in text:
-            text = text.replace(r'\ie ', '\\ie\n')
+    # always add a newline after \ie (may miss some of these tags)
+    if r'\ie ' in text:
+        text = text.replace(r'\ie ', '\\ie\n')
 
-        # always make sure chapter 1 marker is on a new line.
-        text = text.replace(r'\c 1 ', '\n\\c 1')
+    # always make sure chapter 1 marker is on a new line.
+    text = text.replace(r'\c 1 ', '\n\\c 1')
 
-        # always make sure \cp tag has a space preceding it if present
-        if r'\cp' in text:
-            text = text.replace(r'\cp', r' \cp')
+    # always make sure \cp tag has a space preceding it if present
+    if r'\cp' in text:
+        text = text.replace(r'\cp', r' \cp')
 
-        # always make sure \ca tag has a space preceding it if present
-        if r'\ca' in text:
-            text = text.replace(r'\ca', r' \ca')
+    # always make sure \ca tag has a space preceding it if present
+    if r'\ca' in text:
+        text = text.replace(r'\ca', r' \ca')
 
-        # always make sure chapter markers are on a separate line from titles.
-        textlines = text.split('\n')
-        for i in range(len(textlines)):
-            if textlines[i].partition(' ')[0] in TITLEFLOW:
-                if r'\c ' in textlines[i]:
+    # always make sure chapter markers are on a separate line from titles.
+    textlines = text.split('\n')
+    for i in range(len(textlines)):
+        if textlines[i].partition(' ')[0] in TITLEFLOW:
+            if r'\c ' in textlines[i]:
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+
+    # fix placement of chapter markers with regards to lists...
+    # this probably needs more work.
+    for i in range(len(textlines)):
+        if textlines[i].partition(' ')[0].startswith(r'\li'):
+            if r'\c ' in textlines[i]:
+                if textlines[i + 1].startswith(r'\s') \
+                        or textlines[i + 1].startswith(r'\ms') \
+                        or textlines[i + 1].startswith(r'\p'):
                     textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
-        # fix placement of chapter markers with regards to lists...
-        # this probably needs more work.
-        for i in range(len(textlines)):
-            if textlines[i].partition(' ')[0].startswith(r'\li'):
-                if r'\c ' in textlines[i]:
-                    if textlines[i + 1].startswith(r'\s') \
-                            or textlines[i + 1].startswith(r'\ms') \
-                            or textlines[i + 1].startswith(r'\p'):
-                        textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+    # make sure some lines don't contain chapter or verse markers
+    for i in range(len(textlines)):
+        for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
+                  r'\s3 ', r'\s4 ', r'\th', r'\tc']:
+            if textlines[i].startswith(j):
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
 
-        # make sure some lines don't contain chapter or verse markers
-        for i in range(len(textlines)):
-            for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
-                      r'\s3 ', r'\s4 ', r'\th', r'\tc']:
-                if textlines[i].startswith(j):
-                    textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
-                    textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+    # make sure some lines don't contain chapter markers
+    for i in range(len(textlines)):
+        for j in [r'\li', r'\ph', r'\io', 'ili']:
+            if textlines[i].startswith(j):
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
-        # make sure some lines don't contain chapter markers
-        for i in range(len(textlines)):
-            for j in [r'\li', r'\ph', r'\io', 'ili']:
-                if textlines[i].startswith(j):
-                    textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
-
-        text = '\n'.join(textlines)
+    text = '\n'.join(textlines)
 
     # process text without paragraph markup (may not work. needs testing.)
-    else:
+    if not mangletext:
+        # force some things  onto newlines.
+        text = text.replace(r'\c ', '\n\\c ')
+        text = text.replace(r'\v ', '\n\\v ')
+        text = text.replace(r'\ide ', '\n\\ide ')
+
         # make sure all lines start with a usfm tag...
         lines = text.split('\n')
         for i in range(len(lines) - 1, 0, -1):
