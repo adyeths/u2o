@@ -60,6 +60,8 @@ This script is public domain. You may do whatever you want with it.
 #    uFDD2     - used at start of footnotes to help process \fp markers
 #    uFDD3     - used at end of footnotes to help process \fp markers
 #
+#    uFDD4     - mark end of cl tags
+#
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
 #
@@ -1132,6 +1134,13 @@ def reflow(text):
             mangletext = True
             break
 
+    # mark end of cl tags
+    textlines = text.split('\n')
+    for i in range(len(textlines)):
+        if textlines[i].startswith(r'\cl '):
+            textlines[i] = '{}\uFDD4'.format(textlines[i])
+    text = '\n'.join(textlines)
+
     # process text with paragraph formatting
     text = SQUEEZE.sub(' ', text)
     # put (almost) all paragraph style tags on separate lines.
@@ -1212,6 +1221,10 @@ def reflow(text):
         # remove some newlines that we don't want...
         for i in [r'\ca', r'\cp', r'\va', r'\vp']:
             text = text.replace('\n{}'.format(i), ' {}'.format(i))
+
+    # fix cl newline issue
+    if '\uFDD4' in text:
+        text = text.replace('\uFDD4', '\n')
 
     # done
     return text
