@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 """Helper script to add osisRef attributes to reference tags in osis files."""
 from __future__ import print_function, unicode_literals
 import sys
