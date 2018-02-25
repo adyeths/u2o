@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2018-1-25'    # THIS SCRIPT revision date
+    'DATE': '2018-2-25'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2873,6 +2873,15 @@ def main():
     if not args.x and not HAVELXML:
         args.x = True
         print('Note:  lxml is not installed. Skipping OSIS validation.')
+
+    filenames = []
+    for _ in args.file:
+        if '*' in _:
+            filenames.extend(glob.glob(_))
+        else:
+            filenames.append(_)
+    args.file = filenames
+    del filenames
 
     for _ in args.file:
         if not os.path.isfile(_):

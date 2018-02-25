@@ -15,10 +15,11 @@ from __future__ import print_function, unicode_literals
 import argparse
 import re
 import collections
+import glob
 
 # -------------------------------------------------------------------------- #
 
-VERSION = "1.1"
+VERSION = "1.1.1"
 
 # -------------------------------------------------------------------------- #
 
@@ -128,13 +129,19 @@ USFMRE = re.compile(r'''
 
 
 def processtags(args):
-    """ process usfm tags in all files. """
-
+    """Process usfm tags in all files."""
     count = 0
     counttags = collections.Counter()
     knownset = set()
 
-    for fname in args.file:
+    filenames = []
+    for _ in args.file:
+        if '*' in _:
+            filenames.extend(glob.glob(_))
+        else:
+            filenames.append(_)
+
+    for fname in filenames:
         with open(fname, 'rb') as infile:
             intext = infile.read()
 
@@ -166,7 +173,7 @@ def processtags(args):
 
 
 def main():
-    """ Process command line arguments and then process files. """
+    """Process command line arguments and then process files."""
     parser = argparse.ArgumentParser(
         description='''
             A simple script to generate a list of usfm tags that were used in
