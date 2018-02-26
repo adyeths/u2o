@@ -1105,7 +1105,8 @@ def convertcl(text):
             clmarker = lines[chaplines[0] - 1]
             lines[chaplines[0] - 1] = ''
             for i in reversed(chaplines):
-                lines.insert(i + 1, clmarker)
+                cnumber = lines[i].split(" ")[1]
+                lines.insert(i + 1, " ".join([clmarker, cnumber]))
 
     # return our lines with converted cl tags.
     return '\n'.join(lines)
