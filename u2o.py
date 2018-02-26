@@ -2876,10 +2876,7 @@ def main():
 
     filenames = []
     for _ in args.file:
-        if '*' in _:
-            filenames.extend(glob.glob(_))
-        else:
-            filenames.append(_)
+        filenames.extend(glob.glob(_))
     args.file = filenames
     del filenames
 
