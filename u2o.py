@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2018-2-25'    # THIS SCRIPT revision date
+    'DATE': '2018-3-6'     # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -229,6 +229,9 @@ NONCANONICAL = {
     'GAZETTEER': 'gazetteer',
     'X-OTHER': 'x-other'
 }
+
+# list of books with one chapter
+ONECHAP = ['Obad', 'Phlm', '2John', '3John', 'Jude']
 
 
 # -------------------------------------------------------------------------- #
@@ -2090,6 +2093,7 @@ def convert_to_osis(text, bookid='TEST'):
         # chapter and verse numbers
         chap = ''
         verse = ''
+        caid = ''
         haschap = False
         hasverse = False
         hascloser = False
@@ -2158,6 +2162,11 @@ def convert_to_osis(text, bookid='TEST'):
             # ## verse numbers
             # BUG?: \va tags won't be handled unless lines start with a \v tag
             elif lines[i].startswith(r'\v '):
+
+                # test for books with only one chapter
+                if bookid in ONECHAP and haschap is False:
+                    chap = '1'
+
                 hasverse = True
                 tmp = list(lines[i].split(' ', 2))
                 if len(tmp) < 3:
@@ -2206,7 +2215,18 @@ def convert_to_osis(text, bookid='TEST'):
 
                 # generate verse tag
                 if verse == '':
-                    lines[i] = '<verse {} {} {} />{}'.format(
+                    # handle single chapter books without chapter marker
+                    if chap == '1' and haschap is False:
+                        chapmark = '<chapter {} {} {} />\n'.format(
+                            'sID="{}.1"'.format(bookid),
+                            'osisID="{}.1{}"'.format(bookid, caid),
+                            'n="1"')
+                        haschap = True
+                    else:
+                        chapmark = ''
+
+                    lines[i] = '{}<verse {} {} {} />{}'.format(
+                        chapmark,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
                         'n="{}"'.format(vnum),
