@@ -1886,7 +1886,9 @@ def convert_to_osis(text, bookid='TEST'):
                     osis2 = attributes['lemma']
                 if 'strong' in attributes.keys():
                     tag2 = STRONGSTAG
-                    strong1 = 'lemma="strong:{}"'.format(attributes['strong'])
+                    tmp = " ".join(["strong:{}".format(_.strip())
+                                    for _ in attributes['strong'].split(",")])
+                    strong1 = 'lemma="{}"'.format(tmp)
                     strong2 = ''
                 if 'x-morph' in attributes.keys():
                     if tag == STRONGSTAG:
