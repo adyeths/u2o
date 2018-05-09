@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2018-3-6'     # THIS SCRIPT revision date
+    'DATE': '2018-5-9'     # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -127,9 +127,13 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
                 <type type="OSIS">Bible</type>
                 <identifier type="OSIS">Bible.{}.{}</identifier>
                 <refSystem>Bible</refSystem>
-            </work>
-
+            </work>{}
         </header>\n'''
+
+STRONGSWORK = '''
+            <work osisWork="strong">
+                <refSystem>Dict.Strongs</refSystem>
+            </work>'''
 
 OSISFOOTER = '''
     </osisText>
@@ -2735,18 +2739,24 @@ def processfiles(args):
 
     # ## Get order for books...
     if args.s == 'none':
-        tmp = [books[_] for _ in booklist]
+        tmp = '\n'.join([books[_] for _ in booklist])
         tmp2 = [descriptions[_] for _ in booklist]
     elif args.s == 'canonical':
-        tmp = [books[_] for _ in CANONICALORDER if _ in books.keys()]
+        tmp = '\n'.join(
+            [books[_] for _ in CANONICALORDER if _ in books.keys()])
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
     else:
         with open('order-{}.txt'.format(args.s), 'r') as order:
             bookorder = order.read()
             bookorder = [_ for _ in bookorder.split('\n') if
                          _ != '' and not _.startswith('#')]
-        tmp = [books[_] for _ in bookorder if _ in books.keys()]
+        tmp = '\n'.join([books[_] for _ in bookorder if _ in books.keys()])
         tmp2 = [descriptions[_] for _ in bookorder if _ in books.keys()]
+    # check for strongs presence in osis
+    strongsheader = {
+        True: STRONGSWORK,
+        False: ''
+    }['<w ' in tmp]
     # assemble osis doc in desired order
     osisdoc = '{}{}{}\n'.format(
         OSISHEADER.format(args.workid,
@@ -2758,8 +2768,9 @@ def processfiles(args):
                           args.workid,
                           '\n'.join(tmp2),
                           args.l,
-                          args.workid),
-        '\n'.join(tmp),
+                          args.workid,
+                          strongsheader),
+        tmp,
         OSISFOOTER)
 
     # Print note about references not being processed.
