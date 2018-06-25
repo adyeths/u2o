@@ -176,7 +176,9 @@ def processreferences(text, abbr, abbr2):
     def simplerepl(match):
         """Simple regex replacement helper function."""
         errortext = ""
-        text = match.group(2)
+        text = match.group(2).strip()
+        if text.startswith("(") and text.endswith(")"):
+            text = text[1:-1].strip()
         osisrefs, oreferror = getosisrefs(text, currentbook, abbr, abbr2)
 
         if oreferror:
