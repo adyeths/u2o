@@ -1550,6 +1550,12 @@ def convert_to_osis(text, bookid='TEST'):
                     if '<l>  </l>' in selahfix[i]:
                         selahfix[i] = selahfix[i].replace(
                             '<l>  </l>', '')
+            for i in range(len(selahfix)):
+                if '<selah>' in selahfix[i] or '</selah>' in selahfix[i]:
+                    selahfix[i] = selahfix[i].replace(
+                        '<selah>', '<lg><l type="selah">')
+                    selahfix[i] = selahfix[i].replace(
+                        '</selah>', '</l></lg>')
             text = " ".join(selahfix)
 
         return text
