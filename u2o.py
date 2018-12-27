@@ -2664,6 +2664,9 @@ def processfiles(args):
         with open(fname, 'rb') as ifile:
             text = ifile.read()
 
+        # strip whitespace from beginning and end of file
+        text = text.strip()
+
         # get encoding. Abort processing if we don't know the encoding.
         # default to utf-8-sig encoding if no encoding is specified.
         try:
@@ -2672,7 +2675,10 @@ def processfiles(args):
             else:
                 bookencoding = getencoding(text)
                 if bookencoding is not None:
-                    bookencoding = codecs.lookup(bookencoding).name
+                    if bookencoding == '65001 - Unicode (UTF-8)':
+                        bookencoding = 'utf-8-sig'
+                    else:
+                        bookencoding = codecs.lookup(bookencoding).name
                 else:
                     bookencoding = 'utf-8-sig'
             # use utf-8-sig in place of utf-8 encoding to eliminate errors that
@@ -2916,7 +2922,10 @@ def main():
 
     filenames = []
     for _ in args.file:
-        filenames.extend(glob.glob(_))
+        if os.path.isfile(_):
+            filenames.append(_)
+        else:
+            filenames.extend(glob.glob(_))
     args.file = filenames
     del filenames
 
