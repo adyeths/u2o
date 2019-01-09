@@ -261,6 +261,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
     # --- normalize range separator
     for i in SEPRNORM:
         text = text.replace(i, SEPR)
+    text = text.replace("{}{}".format(SEPR, SEPR), SEPR)
 
     # --- filter out directional formatting characters
     for i in ['\u200E', '\u200F', '\u061C', '\u202A', '\u202B', '\u202C',
