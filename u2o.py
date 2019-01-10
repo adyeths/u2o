@@ -593,7 +593,7 @@ FEATURETAGS = {
     r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
     r'\rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
     r'\rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
-    r'\ndx': ('', '<index="Index" level1="{}" /> '),
+    r'\ndx': ('', '<index index="Index" level1="{}" /> '),
     r'\png': ('', '<index index="Geography" level1="{}" />'),
     r'\w': ('', '<index index="Glossary" level1="{}" />'),
     r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
@@ -603,7 +603,7 @@ FEATURETAGS = {
     r'\+pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
     r'\+rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
     r'\+rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
-    r'\+ndx': ('', '<index="Index" level1="{}" /> '),
+    r'\+ndx': ('', '<index index="Index" level1="{}" /> '),
     r'\+png': ('', '<index index="Geography" level1="{}" />'),
     r'\+w': ('', '<index index="Glossary" level1="{}" />'),
     r'\+wa': ('', '<index index="Aramaic" level1="{}" />'),
@@ -1909,6 +1909,12 @@ def convert_to_osis(text, bookid='TEST'):
             # TODO: improve processing of tag attributes
 
             if tag[0] == '' and tag2 is None:
+                # limited filtering of index entry contents...
+                if '<seg type="x-nested"><transChange type="added">' in osis2:
+                    osis2 = osis2.replace(
+                        '<seg type="x-nested"><transChange type="added">',
+                        '')
+                    osis2 = osis2.replace('</transChange></seg>', '')
                 outtext = '{}{}'.format(
                     osis,
                     tag[1].format(osis2))
