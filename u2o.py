@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-1-9'     # THIS SCRIPT revision date
+    'DATE': '2019-1-10'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2129,6 +2129,11 @@ def convert_to_osis(text, bookid='TEST'):
                 if len(tmp) < 3:
                     tmp.append('')
                 cnum = tmp[1]
+
+                # nb fix...
+                if '<!--' in cnum and 'nb -->' in tmp[2]:
+                    cnum = cnum.replace('<!--', '').strip()
+                    tmp[2] = '<!-- {}'.format(tmp[2])
 
                 # replace chapter num with chapter from \cp tag
                 if r'\cp ' in lines[i]:
