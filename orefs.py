@@ -39,6 +39,8 @@ SEPC = ":"  # separates chapter from verse
 SEPP = ","  # separates multiple verses or verse ranges
 SEPR = "-"  # separates verse ranges
 SEPRNORM = ["–", "—"]  # used to normalize verse ranges
+DIGITS = "0123456789"  # default set of decimal digits to use
+DIGITTABLE = str.maketrans(DIGITS, DIGITS) # digit translation table
 
 # book tag format string
 BTAG = "\uFDEA{}\uFDEB"
@@ -108,10 +110,14 @@ def readconfig(fname):
     # get default part of config...
     for i in ["SEPM", "SEPP", "SEPC", "SEPR", "SEPRNORM"]:
         globals()[i] = config["DEFAULT"][i]
-    if globals()["SEPRNORM"] == "":
-        globals()["SEPRNORM"] = list(globals()["SEPR"])
-    else:
-        globals()["SEPRNORM"] = list(globals()["SEPRNORM"])
+    if "DIGITS" in config["DEFAULT"]:
+        globals()["DIGITS"] = config["DEFAULT"]["DIGITS"]
+        globals()["DIGITTABLE"] = str.maketrans("0123456789",
+                                                globals()["DIGITS"])
+    globals()["SEPRNORM"] = {
+        True: list(globals()["SEPR"]),
+        False: list(globals()["SEPRNORM"])
+    }[globals()["SEPRNORM"] == ""]
 
     # get abbreviations
     for i in BOOKLIST:
@@ -147,7 +153,8 @@ def genconf(text):
               ("SEPP", SEPP),
               ("SEPC", SEPC),
               ("SEPR", SEPR),
-              ("SEPRNORM", "".join(SEPRNORM))):
+              ("SEPRNORM", "".join(SEPRNORM)),
+              ("DIGITS", DIGITS)):
         config["DEFAULT"][i[0]] = i[1]
 
     # create ABBR section of config…
@@ -334,6 +341,10 @@ def getosisrefs(text, currentbook, abbr, abbr2):
         # book part
         bcv = i.partition(BTAG[-1])
         bkref = bcv[0].partition(BTAG[0])[2]
+
+        # handle references that use something other than arabic numerals
+        if globals()["DIGITS"] != "0123456789":
+            bkref = bkref.translate(DIGITTABLE)
 
         # chapverse part
         if SEPC in bcv[2]:
