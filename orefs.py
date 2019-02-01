@@ -279,6 +279,13 @@ def getosisrefs(text, currentbook, abbr, abbr2):
     text = text.strip()
     text = text.lstrip('(').rstrip(')')
 
+    # --- prepare book part of references for processing
+    for i in reversed(abbr):
+        tag = BTAG.format(abbr[i][0])
+        restr = r'\b{}\b'.format('|'.join([re.escape(_) for
+                                           _ in abbr[i][1:]]))
+        text = re.sub(restr, tag, text, flags=re.U)
+
     # --- break multiple references part
     newtext = text.split(SEPM)
     if not isinstance(newtext, list):
@@ -292,21 +299,8 @@ def getosisrefs(text, currentbook, abbr, abbr2):
 
         for j in enumerate(newtext):
             try:
-                if tag[0] not in newtext[j[0]]:
-                    # ### new method using a simple regular expression
-                    restr = r'\b{}\b'.format('|'.join(
-                        [re.escape(_) for _ in abbr[i][1:]]))
-                    newtext[j[0]] = re.sub(restr,
-                                           tag,
-                                           newtext[j[0]],
-                                           flags=re.U)
-                    # ### old method using a simple string replace
-                    # for k in abbr[i][1:]:
-                    #     newtext[j[0]] = newtext[j[0]].replace(k, tag)
-                    if tag[0] in newtext[j[0]]:
-                        lastbook = tag
-
                 if tag[0] in newtext[j[0]]:
+                    lastbook = tag
                     tmp = newtext[j[0]].partition(" ")
                     try:
                         newtext[j[0]] = " ".join([
