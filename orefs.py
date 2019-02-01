@@ -290,7 +290,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
     newtext = text.split(SEPM)
     if not isinstance(newtext, list):
         newtext = [newtext]
-    newtext = [_.strip() for _ in newtext]
+    newtext = [_.strip() for _ in newtext if _.strip() != '']
 
     # --- process book part of references
     lastbook = BTAG.format(abbr[currentbook][0])
