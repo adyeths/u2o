@@ -313,7 +313,7 @@ def getosisrefs(text, currentbook, abbr, abbr2):
             # add last book to reference where it was omitted.
             nobook = True
             for k in newtext[j[0]]:
-                nobkchk = "".join([SEPM, SEPC, SEPP, SEPR, "0123456789"])
+                nobkchk = "".join([SEPM, SEPC, SEPP, SEPR])
                 if k not in list(nobkchk):
                     nobook = False
                     break
