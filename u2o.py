@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-1-10'    # THIS SCRIPT revision date
+    'DATE': '2019-2-8'     # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -318,6 +318,8 @@ TITLETAGS = {
                '</title>'),
     r'\imt4': ('<title level="4" type="main" subType="x-introduction">',
                '</title>'),
+    r'\imt5': ('<title level="5" type="main" subType="x-introduction">',
+               '</title>'),
     r'\imte': ('<title type="main" subType="x-introduction">', '</title>'),
     r'\imte1': ('<title level="1" type="main" subType="x-introduction">',
                 '</title>'),
@@ -327,6 +329,8 @@ TITLETAGS = {
                 '</title>'),
     r'\imte4': ('<title level="4" type="main" subType="x-introduction">',
                 '</title>'),
+    r'\imte5': ('<title level="5" type="main" subType="x-introduction">',
+                '</title>'),
     # r'\ib': ('', ''),
 
     # ##### Normal Title Section ##### #
@@ -335,11 +339,13 @@ TITLETAGS = {
     r'\mt2': ('<title level="2" type="main">', '</title>'),
     r'\mt3': ('<title level="3" type="main">', '</title>'),
     r'\mt4': ('<title level="4" type="main">', '</title>'),
+    r'\mt5': ('<title level="5" type="main">', '</title>'),
     r'\mte': ('<title type="main">', '</title>'),
     r'\mte1': ('<title level="1" type="main">', '</title>'),
     r'\mte2': ('<title level="2" type="main">', '</title>'),
     r'\mte3': ('<title level="3" type="main">', '</title>'),
     r'\mte4': ('<title level="4" type="main">', '</title>'),
+    r'\mte5': ('<title level="5" type="main">', '</title>'),
     #
     r'\mr': ('<title type="scope"><reference>', '</reference></title>'),
     r'\sr': ('<title type="scope"><reference>', '</reference></title>'),
