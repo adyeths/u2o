@@ -1204,6 +1204,14 @@ def reflow(text):
                         or textlines[i + 1].startswith(r'\p'):
                     textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
 
+    # fix placement of chapter markers with regards to tables...
+    # this probably needs more work.
+    for i in range(len(textlines)):
+        if textlines[i].partition(' ')[0].startswith(r'\tr'):
+            if r'\c ' in textlines[i]:
+                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+
+
     # make sure some lines don't contain chapter or verse markers
     for i in range(len(textlines)):
         for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
