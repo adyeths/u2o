@@ -1477,7 +1477,7 @@ def convert_to_osis(text, bookid='TEST'):
                         r'periph', line[2])
                 else:
                     osis, attributetext, attributes, isvalid = (
-                        line[2], '', dict(), True)
+                        line[2], None, dict(), True)
                 if attributetext is not None:
                     attributetext = '{}{}{}'.format(
                         '<!-- USFM Attributes - ',
