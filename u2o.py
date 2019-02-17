@@ -1155,6 +1155,8 @@ def reflow(text):
             textlines[i] = '{}\uFDD4'.format(textlines[i])
         elif textlines[i].startswith(r'\sp '):
             textlines[i] = '{}\uFDD4'.format(textlines[i])
+        elif textlines[i].startswith(r'\qa '):
+            textlines[i] = '{}\uFDD4'.format(textlines[i])
     text = '\n'.join(textlines)
 
     # process text with paragraph formatting
@@ -1175,10 +1177,6 @@ def reflow(text):
     # always add a newline after \ie (may miss some of these tags)
     if r'\ie ' in text:
         text = text.replace(r'\ie ', '\\ie\n')
-
-    # always add a newline after \qa
-    if r'\qa ' in text:
-        text = text.replace(r'\qa ', '\\qa\n')
 
     # always make sure chapter 1 marker is on a new line.
     text = text.replace(r'\c 1 ', '\n\\c 1')
