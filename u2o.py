@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-2-8'     # THIS SCRIPT revision date
+    'DATE': '2019-2-17'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1175,6 +1175,10 @@ def reflow(text):
     # always add a newline after \ie (may miss some of these tags)
     if r'\ie ' in text:
         text = text.replace(r'\ie ', '\\ie\n')
+
+    # always add a newline after \qa
+    if r'\qa ' in text:
+        text = text.replace(r'\qa ', '\\qa\n')
 
     # always make sure chapter 1 marker is on a new line.
     text = text.replace(r'\c 1 ', '\n\\c 1')
@@ -2814,7 +2818,7 @@ def processfiles(args):
 
     # Print note about references not being processed.
     print('NOTE: References have not been processed.')
-    print('      Use orefs to add osisRef attributes to references.')
+    # print('      Use orefs to add osisRef attributes to references.')
 
     # apply NFC normalization to text unless explicitly disabled.
     if not args.n:
