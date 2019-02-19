@@ -2458,6 +2458,21 @@ def convert_to_osis(text, bookid='TEST'):
                     lines[j] = ''
         lines = [_ for _ in lines if _ != '']
 
+        # special fix for verse end markers following "acrostic" titles...
+        # because I can't figure out why my other fixes aren't working.
+        for i in ['<title type="acrostic"', '</lg']:
+            for j in [_ for _ in range(len(lines)) if
+                      lines[_].startswith('<verse eID')]:
+                if lines[j - 1].startswith(i):
+                    lines.insert(j - 1, lines.pop(j))
+        for j in [_ for _ in range(len(lines)) if
+                  lines[_].startswith('<verse eID')]:
+            if lines[j - 1].endswith('</l>'):
+                lines[j - 1] = '{}{}</l>'.format(
+                    lines[j - 1].rpartition('<')[0],
+                    lines[j])
+                lines[j] = ''
+
         # handling of verse end tags in relation to titles...
         for i in ['<!-- ', '</p>']:
             for j in [_ for _ in range(len(lines)) if
