@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-2-17'    # THIS SCRIPT revision date
+    'DATE': '2019-5-18'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -469,6 +469,9 @@ PARTAGS = {
 # other introduction and poetry tags
 OTHERTAGS = OrderedDict()
 for _ in [
+        # sidebar markers
+        (r'\esb ', '<div type="x-sidebar">'),
+        (r'\esbe ', '</div>'),
         # selah is handled in a special manner…
         (r'\qs ', '<selah>'),
         (r'\qs*', '</selah>'),
