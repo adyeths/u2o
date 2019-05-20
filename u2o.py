@@ -1301,10 +1301,11 @@ def markintroend(lines):
     intro = False
     while i < x:
         tmp = lines[i].partition(' ')
-        if tmp[0] == r'\ie':
+        if tmp[0:3] == r'\ie':
             intro = False
-        elif tmp[0][:3] in [r'\im', r'\is', r'\ip', r'\iq',
-                            r'\ib', r'\il', r'\io' r'\ie']:
+            lines.insert(i, u'\ufde0')
+        elif tmp[0][:3] in [r'\ib', r'\il', r'\im', r'\io',
+                            r'\ip', r'\iq', r'\is', r'\ie']:
             if not intro:
                 lines.insert(i, u'\ufde0')
                 intro = True
@@ -2598,7 +2599,7 @@ def convert_to_osis(text, bookid='TEST'):
     lines = text.split('\n')
 
     # mark introduction endings...
-    for i in [r'\im', r'\is', r'\ib', r'\ie']:
+    for i in [r'\ib', r'\ie', r'\il', r'\im', r'\io', r'\ip', r'\iq', r'\is', ]:
         if i in text:
             lines = markintroend(lines)
             break
