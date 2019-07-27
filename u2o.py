@@ -592,10 +592,7 @@ SPECIALTEXT = {
 
     # ca and va tags... because simpler handling was needed...
     r'\ca': ('<milestone type="x-usfm-ca" n="', '" />'),
-    r'\va': ('<milestone type="x-usfm-va" n="', '" />'),
-    # cp and vp tags... because better handling was needed...
-    r'\cp': ('<milestone type="x-usfm-cp" n="', '" />'),
-    r'\vp': ('<milestone type="x-usfm-vp" n="', '" />')
+    r'\va': ('<milestone type="x-usfm-va" n="', '" />')
 
 }
 
@@ -854,22 +851,22 @@ NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
 # match \cp and \vp tags
-# CPRE = re.compile(
-#     r'''
-#         \\(?:cp)
-#         \s+
-#         (?P<num>\S+)\b
-#         \s*
-#     ''', re.U + re.VERBOSE)
-# VPRE = re.compile(
-#     r'''
-#         \\(?:vp)
-#         \s+
-#         (?P<num>\S+)
-#         \s*
-#         \\vp\*
-#         \s*
-#     ''', re.U + re.VERBOSE)
+CPRE = re.compile(
+    r'''
+        \\(?:cp)
+        \s+
+        (?P<num>\S+)\b
+        \s*
+    ''', re.U + re.VERBOSE)
+VPRE = re.compile(
+    r'''
+        \\(?:vp)
+        \s+
+        (?P<num>\S+)
+        \s*
+        \\vp\*
+        \s*
+    ''', re.U + re.VERBOSE)
 
 # regex for matching against \ca or \va usfm tags.
 CVARE = re.compile(
@@ -2150,19 +2147,17 @@ def convert_to_osis(text, bookid='TEST'):
                 tmp = list(lines[i].split(' ', 2))
                 if len(tmp) < 3:
                     tmp.append('')
-                cnum = tmp[1]
+                cnum, cnum2 = tmp[1], tmp[1]
 
                 # nb fix...
                 if '<!--' in cnum and 'nb -->' in tmp[2]:
                     cnum = cnum.replace('<!--', '').strip()
                     tmp[2] = '<!-- {}'.format(tmp[2])
 
-                # replace chapter num with chapter from \cp tag
-                # Commented out since this is problematic for some languages.
-                # Handled with specialtext now.
-                # if r'\cp ' in lines[i]:
-                #     cnum = CPRE.search(tmp[2]).group('num')
-                #     tmp[2] = CPRE.sub('', tmp[2])
+                # get printed chapter character with chapter from \cp tag
+                if r'\cp ' in lines[i]:
+                    cnum2 = CPRE.search(tmp[2]).group('num')
+                    tmp[2] = CPRE.sub('', tmp[2])
                 # get alternate chapter number from \ca tags
                 # this will be added to the chapter osisID
                 caid = ''
@@ -2184,7 +2179,7 @@ def convert_to_osis(text, bookid='TEST'):
                     lines[i] = '<chapter {} {} {} />{}'.format(
                         'sID="{}.{}"'.format(bookid, cnum),
                         'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum),
+                        'n="{}"'.format(cnum2),
                         tmp[2])
                     chap = cnum
                 else:
@@ -2195,14 +2190,14 @@ def convert_to_osis(text, bookid='TEST'):
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
+                            'n="{}"'.format(cnum2),
                             tmp[2])
                     else:
                         lines[i] = '{}\n<chapter {} {} {} />{}'.format(
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
+                            'n="{}"'.format(cnum2),
                             tmp[2])
 
                     chap = cnum
@@ -2220,14 +2215,12 @@ def convert_to_osis(text, bookid='TEST'):
                 tmp = list(lines[i].split(' ', 2))
                 if len(tmp) < 3:
                     tmp.append('')
-                vnum = tmp[1]
+                vnum, vnum2 = tmp[1], tmp[1]
 
                 # replace verse num with verse from \vp tag
-                # Commented out since this is problematic for some languages.
-                # Handled with specialtext now.
-                # if r'\vp ' in lines[i]:
-                #     vnum = VPRE.search(tmp[2]).group('num')
-                #     tmp[2] = VPRE.sub('', tmp[2])
+                if r'\vp ' in lines[i]:
+                    vnum2 = VPRE.search(tmp[2]).group('num')
+                    tmp[2] = VPRE.sub('', tmp[2])
                 # add va to osis id.
                 vaid = ''
                 # Commented out since The SWORD Project can't handle this...
@@ -2280,7 +2273,7 @@ def convert_to_osis(text, bookid='TEST'):
                         chapmark,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
-                        'n="{}"'.format(vnum),
+                        'n="{}"'.format(vnum2),
                         tmp[2])
                     verse = vnum
                 else:
@@ -2288,7 +2281,7 @@ def convert_to_osis(text, bookid='TEST'):
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
-                        'n="{}"'.format(vnum),
+                        'n="{}"'.format(vnum2),
                         tmp[2])
                     verse = vnum
 
@@ -2406,14 +2399,13 @@ def convert_to_osis(text, bookid='TEST'):
                                             '</div>')
 
         # Convert unhandled vp tags, to milestones...
-        # All vp tags now handled via specialtext.
-        # for i in range(len(lines)):
-        #     while r'\vp ' in lines[i]:
-        #         vpnum = VPRE.search(lines[i]).group('num')
-        #         lines[i] = VPRE.sub(
-        #             '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
-        #             lines[i],
-        #             1)
+        for i in range(len(lines)):
+            while r'\vp ' in lines[i]:
+                vpnum = VPRE.search(lines[i]).group('num')
+                lines[i] = VPRE.sub(
+                    '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
+                    lines[i],
+                    1)
 
         # adjust some tags for postprocessing purposes.
         i = len(lines)
