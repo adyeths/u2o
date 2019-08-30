@@ -105,7 +105,7 @@ META = {
     'USFM': '3.0',         # Targeted USFM version
     'OSIS': '2.1.1',       # Targeted OSIS version
     'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-7-25'    # THIS SCRIPT revision date
+    'DATE': '2019-8-30'    # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1640,34 +1640,6 @@ def convert_to_osis(text, bookid='TEST'):
                         lines[i - 1])
                     intable = False
 
-        # add missing introduction div's
-#        closeis1 = ''
-#        closeis2 = ''
-#        for i in range(len(lines)):
-#            if lines[i].startswith(u'\ufdd0<!-- is2 '):
-#                lines[i] = '{}<div type="subSection">{}'.format(
-#                    closeis2, lines[i].replace('<!-- is2 -->', ''))
-#                closeis2 = u'</div>\ufdd0'
-#            elif lines[i].startswith(u'\ufdd0<!-- is1 ') \
-#                    or lines[i].startswith(u'\ufdd0<!-- is '):
-#                lines[i] = '{}{}<div type="section">{}'.format(
-#                    closeis2, closeis1,
-#                    lines[i].replace('<!-- is1 -->', '').replace(
-#                        '<!-- is -->', ''))
-#                closeis1 = u'</div>\ufdd0'
-#                closeis2 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- imt') \
-#                    or lines[i].startswith(u'\ufdd0<!-- ie '):
-#                lines[i] = '{}{}{}'.format(
-#                    closeis2, closeis1, lines[i])
-#                closeis1 = ''
-#                closeis2 = ''
-#            elif u'\ufde1' in lines[i]:
-#                lines[i] = '{}{}{}'.format(
-#                    closeis2, closeis1, lines[i])
-#                closeis1 = ''
-#                closeis2 = ''
-
         # encapsulate introductions inside div's
         for i in range(len(lines)):
             if lines[i] == u'\ufde0':
@@ -1677,125 +1649,6 @@ def convert_to_osis(text, bookid='TEST'):
             elif lines[i].endswith(u'\ufde1'):
                 lines[i] = u'{}</div>\ufdd0'.format(lines[i].replace(
                     u'\ufde1', ''))
-
-        # add missing majorSection and section div's
-        # there may be things that need added to div tags here.
-        # this is messy and could be handled better...
-#        closes1 = ''
-#        closes2 = ''
-#        closes3 = ''
-#        closes4 = ''
-#        closems1 = ''
-#        closems2 = ''
-#        closems3 = ''
-#        closeperiph = ''
-#        for i in range(len(lines)):
-#            if lines[i].startswith(u'\ufdd0<!-- s4 '):
-#                lines[i] = '{}<div type="subSection">{}'.format(
-#                    closes4, lines[i].replace('<!-- s4 -->', ''))
-#                closes4 = u'</div>\ufdd0'
-#            elif lines[i].startswith(u'\ufdd0<!-- s3 '):
-#                lines[i] = '{}{}<div type="subSection">{}'.format(
-#                    closes4, closes3, lines[i].replace('<!-- s3 -->', ''))
-#                closes3 = u'</div>\ufdd0'
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- s2 '):
-#                lines[i] = '{}{}{}<div type="subSection">{}'.format(
-#                    closes4, closes3, closes2, lines[i].replace(
-#                        '<!-- s2 -->', ''))
-#                closes2 = u'</div>\ufdd0'
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- s1 '):
-#                lines[i] = '{}{}{}{}<div type="section">{}'.format(
-#                    closes4, closes3, closes2, closes1,
-#                    lines[i].replace('<!-- s1 -->', ''))
-#                closes1 = u'</div>\ufdd0'
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- s '):
-#                lines[i] = '{}{}{}{}<div type="section">{}'.format(
-#                    closes4, closes3, closes2, closes1,
-#                    lines[i].replace('<!-- s -->', ''))
-#                closes1 = u'</div>\ufdd0'
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- ms3 '):
-#                lines[i] = '{}{}{}{}{}<div type="majorSection">{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3,
-#                    lines[i].replace('<!-- ms3 -->', ''))
-#                closems3 = u'</div>\ufdd0'
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- ms2 '):
-#                lines[i] = '{}{}{}{}{}{}<div type="majorSection">{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3, closems2,
-#                    lines[i].replace('<!-- ms2 -->', ''))
-#                closems2 = u'</div>\ufdd0'
-#                closems3 = ''
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- ms1 '):
-#                lines[i] = '{}{}{}{}{}{}{}<div type="majorSection">{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3, closems2,
-#                    closems1,
-#                    lines[i].replace('<!-- ms1 -->', ''))
-#                closems1 = u'</div>\ufdd0'
-#                closems2 = ''
-#                closems3 = ''
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- ms '):
-#                lines[i] = '{}{}{}{}{}{}{}<div type="majorSection">{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3, closems2,
-#                    closems1,
-#                    lines[i].replace('<!-- ms -->', ''))
-#                closems1 = u'</div>\ufdd0'
-#                closems2 = ''
-#                closems3 = ''
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#            elif lines[i].startswith(u'\ufdd0<!-- mt'):
-#                lines[i] = '{}{}{}{}{}{}{}{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3, closems2,
-#                    closems1, lines[i])
-#                closems1 = ''
-#                closems2 = ''
-#                closems3 = ''
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-            # todo: set div type for periphs.
-#            elif lines[i].startswith(u'\ufdd0<!-- periph'):
-#                lines[i] = '{}{}{}{}{}{}{}{}<div>{}'.format(
-#                    closes4, closes3, closes2, closes1, closems3, closems2,
-#                    closems1, closeperiph, lines[i])
-#                closeperiph = u'</div>\ufdd0'
-#                closems1 = ''
-#                closems2 = ''
-#                closems3 = ''
-#                closes1 = ''
-#                closes2 = ''
-#                closes3 = ''
-#                closes4 = ''
-#        for i in [closes1, closes2, closes3, closes4,
-#                  closems1, closems2, closems3, closeperiph]:
-#            if i != '':
-#                lines.append('{}{}{}{}{}{}{}{}'.format(
-#                    closes4, closes3, closes2, closes1,
-#                    closems3, closems2, closems1, closeperiph))
-#                break
 
         return lines
 
@@ -1882,13 +1735,6 @@ def convert_to_osis(text, bookid='TEST'):
         if r'\cat ' in text:
             text = text.replace(r'\cat ', r'<index index="category" level1="')
             text = text.replace(r'\cat*', r'" />')
-
-        # study bible sidebars.
-        # if text.startswith(r'\esbe'):
-        #     text = r'</div>{}'.format(text.replace(r'\esbe', ''))
-        # if text.startswith(r'\esb'):
-        #     text = r'<div type="x-sidebar">{}'.format(
-        #         text.replace(r'\esb', ''))
 
         # return our processed text
         return text
@@ -2635,17 +2481,6 @@ def convert_to_osis(text, bookid='TEST'):
         lines[i] = titlepar(lines[i])
 
     # process words of Jesus
-    ######################################################################
-    # NOTE: Don't uncomment this right now. Converting words of Jesus to
-    #       milestone q tags works but is problematic for some software.
-    #       The alternative way that immediately follows is better for now.
-    ######################################################################
-    # if r'\wj' in text:
-    #     lines = processwj(lines)
-
-    # use alternative way to process words of Jesus
-    # This still has some issues. But it works better than both the original
-    # handling of wj tags and the milestone handling of the tags.
     if r'\wj' in text:
         lines = processwj2(lines)
 
