@@ -86,6 +86,7 @@ from contextlib import closing
 HAVEMULTIPROCESSING = False
 try:
     import multiprocessing
+
     HAVEMULTIPROCESSING = True
 except ImportError:
     pass
@@ -95,6 +96,7 @@ except ImportError:
 HAVELXML = False
 try:
     import lxml.etree as et
+
     HAVELXML = True
 except ImportError:
     pass
@@ -102,15 +104,15 @@ except ImportError:
 # -------------------------------------------------------------------------- #
 
 META = {
-    'USFM': '3.0',         # Targeted USFM version
-    'OSIS': '2.1.1',       # Targeted OSIS version
-    'VERSION': '0.6',      # THIS SCRIPT version
-    'DATE': '2019-8-30'    # THIS SCRIPT revision date
+    "USFM": "3.0",  # Targeted USFM version
+    "OSIS": "2.1.1",  # Targeted OSIS version
+    "VERSION": "0.6",  # THIS SCRIPT version
+    "DATE": "2019-8-30",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
 
-OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
+OSISHEADER = """<?xml version="1.0" encoding="utf-8"?>
 <osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.bibletechnologies.net/2003/OSIS/namespace
@@ -128,114 +130,299 @@ OSISHEADER = '''<?xml version="1.0" encoding="utf-8"?>
                 <identifier type="OSIS">Bible.{}.{}</identifier>
                 <refSystem>Bible</refSystem>
             </work>{}
-        </header>\n'''
+        </header>\n"""
 
-STRONGSWORK = '''
+STRONGSWORK = """
             <work osisWork="strong">
                 <refSystem>Dict.Strongs</refSystem>
-            </work>'''
+            </work>"""
 
-OSISFOOTER = '''
+OSISFOOTER = """
     </osisText>
-</osis>\n'''
+</osis>\n"""
 
 # -------------------------------------------------------------------------- #
 
 CANONICALORDER = [
     # Canonical order used by the usfm2osis.py script...
     # minus the extra books that aren't part of usfm at this time.
-    'FRONT', 'INTRODUCTION',
-    'Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam',
-    '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'PrMan', 'Jub', '1En', 'Ezra',
-    'Neh', 'Tob', 'Jdt', 'Esth', 'EsthGr', '1Meq', '2Meq', '3Meq', 'Job',
-    'Ps', 'AddPs', '5ApocSyrPss', 'Odes', 'Prov', 'Reproof', 'Eccl', 'Song',
-    'Wis', 'Sir', 'PssSol', 'Isa', 'Jer', 'Lam', 'Bar', 'EpJer', '2Bar',
-    'EpBar', '4Bar', 'Ezek', 'Dan', 'DanGr', 'PrAzar', 'Sus', 'Bel', 'Hos',
-    'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag',
-    'Zech', 'Mal',
-    '1Esd', '2Esd', '4Ezra', '5Ezra', '6Ezra', '1Macc', '2Macc', '3Macc',
-    '4Macc',
-    'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal',
-    'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm',
-    'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev',
-    'EpLao',
-    'XXA', 'XXB', 'XXC', 'XXD', 'XXE', 'XXF', 'XXG',
-    'BACK', 'CONCORDANCE', 'GLOSSARY', 'INDEX', 'GAZETTEER',
-    'X-OTHER'
+    "FRONT",
+    "INTRODUCTION",
+    "Gen",
+    "Exod",
+    "Lev",
+    "Num",
+    "Deut",
+    "Josh",
+    "Judg",
+    "Ruth",
+    "1Sam",
+    "2Sam",
+    "1Kgs",
+    "2Kgs",
+    "1Chr",
+    "2Chr",
+    "PrMan",
+    "Jub",
+    "1En",
+    "Ezra",
+    "Neh",
+    "Tob",
+    "Jdt",
+    "Esth",
+    "EsthGr",
+    "1Meq",
+    "2Meq",
+    "3Meq",
+    "Job",
+    "Ps",
+    "AddPs",
+    "5ApocSyrPss",
+    "Odes",
+    "Prov",
+    "Reproof",
+    "Eccl",
+    "Song",
+    "Wis",
+    "Sir",
+    "PssSol",
+    "Isa",
+    "Jer",
+    "Lam",
+    "Bar",
+    "EpJer",
+    "2Bar",
+    "EpBar",
+    "4Bar",
+    "Ezek",
+    "Dan",
+    "DanGr",
+    "PrAzar",
+    "Sus",
+    "Bel",
+    "Hos",
+    "Joel",
+    "Amos",
+    "Obad",
+    "Jonah",
+    "Mic",
+    "Nah",
+    "Hab",
+    "Zeph",
+    "Hag",
+    "Zech",
+    "Mal",
+    "1Esd",
+    "2Esd",
+    "4Ezra",
+    "5Ezra",
+    "6Ezra",
+    "1Macc",
+    "2Macc",
+    "3Macc",
+    "4Macc",
+    "Matt",
+    "Mark",
+    "Luke",
+    "John",
+    "Acts",
+    "Rom",
+    "1Cor",
+    "2Cor",
+    "Gal",
+    "Eph",
+    "Phil",
+    "Col",
+    "1Thess",
+    "2Thess",
+    "1Tim",
+    "2Tim",
+    "Titus",
+    "Phlm",
+    "Heb",
+    "Jas",
+    "1Pet",
+    "2Pet",
+    "1John",
+    "2John",
+    "3John",
+    "Jude",
+    "Rev",
+    "EpLao",
+    "XXA",
+    "XXB",
+    "XXC",
+    "XXD",
+    "XXE",
+    "XXF",
+    "XXG",
+    "BACK",
+    "CONCORDANCE",
+    "GLOSSARY",
+    "INDEX",
+    "GAZETTEER",
+    "X-OTHER",
 ]
 # get list of book orders available from external files in the current
 # working directory.  Each order file has the following naming pattern:
 #    order-SOMEORDER.txt
-BOOKORDERS = sorted([_.replace('order-', '').replace('.txt', '') for _ in
-                     glob.glob('order-*.txt')])
-BOOKORDERS.append('none')
-BOOKORDERS.insert(0, 'canonical')
+BOOKORDERS = sorted(
+    [
+        _.replace("order-", "").replace(".txt", "")
+        for _ in glob.glob("order-*.txt")
+    ]
+)
+BOOKORDERS.append("none")
+BOOKORDERS.insert(0, "canonical")
 
 # -------------------------------------------------------------------------- #
 
 # convert usfm book names
 BOOKNAMES = {
     # old testament books
-    'GEN': 'Gen', 'EXO': 'Exod', 'LEV': 'Lev', 'NUM': 'Num',
-    'DEU': 'Deut', 'JOS': 'Josh', 'JDG': 'Judg', 'RUT': 'Ruth',
-    '1SA': '1Sam', '2SA': '2Sam', '1KI': '1Kgs', '2KI': '2Kgs',
-    '1CH': '1Chr', '2CH': '2Chr', 'EZR': 'Ezra', 'NEH': 'Neh',
-    'EST': 'Esth', 'JOB': 'Job', 'PSA': 'Ps', 'PRO': 'Prov',
-    'ECC': 'Eccl', 'SNG': 'Song', 'ISA': 'Isa', 'JER': 'Jer',
-    'LAM': 'Lam', 'EZK': 'Ezek', 'DAN': 'Dan', 'HOS': 'Hos',
-    'JOL': 'Joel', 'AMO': 'Amos', 'OBA': 'Obad', 'JON': 'Jonah',
-    'MIC': 'Mic', 'NAM': 'Nah', 'HAB': 'Hab', 'ZEP': 'Zeph',
-    'HAG': 'Hag', 'ZEC': 'Zech', 'MAL': 'Mal',
+    "GEN": "Gen",
+    "EXO": "Exod",
+    "LEV": "Lev",
+    "NUM": "Num",
+    "DEU": "Deut",
+    "JOS": "Josh",
+    "JDG": "Judg",
+    "RUT": "Ruth",
+    "1SA": "1Sam",
+    "2SA": "2Sam",
+    "1KI": "1Kgs",
+    "2KI": "2Kgs",
+    "1CH": "1Chr",
+    "2CH": "2Chr",
+    "EZR": "Ezra",
+    "NEH": "Neh",
+    "EST": "Esth",
+    "JOB": "Job",
+    "PSA": "Ps",
+    "PRO": "Prov",
+    "ECC": "Eccl",
+    "SNG": "Song",
+    "ISA": "Isa",
+    "JER": "Jer",
+    "LAM": "Lam",
+    "EZK": "Ezek",
+    "DAN": "Dan",
+    "HOS": "Hos",
+    "JOL": "Joel",
+    "AMO": "Amos",
+    "OBA": "Obad",
+    "JON": "Jonah",
+    "MIC": "Mic",
+    "NAM": "Nah",
+    "HAB": "Hab",
+    "ZEP": "Zeph",
+    "HAG": "Hag",
+    "ZEC": "Zech",
+    "MAL": "Mal",
     # new testament books
-    'MAT': 'Matt', 'MRK': 'Mark', 'LUK': 'Luke', 'JHN': 'John',
-    'ACT': 'Acts', 'ROM': 'Rom', '1CO': '1Cor', '2CO': '2Cor',
-    'GAL': 'Gal', 'EPH': 'Eph', 'PHP': 'Phil', 'COL': 'Col',
-    '1TH': '1Thess', '2TH': '2Thess', '1TI': '1Tim', '2TI': '2Tim',
-    'TIT': 'Titus', 'PHM': 'Phlm', 'HEB': 'Heb', 'JAS': 'Jas',
-    '1PE': '1Pet', '2PE': '2Pet', '1JN': '1John', '2JN': '2John',
-    '3JN': '3John', 'JUD': 'Jude', 'REV': 'Rev',
+    "MAT": "Matt",
+    "MRK": "Mark",
+    "LUK": "Luke",
+    "JHN": "John",
+    "ACT": "Acts",
+    "ROM": "Rom",
+    "1CO": "1Cor",
+    "2CO": "2Cor",
+    "GAL": "Gal",
+    "EPH": "Eph",
+    "PHP": "Phil",
+    "COL": "Col",
+    "1TH": "1Thess",
+    "2TH": "2Thess",
+    "1TI": "1Tim",
+    "2TI": "2Tim",
+    "TIT": "Titus",
+    "PHM": "Phlm",
+    "HEB": "Heb",
+    "JAS": "Jas",
+    "1PE": "1Pet",
+    "2PE": "2Pet",
+    "1JN": "1John",
+    "2JN": "2John",
+    "3JN": "3John",
+    "JUD": "Jude",
+    "REV": "Rev",
     # other books
-    'TOB': 'Tob', 'JDT': 'Jdt', 'ESG': 'EsthGr', 'WIS': 'Wis',
-    'SIR': 'Sir', 'BAR': 'Bar', 'LJE': 'EpJer', 'S3Y': 'PrAzar',
-    'SUS': 'Sus', 'BEL': 'Bel', '1MA': '1Macc', '2MA': '2Macc',
-    '3MA': '3Macc', '4MA': '4Macc', '1ES': '1Esd', '2ES': '2Esd',
-    'MAN': 'PrMan', 'PS2': 'AddPs', 'ODA': 'Odes', 'PSS': 'PssSol',
-    'EZA': '4Ezra', '5EZ': '5Ezra', '6EZ': '6Ezra', 'DAG': 'DanGr',
-    'PS3': '5ApocSyrPss',
-    '2BA': '2Bar', 'LBA': 'EpBar', 'JUB': 'Jub', 'ENO': '1En',
-    '1MQ': '1Meq', '2MQ': '2Meq', '3MQ': '3Meq',
-    'REP': 'Reproof', '4BA': '4Bar', 'LAO': 'EpLao',
+    "TOB": "Tob",
+    "JDT": "Jdt",
+    "ESG": "EsthGr",
+    "WIS": "Wis",
+    "SIR": "Sir",
+    "BAR": "Bar",
+    "LJE": "EpJer",
+    "S3Y": "PrAzar",
+    "SUS": "Sus",
+    "BEL": "Bel",
+    "1MA": "1Macc",
+    "2MA": "2Macc",
+    "3MA": "3Macc",
+    "4MA": "4Macc",
+    "1ES": "1Esd",
+    "2ES": "2Esd",
+    "MAN": "PrMan",
+    "PS2": "AddPs",
+    "ODA": "Odes",
+    "PSS": "PssSol",
+    "EZA": "4Ezra",
+    "5EZ": "5Ezra",
+    "6EZ": "6Ezra",
+    "DAG": "DanGr",
+    "PS3": "5ApocSyrPss",
+    "2BA": "2Bar",
+    "LBA": "EpBar",
+    "JUB": "Jub",
+    "ENO": "1En",
+    "1MQ": "1Meq",
+    "2MQ": "2Meq",
+    "3MQ": "3Meq",
+    "REP": "Reproof",
+    "4BA": "4Bar",
+    "LAO": "EpLao",
     # private use
-    'XXA': 'XXA', 'XXB': 'XXB', 'XXC': 'XXC', 'XXD': 'XXD',
-    'XXE': 'XXE', 'XXF': 'XXF', 'XXG': 'XXG',
+    "XXA": "XXA",
+    "XXB": "XXB",
+    "XXC": "XXC",
+    "XXD": "XXD",
+    "XXE": "XXE",
+    "XXF": "XXF",
+    "XXG": "XXG",
     # Peripheral books
-    'FRT': 'FRONT', 'INT': 'INTRODUCTION',
-    'BAK': 'BACK', 'CNC': 'CONCORDANCE',
-    'GLO': 'GLOSSARY', 'TDX': 'INDEX',
-    'NDX': 'GAZETTEER', 'OTH': 'X-OTHER'
+    "FRT": "FRONT",
+    "INT": "INTRODUCTION",
+    "BAK": "BACK",
+    "CNC": "CONCORDANCE",
+    "GLO": "GLOSSARY",
+    "TDX": "INDEX",
+    "NDX": "GAZETTEER",
+    "OTH": "X-OTHER",
 }
 
 # noncanonical book id's
 NONCANONICAL = {
-    'FRONT': 'front',
-    'INTRODUCTION': 'introduction',
-    'XXA': 'x-other',
-    'XXB': 'x-other',
-    'XXC': 'x-other',
-    'XXD': 'x-other',
-    'XXE': 'x-other',
-    'XXF': 'x-other',
-    'XXG': 'x-other',
-    'BACK': 'back',
-    'CONCORDANCE': 'concordance',
-    'GLOSSARY': 'glossary',
-    'INDEX': 'index',
-    'GAZETTEER': 'gazetteer',
-    'X-OTHER': 'x-other'
+    "FRONT": "front",
+    "INTRODUCTION": "introduction",
+    "XXA": "x-other",
+    "XXB": "x-other",
+    "XXC": "x-other",
+    "XXD": "x-other",
+    "XXE": "x-other",
+    "XXF": "x-other",
+    "XXG": "x-other",
+    "BACK": "back",
+    "CONCORDANCE": "concordance",
+    "GLOSSARY": "glossary",
+    "INDEX": "index",
+    "GAZETTEER": "gazetteer",
+    "X-OTHER": "x-other",
 }
 
 # list of books with one chapter
-ONECHAP = ['Obad', 'Phlm', '2John', '3John', 'Jude']
+ONECHAP = ["Obad", "Phlm", "2John", "3John", "Jude"]
 
 
 # -------------------------------------------------------------------------- #
@@ -243,15 +430,15 @@ ONECHAP = ['Obad', 'Phlm', '2John', '3John', 'Jude']
 
 # identification tags
 IDTAGS = {
-    r'\sts': ('', '<milestone type="x-usfm-sts" n="{}" />'),
-    r'\toc1': ('', '<milestone type="x-usfm-toc1" n="{}" />'),
-    r'\toc2': ('', '<milestone type="x-usfm-toc2" n="{}" />'),
-    r'\toc3': ('', '<milestone type="x-usfm-toc3" n="{}" />'),
+    r"\sts": ("", '<milestone type="x-usfm-sts" n="{}" />'),
+    r"\toc1": ("", '<milestone type="x-usfm-toc1" n="{}" />'),
+    r"\toc2": ("", '<milestone type="x-usfm-toc2" n="{}" />'),
+    r"\toc3": ("", '<milestone type="x-usfm-toc3" n="{}" />'),
     # ebible.org bibles sometimes use a ztoc4 tag. If it's desired to process
     # this tag then simply uncomment the ztoc4 line here.
     # (No other ztags are even attempted in this converter.)
     # r'\ztoc4': ('', '<milestone type=x-usfm-ztoc4 n="{}" />'),
-    r'\restore': ('<!-- restore - ', ' -->'),
+    r"\restore": ("<!-- restore - ", " -->"),
     # the osis 2.1.1 user manual says the value of h h1 h2 and h3 tags should
     # be in the short attribute of a title.
     # ************************************************************************
@@ -264,96 +451,113 @@ IDTAGS = {
     # r'\h2': ('', '<title type="runningHead" n="2" short="{}" />'),
     # r'\h3': ('', '<title type="runningHead" n="3" short="{}" />')
     # ************************************************************************
-    r'\h': ('', '<milestone type="x-usfm-h" n="{}" />'),
-    r'\h1': ('', '<milestone type="x-usfm-h1" n="{}" />'),
-    r'\h2': ('', '<milestone type="x-usfm-h2" n="{}" />'),
-    r'\h3': ('', '<milestone type="x-usfm-h3" n="{}" />')
+    r"\h": ("", '<milestone type="x-usfm-h" n="{}" />'),
+    r"\h1": ("", '<milestone type="x-usfm-h1" n="{}" />'),
+    r"\h2": ("", '<milestone type="x-usfm-h2" n="{}" />'),
+    r"\h3": ("", '<milestone type="x-usfm-h3" n="{}" />'),
 }
 
 # the osis 2.1.1 user manual says the value of id, ide, and rem should be
 # placed in description tags in the header. That's why they are in a separate
 # list instead of the dict above.
-IDTAGS2 = [r'\id', r'\ide', r'\rem']
+IDTAGS2 = [r"\id", r"\ide", r"\rem"]
 
 # title tags
 TITLETAGS = {
     # ---------------------------------------------------------
     # ##### SECTION TAGS get special handling elsewhere ##### #
-    r'\is': ('<title type="x-introduction">', '</title>'),
-    r'\is1': ('<title type="x-introduction">', '</title>'),
-    r'\is2': ('<title type="x-introduction">', '</title>'),
+    r"\is": ('<title type="x-introduction">', "</title>"),
+    r"\is1": ('<title type="x-introduction">', "</title>"),
+    r"\is2": ('<title type="x-introduction">', "</title>"),
     # \is3 and \is4 are not currently handled in this script.
     # r'\is3': ('<title type="x-introduction">', '</title>'),
     # r'\is4': ('<title type="x-introduction">', '</title>'),
     #
-    r'\ms': ('<title>', '</title>'),
-    r'\ms1': ('<title>', '</title>'),
-    r'\ms2': ('<title>', '</title>'),
-    r'\ms3': ('<title>', '</title>'),
+    r"\ms": ("<title>", "</title>"),
+    r"\ms1": ("<title>", "</title>"),
+    r"\ms2": ("<title>", "</title>"),
+    r"\ms3": ("<title>", "</title>"),
     # \ms4 is not currently handled by this script.
     # r'\ms4': ('<title>', '</title>'),
     #
-    r'\s': ('<title>', '</title>'),
-    r'\s1': ('<title>', '</title>'),
-    r'\s2': ('<title>', '</title>'),
-    r'\s3': ('<title>', '</title>'),
-    r'\s4': ('<title>', '</title>'),
-
+    r"\s": ("<title>", "</title>"),
+    r"\s1": ("<title>", "</title>"),
+    r"\s2": ("<title>", "</title>"),
+    r"\s3": ("<title>", "</title>"),
+    r"\s4": ("<title>", "</title>"),
     # ##### Semantic Whitespace ##### #
-    r'\sd': ('<milestone type="x-usfm-sd" />', ''),
-    r'\sd1': ('<milestone type="x-usfm-sd1" />', ''),
-    r'\sd2': ('<milestone type="x-usfm-sd2" />', ''),
-    r'\sd3': ('<milestone type="x-usfm-sd3" />', ''),
-    r'\sd4': ('<milestone type="x-usfm-sd4" />', ''),
-
+    r"\sd": ('<milestone type="x-usfm-sd" />', ""),
+    r"\sd1": ('<milestone type="x-usfm-sd1" />', ""),
+    r"\sd2": ('<milestone type="x-usfm-sd2" />', ""),
+    r"\sd3": ('<milestone type="x-usfm-sd3" />', ""),
+    r"\sd4": ('<milestone type="x-usfm-sd4" />', ""),
     # ---------------------------------------------------------
-
     # ##### INTRODUCTIONS ##### #
-    r'\imt': ('<title type="main" subType="x-introduction">', '</title>'),
-    r'\imt1': ('<title level="1" type="main" subType="x-introduction">',
-               '</title>'),
-    r'\imt2': ('<title level="2" type="main" subType="x-introduction">',
-               '</title>'),
-    r'\imt3': ('<title level="3" type="main" subType="x-introduction">',
-               '</title>'),
-    r'\imt4': ('<title level="4" type="main" subType="x-introduction">',
-               '</title>'),
-    r'\imt5': ('<title level="5" type="main" subType="x-introduction">',
-               '</title>'),
-    r'\imte': ('<title type="main" subType="x-introduction">', '</title>'),
-    r'\imte1': ('<title level="1" type="main" subType="x-introduction">',
-                '</title>'),
-    r'\imte2': ('<title level="2" type="main" subType="x-introduction">',
-                '</title>'),
-    r'\imte3': ('<title level="3" type="main" subType="x-introduction">',
-                '</title>'),
-    r'\imte4': ('<title level="4" type="main" subType="x-introduction">',
-                '</title>'),
-    r'\imte5': ('<title level="5" type="main" subType="x-introduction">',
-                '</title>'),
+    r"\imt": ('<title type="main" subType="x-introduction">', "</title>"),
+    r"\imt1": (
+        '<title level="1" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imt2": (
+        '<title level="2" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imt3": (
+        '<title level="3" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imt4": (
+        '<title level="4" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imt5": (
+        '<title level="5" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imte": ('<title type="main" subType="x-introduction">', "</title>"),
+    r"\imte1": (
+        '<title level="1" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imte2": (
+        '<title level="2" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imte3": (
+        '<title level="3" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imte4": (
+        '<title level="4" type="main" subType="x-introduction">',
+        "</title>",
+    ),
+    r"\imte5": (
+        '<title level="5" type="main" subType="x-introduction">',
+        "</title>",
+    ),
     # r'\ib': ('', ''),
-
     # ##### Normal Title Section ##### #
-    r'\mt': ('<title type="main">', '</title>'),
-    r'\mt1': ('<title level="1" type="main">', '</title>'),
-    r'\mt2': ('<title level="2" type="main">', '</title>'),
-    r'\mt3': ('<title level="3" type="main">', '</title>'),
-    r'\mt4': ('<title level="4" type="main">', '</title>'),
-    r'\mt5': ('<title level="5" type="main">', '</title>'),
-    r'\mte': ('<title type="main">', '</title>'),
-    r'\mte1': ('<title level="1" type="main">', '</title>'),
-    r'\mte2': ('<title level="2" type="main">', '</title>'),
-    r'\mte3': ('<title level="3" type="main">', '</title>'),
-    r'\mte4': ('<title level="4" type="main">', '</title>'),
-    r'\mte5': ('<title level="5" type="main">', '</title>'),
+    r"\mt": ('<title type="main">', "</title>"),
+    r"\mt1": ('<title level="1" type="main">', "</title>"),
+    r"\mt2": ('<title level="2" type="main">', "</title>"),
+    r"\mt3": ('<title level="3" type="main">', "</title>"),
+    r"\mt4": ('<title level="4" type="main">', "</title>"),
+    r"\mt5": ('<title level="5" type="main">', "</title>"),
+    r"\mte": ('<title type="main">', "</title>"),
+    r"\mte1": ('<title level="1" type="main">', "</title>"),
+    r"\mte2": ('<title level="2" type="main">', "</title>"),
+    r"\mte3": ('<title level="3" type="main">', "</title>"),
+    r"\mte4": ('<title level="4" type="main">', "</title>"),
+    r"\mte5": ('<title level="5" type="main">', "</title>"),
     #
-    r'\mr': ('<title type="scope"><reference>', '</reference></title>'),
-    r'\sr': ('<title type="scope"><reference>', '</reference></title>'),
-    r'\r': ('<title type="parallel"><reference type="parallel">',
-            '</reference></title>'),
-    r'\d': ('<title type="psalm" canonical="true">', '</title>'),
-    r'\sp': ('<speaker>', '</speaker>'),
-
+    r"\mr": ('<title type="scope"><reference>', "</reference></title>"),
+    r"\sr": ('<title type="scope"><reference>', "</reference></title>"),
+    r"\r": (
+        '<title type="parallel"><reference type="parallel">',
+        "</reference></title>",
+    ),
+    r"\d": ('<title type="psalm" canonical="true">', "</title>"),
+    r"\sp": ("<speaker>", "</speaker>"),
     # ##### chapter cl tags ##### #
     #
     # This is the best way I know how to convert these tags.
@@ -366,355 +570,387 @@ TITLETAGS = {
     #       So the conversion to titles is disabled for now and milestone
     #       markers are inserted instead.
     # r'\cl': ('<title type="x-chapterLabel" short="', '" />'),
-    r'\cl': ('<milestone type="x-chapterLabel" n="', '" />'),
-
+    r"\cl": ('<milestone type="x-chapterLabel" n="', '" />'),
     # ##### chapter cd tags ##### #
     # the osis user manual says cd titles should be in an introduction div.
-    r'\cd': (u'<div type="introduction">\ufdd0<title type="x-description">',
-             u'</title>\ufdd0</div>'),
-
+    r"\cd": (
+        '<div type="introduction">\ufdd0<title type="x-description">',
+        "</title>\ufdd0</div>",
+    ),
     # ##### special features ##### #
     # the osis user manual says this should be in an lg tag of type doxology
     # with an l tag of type refrain.
-    r'\lit': (u'<lg type="doxology">\ufdd0<l type="refrain">',
-              u'</l>\ufdd0</lg>')
+    r"\lit": (
+        '<lg type="doxology">\ufdd0<l type="refrain">',
+        "</l>\ufdd0</lg>",
+    ),
 }
 
 # paragraph and poetry/prose tags
 PARTAGS = {
     # INTRODUCTIONS
-    r'\iot': (r'<item type="x-head" subType="x-introduction">', r'</item>'),
-    r'\io': (r'<item type="x-indent-1" subType="x-introduction">',
-             r'</item>'),
-    r'\io1': (r'<item type="x-indent-1" subType="x-introduction">',
-              r'</item>'),
-    r'\io2': (r'<item type="x-indent-2" subType="x-introduction">',
-              r'</item>'),
-    r'\io3': (r'<item type="x-indent-3" subType="x-introduction">',
-              r'</item>'),
-    r'\io4': (r'<item type="x-indent-4" subType="x-introduction">',
-              r'</item>'),
-    r'\ip': (r'<p subType="x-introduction">', r' </p>'),
-    r'\im': (r'<p type="x-noindent" subType="x-introduction">', r' </p>'),
-    r'\ipq': (r'<p type="x-quote" subType="x-introduction">', r' </p>'),
-    r'\imq': (r'<p type="x-noindent-quote" subType="x-introduction">',
-              r' </p>'),
-    r'\ipi': (r'<p type="x-indented" subType="x-introduction">', r' </p>'),
-    r'\imi': (r'<p type="x-noindent-indented" subType="x-introduction">',
-              r' </p>'),
-    r'\ili': (r'<item type="x-indent-1" subType="x-introduction">',
-              r' </item>'),
-    r'\ili1': (r'<item type="x-indent-1" subType="x-introduction">',
-               r' </item>'),
-    r'\ili2': (r'<item type="x-indent-2" subType="x-introduction">',
-               r' </item>'),
-    r'\ipr': (r'<p type="x-right" subType="x-introduction">', r' </p>'),
-    r'\iq': (r'<l level="1" subType="x-introduction">', r' </l>'),
-    r'\iq1': (r'<l level="1" subType="x-introduction">', r' </l>'),
-    r'\iq2': (r'<l level="2" subType="x-introduction">', r' </l>'),
-    r'\iq3': (r'<l level="3" subType="x-introduction">', r' </l>'),
-    r'\iex': (r'<div type="bridge" subType="x-introduction">', r'</div>'),
-    r'\ie': (r'<!-- ie -->', r''),
-
+    r"\iot": (r'<item type="x-head" subType="x-introduction">', r"</item>"),
+    r"\io": (r'<item type="x-indent-1" subType="x-introduction">', r"</item>"),
+    r"\io1": (
+        r'<item type="x-indent-1" subType="x-introduction">',
+        r"</item>",
+    ),
+    r"\io2": (
+        r'<item type="x-indent-2" subType="x-introduction">',
+        r"</item>",
+    ),
+    r"\io3": (
+        r'<item type="x-indent-3" subType="x-introduction">',
+        r"</item>",
+    ),
+    r"\io4": (
+        r'<item type="x-indent-4" subType="x-introduction">',
+        r"</item>",
+    ),
+    r"\ip": (r'<p subType="x-introduction">', r" </p>"),
+    r"\im": (r'<p type="x-noindent" subType="x-introduction">', r" </p>"),
+    r"\ipq": (r'<p type="x-quote" subType="x-introduction">', r" </p>"),
+    r"\imq": (
+        r'<p type="x-noindent-quote" subType="x-introduction">',
+        r" </p>",
+    ),
+    r"\ipi": (r'<p type="x-indented" subType="x-introduction">', r" </p>"),
+    r"\imi": (
+        r'<p type="x-noindent-indented" subType="x-introduction">',
+        r" </p>",
+    ),
+    r"\ili": (
+        r'<item type="x-indent-1" subType="x-introduction">',
+        r" </item>",
+    ),
+    r"\ili1": (
+        r'<item type="x-indent-1" subType="x-introduction">',
+        r" </item>",
+    ),
+    r"\ili2": (
+        r'<item type="x-indent-2" subType="x-introduction">',
+        r" </item>",
+    ),
+    r"\ipr": (r'<p type="x-right" subType="x-introduction">', r" </p>"),
+    r"\iq": (r'<l level="1" subType="x-introduction">', r" </l>"),
+    r"\iq1": (r'<l level="1" subType="x-introduction">', r" </l>"),
+    r"\iq2": (r'<l level="2" subType="x-introduction">', r" </l>"),
+    r"\iq3": (r'<l level="3" subType="x-introduction">', r" </l>"),
+    r"\iex": (r'<div type="bridge" subType="x-introduction">', r"</div>"),
+    r"\ie": (r"<!-- ie -->", r""),
     # ##### PARAGRAPH/POETRY
-    r'\p': (r'<p>', r' </p>'),
-    r'\m': (r'<p type="x-noindent">', r' </p>'),
-    r'\po': (r'<p type="x-usfm-po">', r' </p>'),
-    r'\pmo': (r'<p type="x-embedded-opening">', r' </p>'),
-    r'\pm': (r'<p type="x-embedded">', r' </p>'),
-    r'\pmc': (r'<p type="x-embedded-closing">', r' </p>'),
-    r'\pmr': (r'<p type="x-right">', r' </p>'),
-    r'\pi': (r'<p type="x-indented">', r' </p>'),
-    r'\pi1': (r'<p type="x-indented-1">', r' </p>'),
-    r'\pi2': (r'<p type="x-indented-2">', r' </p>'),
-    r'\pi3': (r'<p type="x-indented-3">', r' </p>'),
-    r'\pi4': (r'<p type="x-indented-4">', r' </p>'),
-    r'\mi': (r'<p type="x-noindent-indented">', r' </p>'),
-    r'\cls': (r'<closer>', r'</closer>'),
-    r'\lh': (r'<p type="x-usfm-lh">', r'</p>'),
-    r'\lf': (r'<p type="x-usfm-lf">', r'</p>'),
-    r'\li': (r'<item type="x-indent-1">', r' </item>'),
-    r'\li1': (r'<item type="x-indent-1">', r' </item>'),
-    r'\li2': (r'<item type="x-indent-2">', r' </item>'),
-    r'\li3': (r'<item type="x-indent-3">', r' </item>'),
-    r'\li4': (r'<item type="x-indent-4">', r' </item>'),
-    r'\lim': (r'<item type="x-usfm-lim">', r' </item>'),
-    r'\lim1': (r'<item type="x-usfm-lim1">', r' </item>'),
-    r'\lim2': (r'<item type="x-usfm-lim2">', r' </item>'),
-    r'\lim3': (r'<item type="x-usfm-lim3">', r' </item>'),
-    r'\lim4': (r'<item type="x-usfm-lim4">', r' </item>'),
-    r'\pc': (r'<p type="x-center">', r' </p>'),
-    r'\pr': (r'<p type="x-right">', r' </p>'),
-    r'\ph': (r'<item type="x-indent-1">', r' </item>'),
-    r'\ph1': (r'<item type="x-indent-1">', r' </item>'),
-    r'\ph2': (r'<item type="x-indent-2">', r' </item>'),
-    r'\ph3': (r'<item type="x-indent-3">', r' </item>'),
+    r"\p": (r"<p>", r" </p>"),
+    r"\m": (r'<p type="x-noindent">', r" </p>"),
+    r"\po": (r'<p type="x-usfm-po">', r" </p>"),
+    r"\pmo": (r'<p type="x-embedded-opening">', r" </p>"),
+    r"\pm": (r'<p type="x-embedded">', r" </p>"),
+    r"\pmc": (r'<p type="x-embedded-closing">', r" </p>"),
+    r"\pmr": (r'<p type="x-right">', r" </p>"),
+    r"\pi": (r'<p type="x-indented">', r" </p>"),
+    r"\pi1": (r'<p type="x-indented-1">', r" </p>"),
+    r"\pi2": (r'<p type="x-indented-2">', r" </p>"),
+    r"\pi3": (r'<p type="x-indented-3">', r" </p>"),
+    r"\pi4": (r'<p type="x-indented-4">', r" </p>"),
+    r"\mi": (r'<p type="x-noindent-indented">', r" </p>"),
+    r"\cls": (r"<closer>", r"</closer>"),
+    r"\lh": (r'<p type="x-usfm-lh">', r"</p>"),
+    r"\lf": (r'<p type="x-usfm-lf">', r"</p>"),
+    r"\li": (r'<item type="x-indent-1">', r" </item>"),
+    r"\li1": (r'<item type="x-indent-1">', r" </item>"),
+    r"\li2": (r'<item type="x-indent-2">', r" </item>"),
+    r"\li3": (r'<item type="x-indent-3">', r" </item>"),
+    r"\li4": (r'<item type="x-indent-4">', r" </item>"),
+    r"\lim": (r'<item type="x-usfm-lim">', r" </item>"),
+    r"\lim1": (r'<item type="x-usfm-lim1">', r" </item>"),
+    r"\lim2": (r'<item type="x-usfm-lim2">', r" </item>"),
+    r"\lim3": (r'<item type="x-usfm-lim3">', r" </item>"),
+    r"\lim4": (r'<item type="x-usfm-lim4">', r" </item>"),
+    r"\pc": (r'<p type="x-center">', r" </p>"),
+    r"\pr": (r'<p type="x-right">', r" </p>"),
+    r"\ph": (r'<item type="x-indent-1">', r" </item>"),
+    r"\ph1": (r'<item type="x-indent-1">', r" </item>"),
+    r"\ph2": (r'<item type="x-indent-2">', r" </item>"),
+    r"\ph3": (r'<item type="x-indent-3">', r" </item>"),
     # POETRY Markers
-    r'\q': (r'<l level="1">', r' </l>'),
-    r'\q1': (r'<l level="1">', r' </l>'),
-    r'\q2': (r'<l level="2">', r' </l>'),
-    r'\q3': (r'<l level="3">', r' </l>'),
-    r'\q4': (r'<l level="4">', r' </l>'),
-    r'\qr': (r'<l type="x-right">', r' </l>'),
-    r'\qc': (r'<l type="x-center">', r' </l>'),
-    r'\qa': (r'<title type="acrostic">', r'</title>'),
-    r'\qd': (r'<l type="x-usfm-qd">', r'</l>'),
-    r'\qm': (r'<l type="x-embedded" level="1">', r' </l>'),
-    r'\qm1': (r'<l type="x-embedded" level="1">', r' </l>'),
-    r'\qm2': (r'<l type="x-embedded" level="2">', r' </l>'),
-    r'\qm3': (r'<l type="x-embedded" level="3">', r' </l>'),
-    r'\qm4': (r'<l type="x-embedded" level="4">', r' </l>'),
+    r"\q": (r'<l level="1">', r" </l>"),
+    r"\q1": (r'<l level="1">', r" </l>"),
+    r"\q2": (r'<l level="2">', r" </l>"),
+    r"\q3": (r'<l level="3">', r" </l>"),
+    r"\q4": (r'<l level="4">', r" </l>"),
+    r"\qr": (r'<l type="x-right">', r" </l>"),
+    r"\qc": (r'<l type="x-center">', r" </l>"),
+    r"\qa": (r'<title type="acrostic">', r"</title>"),
+    r"\qd": (r'<l type="x-usfm-qd">', r"</l>"),
+    r"\qm": (r'<l type="x-embedded" level="1">', r" </l>"),
+    r"\qm1": (r'<l type="x-embedded" level="1">', r" </l>"),
+    r"\qm2": (r'<l type="x-embedded" level="2">', r" </l>"),
+    r"\qm3": (r'<l type="x-embedded" level="3">', r" </l>"),
+    r"\qm4": (r'<l type="x-embedded" level="4">', r" </l>"),
     # sidebar markers... FIXED ELSEWHERE
-    r'\esb': (r'<SIDEBAR>', ''),
-    r'\esbe': (r'</SIDEBAR>', '')
+    r"\esb": (r"<SIDEBAR>", ""),
+    r"\esbe": (r"</SIDEBAR>", ""),
 }
 
 # other introduction and poetry tags
 OTHERTAGS = OrderedDict()
 for _ in [
-        # selah is handled in a special manner…
-        (r'\qs ', '<selah>'),
-        (r'\qs*', '</selah>'),
-        # these tags get special handling…
-        (r'\ie', '<!-- ie -->'),  # handled with partags… may not need here…
-        (r'\ib ', '<!-- b -->'),  # handled exactly like \b
-        (r'\b ', '<!-- b -->'),
-        (r'\nb ', '<!-- nb -->'),
-        (r'\nb', '<!-- nb -->'),
-        # translators chunk marker…
-        (r'\ts', '<!-- ts -->')]:
+    # selah is handled in a special manner…
+    (r"\qs ", "<selah>"),
+    (r"\qs*", "</selah>"),
+    # these tags get special handling…
+    (r"\ie", "<!-- ie -->"),  # handled with partags… may not need here…
+    (r"\ib ", "<!-- b -->"),  # handled exactly like \b
+    (r"\b ", "<!-- b -->"),
+    (r"\nb ", "<!-- nb -->"),
+    (r"\nb", "<!-- nb -->"),
+    # translators chunk marker…
+    (r"\ts", "<!-- ts -->"),
+]:
     OTHERTAGS[_[0]] = _[1]
 
 # table cell tags
 CELLTAGS = {
     # header cells
-    r'\th': ('<cell role="label">', '</cell>'),
-    r'\th1': ('<cell role="label">', '</cell>'),
-    r'\th2': ('<cell role="label">', '</cell>'),
-    r'\th3': ('<cell role="label">', '</cell>'),
-    r'\th4': ('<cell role="label">', '</cell>'),
-    r'\th5': ('<cell role="label">', '</cell>'),
-    r'\thr': ('<cell role="label" type="x-right">', '</cell>'),
-    r'\thr1': ('<cell role="label" type="x-right">', '</cell>'),
-    r'\thr2': ('<cell role="label" type="x-right">', '</cell>'),
-    r'\thr3': ('<cell role="label" type="x-right">', '</cell>'),
-    r'\thr4': ('<cell role="label" type="x-right">', '</cell>'),
-    r'\thr5': ('<cell role="label" type="x-right">', '</cell>'),
+    r"\th": ('<cell role="label">', "</cell>"),
+    r"\th1": ('<cell role="label">', "</cell>"),
+    r"\th2": ('<cell role="label">', "</cell>"),
+    r"\th3": ('<cell role="label">', "</cell>"),
+    r"\th4": ('<cell role="label">', "</cell>"),
+    r"\th5": ('<cell role="label">', "</cell>"),
+    r"\thr": ('<cell role="label" type="x-right">', "</cell>"),
+    r"\thr1": ('<cell role="label" type="x-right">', "</cell>"),
+    r"\thr2": ('<cell role="label" type="x-right">', "</cell>"),
+    r"\thr3": ('<cell role="label" type="x-right">', "</cell>"),
+    r"\thr4": ('<cell role="label" type="x-right">', "</cell>"),
+    r"\thr5": ('<cell role="label" type="x-right">', "</cell>"),
     # normal cells
-    r'\tc': ('<cell>', '</cell>'),
-    r'\tc1': ('<cell>', '</cell>'),
-    r'\tc2': ('<cell>', '</cell>'),
-    r'\tc3': ('<cell>', '</cell>'),
-    r'\tc4': ('<cell>', '</cell>'),
-    r'\tc5': ('<cell>', '</cell>'),
-    r'\tcr': ('<cell type="x-right">', '</cell>'),
-    r'\tcr1': ('<cell type="x-right">', '</cell>'),
-    r'\tcr2': ('<cell type="x-right">', '</cell>'),
-    r'\tcr3': ('<cell type="x-right">', '</cell>'),
-    r'\tcr4': ('<cell type="x-right">', '</cell>'),
-    r'\tcr5': ('<cell type="x-right">', '</cell>')
+    r"\tc": ("<cell>", "</cell>"),
+    r"\tc1": ("<cell>", "</cell>"),
+    r"\tc2": ("<cell>", "</cell>"),
+    r"\tc3": ("<cell>", "</cell>"),
+    r"\tc4": ("<cell>", "</cell>"),
+    r"\tc5": ("<cell>", "</cell>"),
+    r"\tcr": ('<cell type="x-right">', "</cell>"),
+    r"\tcr1": ('<cell type="x-right">', "</cell>"),
+    r"\tcr2": ('<cell type="x-right">', "</cell>"),
+    r"\tcr3": ('<cell type="x-right">', "</cell>"),
+    r"\tcr4": ('<cell type="x-right">', "</cell>"),
+    r"\tcr5": ('<cell type="x-right">', "</cell>"),
 }
 
 # special text and character style tags.
 # \wj tags are handled with a special function. Don't add it here.
 SPECIALTEXT = {
     # tags for special text
-    r'\add': ('<transChange type="added">', '</transChange>'),
-    r'\addpn': ('<transChange type="added" subType="x-usfm-addpn">',
-                '</transChange>'),
-    r'\nd': ('<divineName>', '</divineName>'),
-    r'\pn': ('<name>', '</name>'),
-    r'\qt': ('<seg type="otPassage">', '</seg>'),
-    r'\sig': ('<signed>', '</signed>'),
-    r'\ord': ('<hi type="super">', '</hi>'),
-    r'\tl': ('<foreign>', '</foreign>'),
-    r'\bk': ('<name type="x-usfm-bk">', '</name>'),
-    r'\k': ('<seg type="keyword">', '</seg>'),
-    r'\dc': ('<transChange type="added" editions="dc">', '</transChange>'),
-    r'\sls': ('<foreign type="x-secondaryLanguage">', '</foreign>'),
-
-    r'\+add': ('<seg type="x-nested"><transChange type="added">',
-               '</transChange></seg>'),
-    r'\+addpn': ('<seg type="x-nested"><transChange type="added" subType="x-usfm-addpn">',
-                 '</transChange></seg>'),
-    r'\+nd': ('<seg type="x-nested"><divineName>', '</divineName></seg>'),
-    r'\+pn': ('<seg type="x-nested"><name>', '</name></seg>'),
-    r'\+qt': ('<seg type="x-nested"><seg type="otPassage">', '</seg></seg>'),
-    r'\+sig': ('<seg type="x-nested"><signed>', '</signed></seg>'),
-    r'\+ord': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
-    r'\+tl': ('<seg type="x-nested"><foreign>', '</foreign></seg>'),
-    r'\+bk': ('<seg type="x-nested"><name type="x-usfm-bk">', '</name></seg>'),
-    r'\+k': ('<seg type="x-nested"><seg type="keyword">', '</seg></seg>'),
-    r'\+dc': ('<seg type="x-nested"><transChange type="added" editions="dc">',
-              '</transChange></seg>'),
-    r'\+sls': ('<seg type="x-nested"><foreign type="x-secondaryLanguage">',
-               '</foreign></seg>'),
-
+    r"\add": ('<transChange type="added">', "</transChange>"),
+    r"\addpn": (
+        '<transChange type="added" subType="x-usfm-addpn">',
+        "</transChange>",
+    ),
+    r"\nd": ("<divineName>", "</divineName>"),
+    r"\pn": ("<name>", "</name>"),
+    r"\qt": ('<seg type="otPassage">', "</seg>"),
+    r"\sig": ("<signed>", "</signed>"),
+    r"\ord": ('<hi type="super">', "</hi>"),
+    r"\tl": ("<foreign>", "</foreign>"),
+    r"\bk": ('<name type="x-usfm-bk">', "</name>"),
+    r"\k": ('<seg type="keyword">', "</seg>"),
+    r"\dc": ('<transChange type="added" editions="dc">', "</transChange>"),
+    r"\sls": ('<foreign type="x-secondaryLanguage">', "</foreign>"),
+    r"\+add": (
+        '<seg type="x-nested"><transChange type="added">',
+        "</transChange></seg>",
+    ),
+    r"\+addpn": (
+        '<seg type="x-nested"><transChange type="added" subType="x-usfm-addpn">',
+        "</transChange></seg>",
+    ),
+    r"\+nd": ('<seg type="x-nested"><divineName>', "</divineName></seg>"),
+    r"\+pn": ('<seg type="x-nested"><name>', "</name></seg>"),
+    r"\+qt": ('<seg type="x-nested"><seg type="otPassage">', "</seg></seg>"),
+    r"\+sig": ('<seg type="x-nested"><signed>', "</signed></seg>"),
+    r"\+ord": ('<seg type="x-nested"><hi type="super">', "</hi></seg>"),
+    r"\+tl": ('<seg type="x-nested"><foreign>', "</foreign></seg>"),
+    r"\+bk": ('<seg type="x-nested"><name type="x-usfm-bk">', "</name></seg>"),
+    r"\+k": ('<seg type="x-nested"><seg type="keyword">', "</seg></seg>"),
+    r"\+dc": (
+        '<seg type="x-nested"><transChange type="added" editions="dc">',
+        "</transChange></seg>",
+    ),
+    r"\+sls": (
+        '<seg type="x-nested"><foreign type="x-secondaryLanguage">',
+        "</foreign></seg>",
+    ),
     # tags for character styles
-    r'\em': ('<hi type="emphasis">', '</hi>'),
-    r'\bd': ('<hi type="bold">', '</hi>'),
-    r'\it': ('<hi type="italic">', '</hi>'),
-    r'\bdit': ('<hi type="bold"><hi type="italic">', '</hi></hi>'),
-    r'\no': ('<hi type="normal">', '</hi>'),
-    r'\sc': ('<hi type="small-caps">', '</hi>'),
-
-    r'\+em': ('<seg type="x-nested"><hi type="emphasis">', '</hi></seg>'),
-    r'\+bd': ('<seg type="x-nested"><hi type="bold">', '</hi></seg>'),
-    r'\+it': ('<seg type="x-nested"><hi type="italic">', '</hi></seg>'),
-    r'\+bdit': ('<seg type="x-nested"><hi type="bold"><hi type="italic">',
-                '</hi></hi></seg>'),
-    r'\+no': ('<seg type="x-nested"><hi type="normal">', '</hi></seg>'),
-    r'\+sc': ('<seg type="x-nested"><hi type="small-caps">', '</hi></seg>'),
-
+    r"\em": ('<hi type="emphasis">', "</hi>"),
+    r"\bd": ('<hi type="bold">', "</hi>"),
+    r"\it": ('<hi type="italic">', "</hi>"),
+    r"\bdit": ('<hi type="bold"><hi type="italic">', "</hi></hi>"),
+    r"\no": ('<hi type="normal">', "</hi>"),
+    r"\sc": ('<hi type="small-caps">', "</hi>"),
+    r"\+em": ('<seg type="x-nested"><hi type="emphasis">', "</hi></seg>"),
+    r"\+bd": ('<seg type="x-nested"><hi type="bold">', "</hi></seg>"),
+    r"\+it": ('<seg type="x-nested"><hi type="italic">', "</hi></seg>"),
+    r"\+bdit": (
+        '<seg type="x-nested"><hi type="bold"><hi type="italic">',
+        "</hi></hi></seg>",
+    ),
+    r"\+no": ('<seg type="x-nested"><hi type="normal">', "</hi></seg>"),
+    r"\+sc": ('<seg type="x-nested"><hi type="small-caps">', "</hi></seg>"),
     # a few stray list tags that work well being handled in this section.
-    r'\lik': ('<seg type="x-usfm-lik">', '</seg>'),
-    r'\liv': ('<seg type="x-usfm-liv">', '</seg>'),
-    r'\liv1': ('<seg type="x-usfm-liv1">', '</seg>'),
-    r'\liv2': ('<seg type="x-usfm-liv2">', '</seg>'),
-    r'\liv3': ('<seg type="x-usfm-liv3">', '</seg>'),
-    r'\liv4': ('<seg type="x-usfm-liv4">', '</seg>'),
-    r'\litl': ('<seg type="x-usfm-litl">', '</seg>'),
-
+    r"\lik": ('<seg type="x-usfm-lik">', "</seg>"),
+    r"\liv": ('<seg type="x-usfm-liv">', "</seg>"),
+    r"\liv1": ('<seg type="x-usfm-liv1">', "</seg>"),
+    r"\liv2": ('<seg type="x-usfm-liv2">', "</seg>"),
+    r"\liv3": ('<seg type="x-usfm-liv3">', "</seg>"),
+    r"\liv4": ('<seg type="x-usfm-liv4">', "</seg>"),
+    r"\litl": ('<seg type="x-usfm-litl">', "</seg>"),
     # a few stray introduction and poetry tags that
     # work well being handled in this section.
-    r'\ior': ('<reference subType="x-introduction">', '</reference>'),
-    r'\iqt': ('<q subType="x-introduction">', '</q>'),
-    r'\rq': ('<reference type="source">', '</reference>'),
-    r'\qac': ('<hi type="acrostic">', '</hi>'),
-
-    r'\+ior': ('<seg type="x-nested"><reference subType="x-introduction">',
-               '</reference></seg>'),
-    r'\+iqt': ('<seg type="x-nested"><q subType="x-introduction">',
-               '</q></seg>'),
-    r'\+rq': ('<seg type="x-nested"><reference type="source">',
-              '</reference></seg>'),
-    r'\+qac': ('<seg type="x-nested"><hi type="acrostic">', '</hi></seg>'),
-
+    r"\ior": ('<reference subType="x-introduction">', "</reference>"),
+    r"\iqt": ('<q subType="x-introduction">', "</q>"),
+    r"\rq": ('<reference type="source">', "</reference>"),
+    r"\qac": ('<hi type="acrostic">', "</hi>"),
+    r"\+ior": (
+        '<seg type="x-nested"><reference subType="x-introduction">',
+        "</reference></seg>",
+    ),
+    r"\+iqt": (
+        '<seg type="x-nested"><q subType="x-introduction">',
+        "</q></seg>",
+    ),
+    r"\+rq": (
+        '<seg type="x-nested"><reference type="source">',
+        "</reference></seg>",
+    ),
+    r"\+qac": ('<seg type="x-nested"><hi type="acrostic">', "</hi></seg>"),
     # ca and va tags... because simpler handling was needed...
-    r'\ca': ('<milestone type="x-usfm-ca" n="', '" />'),
-    r'\va': ('<milestone type="x-usfm-va" n="', '" />')
-
+    r"\ca": ('<milestone type="x-usfm-ca" n="', '" />'),
+    r"\va": ('<milestone type="x-usfm-va" n="', '" />'),
 }
 
 # special features
 # do not add \lit here... that is handled with TITLETAGS.
 FEATURETAGS = {
-    r'\pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
-    r'\rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
-    r'\rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
-    r'\ndx': ('', '<index index="Index" level1="{}" /> '),
-    r'\png': ('', '<index index="Geography" level1="{}" />'),
-    r'\w': ('', '<index index="Glossary" level1="{}" />'),
-    r'\wa': ('', '<index index="Aramaic" level1="{}" />'),
-    r'\wg': ('', '<index index="Greek" level1="{}" />'),
-    r'\wh': ('', '<index index="Hebrew" level1="{}" />'),
-
-    r'\+pro': ('<milestone type="x-usfm-pro" n="', '" /> '),
-    r'\+rb': ('<milestone type="x-usfm-rb" n="', '" /> '),
-    r'\+rt': ('<milestone type="x-usfm-rt" n="', '" /> '),
-    r'\+ndx': ('', '<index index="Index" level1="{}" /> '),
-    r'\+png': ('', '<index index="Geography" level1="{}" />'),
-    r'\+w': ('', '<index index="Glossary" level1="{}" />'),
-    r'\+wa': ('', '<index index="Aramaic" level1="{}" />'),
-    r'\+wg': ('', '<index index="Greek" level1="{}" />'),
-    r'\+wh': ('', '<index index="Hebrew" level1="{}" />'),
-
+    r"\pro": ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r"\rb": ('<milestone type="x-usfm-rb" n="', '" /> '),
+    r"\rt": ('<milestone type="x-usfm-rt" n="', '" /> '),
+    r"\ndx": ("", '<index index="Index" level1="{}" /> '),
+    r"\png": ("", '<index index="Geography" level1="{}" />'),
+    r"\w": ("", '<index index="Glossary" level1="{}" />'),
+    r"\wa": ("", '<index index="Aramaic" level1="{}" />'),
+    r"\wg": ("", '<index index="Greek" level1="{}" />'),
+    r"\wh": ("", '<index index="Hebrew" level1="{}" />'),
+    r"\+pro": ('<milestone type="x-usfm-pro" n="', '" /> '),
+    r"\+rb": ('<milestone type="x-usfm-rb" n="', '" /> '),
+    r"\+rt": ('<milestone type="x-usfm-rt" n="', '" /> '),
+    r"\+ndx": ("", '<index index="Index" level1="{}" /> '),
+    r"\+png": ("", '<index index="Geography" level1="{}" />'),
+    r"\+w": ("", '<index index="Glossary" level1="{}" />'),
+    r"\+wa": ("", '<index index="Aramaic" level1="{}" />'),
+    r"\+wg": ("", '<index index="Greek" level1="{}" />'),
+    r"\+wh": ("", '<index index="Hebrew" level1="{}" />'),
     # This should be converted to an 'a' tag. More work needs
     # to be done before that can happen though.
-    r'\jmp': ('<seg type="x-usfm-jmp">', '</seg>')
+    r"\jmp": ('<seg type="x-usfm-jmp">', "</seg>"),
 }
 
 # special strongs feature tag...
-STRONGSTAG = ('<w {}{}>', '</w>')
+STRONGSTAG = ("<w {}{}>", "</w>")
 
 # footnote and cross reference tags
 NOTETAGS = {
-    r'\f': ('<note placement="foot">\uFDD2', '\uFDD3</note>'),
-    r'\fe': ('<note placement="end">\uFDD2', '\uFDD3</note>'),
-    r'\x': ('<note type="crossReference">', '</note>'),
-    r'\ef': ('<note placement="foot" subType="x-extended">\uFDD2',
-             '\uFDD3</note>'),
-    r'\ex': ('<note type="crossReference" subType="x-extended">', '</note>')
+    r"\f": ('<note placement="foot">\uFDD2', "\uFDD3</note>"),
+    r"\fe": ('<note placement="end">\uFDD2', "\uFDD3</note>"),
+    r"\x": ('<note type="crossReference">', "</note>"),
+    r"\ef": (
+        '<note placement="foot" subType="x-extended">\uFDD2',
+        "\uFDD3</note>",
+    ),
+    r"\ex": ('<note type="crossReference" subType="x-extended">', "</note>"),
 }
 
 # tags internal to footnotes and cross references
 # * If any of these ever start with anything other than \f or \x *
 # * then the NOTEFIXRE regex will need to be modified.           *
 NOTETAGS2 = {
-    r'\fm': ('<hi type="super">', '</hi>'),
-    r'\fdc': ('<seg editions="dc">', '</seg>'),
-    r'\fr': ('<reference type="annotateRef">', '</reference>'),
-    r'\fk': ('<catchWord>', '</catchWord>'),
-    r'\fq': ('<catchWord>', '</catchWord>'),
-    r'\fqa': ('<rdg type="alternate">', '</rdg>'),
+    r"\fm": ('<hi type="super">', "</hi>"),
+    r"\fdc": ('<seg editions="dc">', "</seg>"),
+    r"\fr": ('<reference type="annotateRef">', "</reference>"),
+    r"\fk": ("<catchWord>", "</catchWord>"),
+    r"\fq": ("<catchWord>", "</catchWord>"),
+    r"\fqa": ('<rdg type="alternate">', "</rdg>"),
     # I think this should be label... but that doesn't validate.
     # r'\fl': ('<label>', '</label>'),
-    r'\fl': ('<seg type="x-usfm-fl">', '</seg>'),
-    r'\fv': ('<hi type="super">', '</hi>'),
-    r'\ft': ('', ''),
-    r'\xot': ('<seg editions="ot">', '</seg>'),
-    r'\xnt': ('<seg editions="nt">', '</seg>'),
-    r'\xdc': ('<seg editions="dc">', '</seg>'),
-    r'\xk': ('<catchWord>', '</catchWord>'),
-    r'\xq': ('<catchWord>', '</catchWord>'),
+    r"\fl": ('<seg type="x-usfm-fl">', "</seg>"),
+    r"\fv": ('<hi type="super">', "</hi>"),
+    r"\ft": ("", ""),
+    r"\xot": ('<seg editions="ot">', "</seg>"),
+    r"\xnt": ('<seg editions="nt">', "</seg>"),
+    r"\xdc": ('<seg editions="dc">', "</seg>"),
+    r"\xk": ("<catchWord>", "</catchWord>"),
+    r"\xq": ("<catchWord>", "</catchWord>"),
     # there is no mapping in the osis manual for the xo usfm tag
-    r'\xo': ('<reference type="annotateRef" subType="x-origin">',
-             '</reference>'),
-    r'\xop': ('<seg type="x-usfm-xop">', '</seg>'),
-    r'\xta': ('<seg type="x-usfm-xta">', '</seg>'),
-    r'\xt': ('<reference>', '</reference>'),
-
+    r"\xo": (
+        '<reference type="annotateRef" subType="x-origin">',
+        "</reference>",
+    ),
+    r"\xop": ('<seg type="x-usfm-xop">', "</seg>"),
+    r"\xta": ('<seg type="x-usfm-xta">', "</seg>"),
+    r"\xt": ("<reference>", "</reference>"),
     # nested versions of internal footnote tags
-    r'\+fm': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
-    r'\+fdc': ('<seg type="x-nested"><seg editions="dc">', '</seg></seg>'),
-    r'\+fr': ('<seg type="x-nested"><reference type="annotateRef">',
-              '</reference></seg>'),
-    r'\+fk': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
-    r'\+fq': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
-    r'\+fqa': ('<seg type="x-nested"><rdg type="alternate">', '</rdg></seg>'),
-    r'\+fl': ('<seg type="x-nested"><seg type="x-usfm-fl">', '</seg></seg>'),
-    r'\+fv': ('<seg type="x-nested"><hi type="super">', '</hi></seg>'),
-    r'\+ft': ('', ''),
-    r'\+xot': ('<seg type="x-nested"><seg editions="ot">', '</seg></seg>'),
-    r'\+xnt': ('<seg type="x-nested"><seg editions="nt">', '</seg></seg>'),
-    r'\+xdc': ('<seg type="x-nested"><seg editions="dc">', '</seg></seg>'),
-    r'\+xk': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
-    r'\+xq': ('<seg type="x-nested"><catchWord>', '</catchWord></seg>'),
-    r'\+xo': ('<seg type="x-nested"><reference type="annotateRef" subType="x-origin">',
-              '</reference></seg>'),
-    r'\+xop': ('<seg type="x-nested"><seg type="x-usfm-xop">', '</seg></seg>'),
-    r'\+xta': ('<seg type="x-nested"><seg type="x-usfm-xta">', '</seg></seg>'),
-    r'\+xt': ('<seg type="x-nested"><reference>', '</reference></seg>')
+    r"\+fm": ('<seg type="x-nested"><hi type="super">', "</hi></seg>"),
+    r"\+fdc": ('<seg type="x-nested"><seg editions="dc">', "</seg></seg>"),
+    r"\+fr": (
+        '<seg type="x-nested"><reference type="annotateRef">',
+        "</reference></seg>",
+    ),
+    r"\+fk": ('<seg type="x-nested"><catchWord>', "</catchWord></seg>"),
+    r"\+fq": ('<seg type="x-nested"><catchWord>', "</catchWord></seg>"),
+    r"\+fqa": ('<seg type="x-nested"><rdg type="alternate">', "</rdg></seg>"),
+    r"\+fl": ('<seg type="x-nested"><seg type="x-usfm-fl">', "</seg></seg>"),
+    r"\+fv": ('<seg type="x-nested"><hi type="super">', "</hi></seg>"),
+    r"\+ft": ("", ""),
+    r"\+xot": ('<seg type="x-nested"><seg editions="ot">', "</seg></seg>"),
+    r"\+xnt": ('<seg type="x-nested"><seg editions="nt">', "</seg></seg>"),
+    r"\+xdc": ('<seg type="x-nested"><seg editions="dc">', "</seg></seg>"),
+    r"\+xk": ('<seg type="x-nested"><catchWord>', "</catchWord></seg>"),
+    r"\+xq": ('<seg type="x-nested"><catchWord>', "</catchWord></seg>"),
+    r"\+xo": (
+        '<seg type="x-nested"><reference type="annotateRef" subType="x-origin">',
+        "</reference></seg>",
+    ),
+    r"\+xop": ('<seg type="x-nested"><seg type="x-usfm-xop">', "</seg></seg>"),
+    r"\+xta": ('<seg type="x-nested"><seg type="x-usfm-xta">', "</seg></seg>"),
+    r"\+xt": ('<seg type="x-nested"><reference>', "</reference></seg>"),
 }
 
 # -------------------------------------------------------------------------- #
 
 # defined attributes for tags
 DEFINEDATTRIBUTES = {
-    r'\w': ['lemma', 'strong', 'srcloc'],
-    r'\fig': ['alt', 'src', 'size', 'loc', 'copy', 'ref'],
-    r'\jmp': ['link-href', 'link-title', 'link-name'],
-    r'\qt-s': ['id', 'who'],
-    r'\qt-e': ['id'],
-    r'\periph': ['id']
+    r"\w": ["lemma", "strong", "srcloc"],
+    r"\fig": ["alt", "src", "size", "loc", "copy", "ref"],
+    r"\jmp": ["link-href", "link-title", "link-name"],
+    r"\qt-s": ["id", "who"],
+    r"\qt-e": ["id"],
+    r"\periph": ["id"],
 }
 
 # defaultattributes for tags
 # x-default will be used as the default for undefined default attributes
-DEFAULTATTRIBUTES = {
-    r'\w': 'lemma'
-}
+DEFAULTATTRIBUTES = {r"\w": "lemma"}
 
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
 
 # squeeze all regular spaces, carriage returns, and newlines
 # into a single space.
-SQUEEZE = re.compile(r'[ \t\n\r]+', re.U + re.M + re.DOTALL)
+SQUEEZE = re.compile(r"[ \t\n\r]+", re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
-SPECIALTEXTRE_S = r'''
+SPECIALTEXTRE_S = r"""
         # put special text tags into a named group called 'tag'
         (?P<tag>
 
@@ -734,13 +970,20 @@ SPECIALTEXTRE_S = r'''
 
         # tag end marker
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\', '') for _ in SPECIALTEXT.keys()
-                         if not _.startswith(r'\+')]))
+    """.format(
+    "|".join(
+        [
+            _.replace("\\", "")
+            for _ in SPECIALTEXT.keys()
+            if not _.startswith(r"\+")
+        ]
+    )
+)
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
 
 # match z tags that have both a start and end marker
-ZTAGS_S = r'''
+ZTAGS_S = r"""
         # put z tags that have a start and end marker into named group 'tag'
         (?P<tag>
 
@@ -759,13 +1002,13 @@ ZTAGS_S = r'''
 
         # tag end marker
         (?P=tag)\*
-    '''
+    """
 ZTAGSRE = re.compile(ZTAGS_S, re.U + re.VERBOSE)
 del ZTAGS_S
 
 # matches special feature tags
 # Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
-SPECIALFEATURESRE_S = r'''
+SPECIALFEATURESRE_S = r"""
         # put the special features tags into a named group called 'tag'
         (?P<tag>
 
@@ -786,14 +1029,21 @@ SPECIALFEATURESRE_S = r'''
 
         # tag end marker
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\', '') for _ in FEATURETAGS.keys()
-                         if not _.startswith(r'\+')]))
+    """.format(
+    "|".join(
+        [
+            _.replace("\\", "")
+            for _ in FEATURETAGS.keys()
+            if not _.startswith(r"\+")
+        ]
+    )
+)
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
 del SPECIALFEATURESRE_S
 
 # regex used in footnote/crossref functions
 # Automatically build NOTERE regex string from NOTETAGS dict.
-NOTERE_S = r'''
+NOTERE_S = r"""
         # put the footnote and cross reference markers into a named group
         # called 'tag'
         (?P<tag>
@@ -819,13 +1069,20 @@ NOTERE_S = r'''
 
         # footnote / cross reference end tag
         (?P=tag)\*
-    '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS.keys()
-                         if not _.startswith(r'\+')]))
+    """.format(
+    "|".join(
+        [
+            _.replace("\\", "")
+            for _ in NOTETAGS.keys()
+            if not _.startswith(r"\+")
+        ]
+    )
+)
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
 del NOTERE_S
 # ---
 # Automatically build NOTEFIXRE regex string from NOTETAGS2 dict.
-NOTEFIXRE_S = r'''
+NOTEFIXRE_S = r"""
         (
             # tags always start with a backslash and may have a + symbol which
             # indicates that it's a nested character style.
@@ -845,32 +1102,43 @@ NOTEFIXRE_S = r'''
         # This marks the end of the tag. It matches against either the
         # start of an additional tag or the end of the note.
         (?=\\\+?[fx]|</note)
-    '''.format('|'.join([_.replace('\\', '') for _ in NOTETAGS2.keys()
-                         if not _.startswith(r'\+')]))
+    """.format(
+    "|".join(
+        [
+            _.replace("\\", "")
+            for _ in NOTETAGS2.keys()
+            if not _.startswith(r"\+")
+        ]
+    )
+)
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
 # match \cp and \vp tags
 CPRE = re.compile(
-    r'''
+    r"""
         \\(?:cp)
         \s+
         (?P<num>\S+)\b
         \s*
-    ''', re.U + re.VERBOSE)
+    """,
+    re.U + re.VERBOSE,
+)
 VPRE = re.compile(
-    r'''
+    r"""
         \\(?:vp)
         \s+
         (?P<num>\S+)
         \s*
         \\vp\*
         \s*
-    ''', re.U + re.VERBOSE)
+    """,
+    re.U + re.VERBOSE,
+)
 
 # regex for matching against \ca or \va usfm tags.
 CVARE = re.compile(
-    r'''
+    r"""
         # put the tag we match into a named group called tag
         (?P<tag>
 
@@ -892,10 +1160,13 @@ CVARE = re.compile(
 
         # there may or may not be space following this tag.
         \s*
-    ''', re.U + re.VERBOSE)
+    """,
+    re.U + re.VERBOSE,
+)
 
 # regex for finding usfm tags
-USFMRE = re.compile(r'''
+USFMRE = re.compile(
+    r"""
     # the first character of a usfm tag is always a backslash
     \\
 
@@ -915,7 +1186,9 @@ USFMRE = re.compile(r'''
     # character style closing tags ends with an asterisk.
     \*?
 
-''', re.U + re.VERBOSE)
+""",
+    re.U + re.VERBOSE,
+)
 
 
 ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
@@ -930,12 +1203,12 @@ ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 PARFLOW = set(IDTAGS.keys())
 PARFLOW.update(TITLETAGS.keys())
 PARFLOW.update(PARTAGS.keys())
-PARFLOW.update([r'\ide', r'\rem', r'\tr', r'\pb', r'\periph'])
+PARFLOW.update([r"\ide", r"\rem", r"\tr", r"\pb", r"\periph"])
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
 PARCHECK = set(PARTAGS.keys())
-for i in [r'\iex', r'\ie', r'\qa']:
+for i in [r"\iex", r"\ie", r"\qa"]:
     try:
         PARCHECK.remove(i)
     except KeyError:
@@ -952,18 +1225,18 @@ OSISITEM = set()
 OSISL = set()
 
 for _ in PARTAGS:
-    if PARTAGS[_][0].startswith('<item '):
+    if PARTAGS[_][0].startswith("<item "):
         OSISITEM.add(PARTAGS[_][0])
-    elif PARTAGS[_][0].startswith('<l '):
+    elif PARTAGS[_][0].startswith("<l "):
         OSISL.add(PARTAGS[_][0])
-OSISL.add('<l>')
-OSISITEM.add('<item>')
+OSISL.add("<l>")
+OSISITEM.add("<item>")
 
 # -------------------------------------------------------------------------- #
 
 # osis 2.1.1 schema...
 # compressed with bzip2 and base64 encoded.
-SCHEMA = b'''
+SCHEMA = b"""
 QlpoOTFBWSZTWSchBD8AHwNfgEAAcX//f////9+////+YCe7AM94DhqfVb5vu3w97x70e8C33tA0
 Eje9ffD4699161lPPWbsz3OxMj2YvZvffHeOzgHQG0epbWtL23MGjVaPbAr69AXoBni1S3tyeZvW
 fEMfb3rOgG9ttGhb7vCSEIATIJkyTSntqYhPKnlPaoe0UyZNGjQAAGmgmghDRMo9SbU2RqGmRkAa
@@ -1089,7 +1362,7 @@ RTh7chfEWJWgRmzMhmBq9U+K1wEkEclUIgoUKDAviOIw1LhZP0ZREUIUKBSiUCkRiMRQiKEAFVgL
 KikYoFKBJCCwGKxVCAAUqGTBBsg+XphIDaJJgA6BtGLXI2+hneE0Pz82nzN1n5ONYbMaWvDTere8
 4PwgQFAkCEipABCK1VGMY1tVlbVNmrfF83z5BGGh8B7jl9P4hR9qva4frAHInE9QfMgxU93zF3JF
 OFCQJyEEPw==
-'''
+"""
 
 # -------------------------------------------------------------------------- #
 
@@ -1102,30 +1375,31 @@ def convertcl(text):
     the form that appears after each chapter marker.
 
     """
-    lines = text.split('\n')
+    lines = text.split("\n")
 
     # count number of cl tags in text
     clcount = 0
     for i in lines:
-        if i.startswith(r'\cl '):
+        if i.startswith(r"\cl "):
             clcount += 1
 
     # test for presence of only 1 cl marker.
     if clcount == 1:
-        chaplines = [_ for _ in range(len(lines)) if
-                     lines[_].startswith(r'\c ')]
+        chaplines = [
+            _ for _ in range(len(lines)) if lines[_].startswith(r"\c ")
+        ]
 
         # get cl marker line if it precedes chapter 1 and add this after
         # each chapter marker in the book.
-        if lines[chaplines[0] - 1].startswith(r'\cl '):
+        if lines[chaplines[0] - 1].startswith(r"\cl "):
             clmarker = lines[chaplines[0] - 1]
-            lines[chaplines[0] - 1] = ''
+            lines[chaplines[0] - 1] = ""
             for i in reversed(chaplines):
                 cnumber = lines[i].split(" ")[1]
                 lines.insert(i + 1, " ".join([clmarker, cnumber]))
 
     # return our lines with converted cl tags.
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def reflow(text):
@@ -1147,112 +1421,126 @@ def reflow(text):
 
     # test for paragraph markup before mangling the text
     for i in PARCHECK:
-        if re.search(r'\\{}\b'.format(i.lstrip(r'\\')), text, re.U+re.M+re.DOTALL):
+        if re.search(
+            r"\\{}\b".format(i.lstrip(r"\\")), text, re.U + re.M + re.DOTALL
+        ):
             mangletext = True
             break
 
     # mark end of cl and sp tags
-    textlines = text.split('\n')
+    textlines = text.split("\n")
     for i in range(len(textlines)):
-        if textlines[i].startswith(r'\cl '):
-            textlines[i] = '{}\uFDD4'.format(textlines[i])
-        elif textlines[i].startswith(r'\sp '):
-            textlines[i] = '{}\uFDD4'.format(textlines[i])
-        elif textlines[i].startswith(r'\qa '):
-            textlines[i] = '{}\uFDD4'.format(textlines[i])
-    text = '\n'.join(textlines)
+        if textlines[i].startswith(r"\cl "):
+            textlines[i] = "{}\uFDD4".format(textlines[i])
+        elif textlines[i].startswith(r"\sp "):
+            textlines[i] = "{}\uFDD4".format(textlines[i])
+        elif textlines[i].startswith(r"\qa "):
+            textlines[i] = "{}\uFDD4".format(textlines[i])
+    text = "\n".join(textlines)
 
     # process text with paragraph formatting
-    text = SQUEEZE.sub(' ', text)
+    text = SQUEEZE.sub(" ", text)
     # put (almost) all paragraph style tags on separate lines.
     # would regex be faster than a simple string operation here?
     for i in PARFLOW:
         if i in text:
-            text = text.replace(r'{} '.format(i), '\n{} '.format(i))
+            text = text.replace(r"{} ".format(i), "\n{} ".format(i))
 
     # always make sure \cl and \cd appear on newlines if present
     # since we handle those with titles.
-    if r'\cl ' in text:
-        text = text.replace(r'\cl ', '\n\\cl ')
-    if r'\cd ' in text:
-        text = text.replace(r'\cd ', '\n\\cd ')
+    if r"\cl " in text:
+        text = text.replace(r"\cl ", "\n\\cl ")
+    if r"\cd " in text:
+        text = text.replace(r"\cd ", "\n\\cd ")
 
     # always add a newline after \ie (may miss some of these tags)
-    if r'\ie ' in text:
-        text = text.replace(r'\ie ', '\\ie\n')
+    if r"\ie " in text:
+        text = text.replace(r"\ie ", "\\ie\n")
 
     # always make sure chapter 1 marker is on a new line.
-    text = text.replace(r'\c 1 ', '\n\\c 1')
+    text = text.replace(r"\c 1 ", "\n\\c 1")
 
     # always make sure \cp tag has a space preceding it if present
-    if r'\cp' in text:
-        text = text.replace(r'\cp', r' \cp')
+    if r"\cp" in text:
+        text = text.replace(r"\cp", r" \cp")
 
     # always make sure \ca tag has a space preceding it if present
-    if r'\ca' in text:
-        text = text.replace(r'\ca', r' \ca')
+    if r"\ca" in text:
+        text = text.replace(r"\ca", r" \ca")
 
     # always make sure chapter markers are on a separate line from titles.
-    textlines = text.split('\n')
+    textlines = text.split("\n")
     for i in range(len(textlines)):
-        if textlines[i].partition(' ')[0] in TITLEFLOW:
-            if r'\c ' in textlines[i]:
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+        if textlines[i].partition(" ")[0] in TITLEFLOW:
+            if r"\c " in textlines[i]:
+                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
 
     # fix placement of chapter markers with regards to lists...
     # this probably needs more work.
     for i in range(len(textlines)):
-        if textlines[i].partition(' ')[0].startswith(r'\li'):
-            if r'\c ' in textlines[i]:
-                if textlines[i + 1].startswith(r'\s') \
-                        or textlines[i + 1].startswith(r'\ms') \
-                        or textlines[i + 1].startswith(r'\p'):
-                    textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+        if textlines[i].partition(" ")[0].startswith(r"\li"):
+            if r"\c " in textlines[i]:
+                if (
+                    textlines[i + 1].startswith(r"\s")
+                    or textlines[i + 1].startswith(r"\ms")
+                    or textlines[i + 1].startswith(r"\p")
+                ):
+                    textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
 
     # fix placement of chapter markers with regards to tables...
     # this probably needs more work.
     for i in range(len(textlines)):
-        if textlines[i].partition(' ')[0].startswith(r'\tr'):
-            if r'\c ' in textlines[i]:
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+        if textlines[i].partition(" ")[0].startswith(r"\tr"):
+            if r"\c " in textlines[i]:
+                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
 
     # make sure some lines don't contain chapter or verse markers
     for i in range(len(textlines)):
-        for j in [r'\rem ', r'\is', r'\ms', r'\s ', r'\s1 ', r'\s2 ',
-                  r'\s3 ', r'\s4 ', r'\th', r'\tc']:
+        for j in [
+            r"\rem ",
+            r"\is",
+            r"\ms",
+            r"\s ",
+            r"\s1 ",
+            r"\s2 ",
+            r"\s3 ",
+            r"\s4 ",
+            r"\th",
+            r"\tc",
+        ]:
             if textlines[i].startswith(j):
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
-                textlines[i] = textlines[i].replace('\\v ', '\n\\v ')
+                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
+                textlines[i] = textlines[i].replace("\\v ", "\n\\v ")
 
     # make sure some lines don't contain chapter markers
     for i in range(len(textlines)):
-        for j in [r'\li', r'\ph', r'\io', 'ili']:
+        for j in [r"\li", r"\ph", r"\io", "ili"]:
             if textlines[i].startswith(j):
-                textlines[i] = textlines[i].replace('\\c ', '\n\\c ')
+                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
 
-    text = '\n'.join(textlines)
+    text = "\n".join(textlines)
 
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
         # force some things  onto newlines.
-        text = text.replace(r'\c ', '\n\\c ')
-        text = text.replace(r'\v ', '\n\\v ')
-        text = text.replace(r'\ide ', '\n\\ide ')
+        text = text.replace(r"\c ", "\n\\c ")
+        text = text.replace(r"\v ", "\n\\v ")
+        text = text.replace(r"\ide ", "\n\\ide ")
 
         # make sure all lines start with a usfm tag...
-        lines = text.split('\n')
+        lines = text.split("\n")
         for i in range(len(lines) - 1, 0, -1):
-            if not lines[i].startswith('\\'):
-                lines[i - 1] = '{} {}'.format(lines[i - 1], lines[1])
+            if not lines[i].startswith("\\"):
+                lines[i - 1] = "{} {}".format(lines[i - 1], lines[1])
                 lines.pop(i)
-        text = '\n'.join(lines)
+        text = "\n".join(lines)
         # remove some newlines that we don't want...
-        for i in [r'\ca', r'\cp', r'\va', r'\vp']:
-            text = text.replace('\n{}'.format(i), ' {}'.format(i))
+        for i in [r"\ca", r"\cp", r"\va", r"\vp"]:
+            text = text.replace("\n{}".format(i), " {}".format(i))
 
     # fix cl and sp newline issue
-    if '\uFDD4' in text:
-        text = text.replace('\uFDD4', '\n')
+    if "\uFDD4" in text:
+        text = text.replace("\uFDD4", "\n")
 
     # done
     return text
@@ -1261,8 +1549,7 @@ def reflow(text):
 def getbookid(text):
     """Get book id from file text."""
     bookid = None
-    lines = [i for i in text.split('\n')
-             if i.startswith('\\id ')]
+    lines = [i for i in text.split("\n") if i.startswith("\\id ")]
     if len(lines) > 0:
         tmp = lines[0].split()
         bookid = tmp[1].strip()
@@ -1271,7 +1558,7 @@ def getbookid(text):
         if bookid in BOOKNAMES.keys():
             return BOOKNAMES[bookid]
         else:
-            return '* {}'.format(bookid)
+            return "* {}".format(bookid)
     else:
         return None
 
@@ -1279,10 +1566,11 @@ def getbookid(text):
 def getencoding(text):
     """Get encoding from file text."""
     encoding = None
-    lines = [i.decode('utf8') for i in text.split(b'\n')
-             if i.startswith(b'\\ide')]
+    lines = [
+        i.decode("utf8") for i in text.split(b"\n") if i.startswith(b"\\ide")
+    ]
     for i in lines:
-        encoding = i.partition(' ')[2].lower().strip()
+        encoding = i.partition(" ")[2].lower().strip()
         break
     return encoding
 
@@ -1299,24 +1587,32 @@ def markintroend(lines):
     i = 0
     intro = False
     while i < x:
-        tmp = lines[i].partition(' ')
-        if tmp[0:3] == r'\ie':
+        tmp = lines[i].partition(" ")
+        if tmp[0:3] == r"\ie":
             intro = False
-            lines.insert(i, u'\ufde0')
-        elif tmp[0][:3] in [r'\ib', r'\il', r'\im', r'\io',
-                            r'\ip', r'\iq', r'\is', r'\ie']:
+            lines.insert(i, "\ufde0")
+        elif tmp[0][:3] in [
+            r"\ib",
+            r"\il",
+            r"\im",
+            r"\io",
+            r"\ip",
+            r"\iq",
+            r"\is",
+            r"\ie",
+        ]:
             if not intro:
-                lines.insert(i, u'\ufde0')
+                lines.insert(i, "\ufde0")
                 intro = True
         else:
             if intro:
                 intro = False
-                lines.insert(i, u'\ufde1')
+                lines.insert(i, "\ufde1")
                 x += 1
         i += 1
 
     if intro:
-        lines.append(u'\ufde1')
+        lines.append("\ufde1")
 
     return lines
 
@@ -1324,17 +1620,17 @@ def markintroend(lines):
 def parseattributes(tag, tagtext):
     """Helper function to separate attributes from text in usfm."""
     # split attributes from text
-    text, _, attributestring = tagtext.partition('|')
+    text, _, attributestring = tagtext.partition("|")
     attribs = {}
 
     # extract attributes
     attribs = {}
     if "=" not in attributestring:
-        attribs[DEFAULTATTRIBUTES.get(tag, 'x-default')] = attributestring
+        attribs[DEFAULTATTRIBUTES.get(tag, "x-default")] = attributestring
     else:
-        tmp = ATTRIBRE.sub('\uFDE2\\1', attributestring)
+        tmp = ATTRIBRE.sub("\uFDE2\\1", attributestring)
         for i in tmp.split("\uFDE2"):
-            attr = i.partition('=')
+            attr = i.partition("=")
             attribs[attr[0]] = attr[2].strip('"')
 
     # attribute validity check
@@ -1342,19 +1638,20 @@ def parseattributes(tag, tagtext):
     if tag in DEFINEDATTRIBUTES.keys():
         attribtest = DEFINEDATTRIBUTES[tag]
         for i in attribs.keys():
-            if i not in attribtest and not i.startswith('x-'):
+            if i not in attribtest and not i.startswith("x-"):
                 isinvalid = True
     else:
         for i in attribs.keys():
-            if not i.startswith('x-'):
+            if not i.startswith("x-"):
                 isinvalid = True
 
-    return(text, attributestring, attribs, isinvalid)
+    return (text, attributestring, attribs, isinvalid)
+
 
 # -------------------------------------------------------------------------- #
 
 
-def convert_to_osis(text, bookid='TEST'):
+def convert_to_osis(text, bookid="TEST"):
     """
     Convert usfm file to osis.
 
@@ -1370,21 +1667,21 @@ def convert_to_osis(text, bookid='TEST'):
     def preprocess(text):
         """Preprocess text."""
         # preprocessing...
-        if '&' in text:
-            text = text.replace('&', '&amp;')
-        if '<' in text:
-            text = text.replace('<', '&lt;')
-        if '>' in text:
-            text = text.replace('>', '&gt;')
+        if "&" in text:
+            text = text.replace("&", "&amp;")
+        if "<" in text:
+            text = text.replace("<", "&lt;")
+        if ">" in text:
+            text = text.replace(">", "&gt;")
 
         # special spacing characters
-        if '~' in text:
-            text = text.replace('~', u'\u00a0')
-        if r'//' in text:
-            text = text.replace(r'//', '<lb type="x-optional" />')
-        if r'\pb' in text:
-            text = text.replace(r'\pb ', '<milestone type="pb" />')
-            text = text.replace(r'\pb', '<milestone type="pb" />')
+        if "~" in text:
+            text = text.replace("~", "\u00a0")
+        if r"//" in text:
+            text = text.replace(r"//", '<lb type="x-optional" />')
+        if r"\pb" in text:
+            text = text.replace(r"\pb ", '<milestone type="pb" />')
+            text = text.replace(r"\pb", '<milestone type="pb" />')
 
         return text.strip()
 
@@ -1395,28 +1692,29 @@ def convert_to_osis(text, bookid='TEST'):
         id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore.
 
         """
-        line = text.partition(' ')
+        line = text.partition(" ")
         if line[0] in IDTAGS.keys():
-            if IDTAGS[line[0]][0] == '':
-                text = u'{}\ufdd0'.format(
-                    IDTAGS[line[0]][1].format(line[2].strip()))
+            if IDTAGS[line[0]][0] == "":
+                text = "{}\ufdd0".format(
+                    IDTAGS[line[0]][1].format(line[2].strip())
+                )
             else:
-                text = u'{}{}{}\ufdd0'.format(
-                    IDTAGS[line[0]][0],
-                    line[2].strip(),
-                    IDTAGS[line[0]][1])
+                text = "{}{}{}\ufdd0".format(
+                    IDTAGS[line[0]][0], line[2].strip(), IDTAGS[line[0]][1]
+                )
         elif line[0] in IDTAGS2:
             description.append(
                 '<description {} subType="x-{}">{}</description>'.format(
-                    'type="usfm"',
-                    line[0][1:],
-                    line[2].strip()))
-            text = ''
+                    'type="usfm"', line[0][1:], line[2].strip()
+                )
+            )
+            text = ""
             # fix problems with url's in rem lines resulting from processing
             # of special spacing in preprocessing section.
-            if u'<lb type="x-optional" />' in description[-1]:
+            if '<lb type="x-optional" />' in description[-1]:
                 description[-1] = description[-1].replace(
-                    u'<lb type="x-optional" />', u'//')
+                    '<lb type="x-optional" />', "//"
+                )
         return text
 
     # ---------------------------------------------------------------------- #
@@ -1436,9 +1734,20 @@ def convert_to_osis(text, bookid='TEST'):
         titletags = TITLETAGS
         # add periph tag to titletags if book being processed
         # is a  peripheral or private use book.
-        if bookid in ['FRONT', 'INTRODUCTION', 'BACK', 'X-OTHER', 'XXA',
-                      'XXB', 'XXC', 'XXD', 'XXE', 'XXF', 'XXG']:
-            titletags[r'\periph'] = ('<title type="main">', '</title>')
+        if bookid in [
+            "FRONT",
+            "INTRODUCTION",
+            "BACK",
+            "X-OTHER",
+            "XXA",
+            "XXB",
+            "XXC",
+            "XXD",
+            "XXE",
+            "XXF",
+            "XXG",
+        ]:
+            titletags[r"\periph"] = ('<title type="main">', "</title>")
 
         # ################################################################### #
         # NOTE: I've not seen any kind of documentation to suggest that usage
@@ -1461,122 +1770,124 @@ def convert_to_osis(text, bookid='TEST'):
         #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
         # ################################################################### #
 
-        line = list(text.partition(' '))
+        line = list(text.partition(" "))
 
         # process titles and sections
         if line[0] in titletags.keys():
             # make sure titles don't end with a \b or an \ib tag
             line[2] = line[2].strip()
-            if line[2].endswith(r'\b'):
+            if line[2].endswith(r"\b"):
                 line[2] = line[2][:-2]
-            elif line[2].endswith(r'\ib'):
+            elif line[2].endswith(r"\ib"):
                 line[2] = line[2][:-3]
 
             # is there ever a reason for a \b tag to appear in a title?
             # if there is, I will have to add \b processing here.
 
-            if line[0] == r'\periph':
+            if line[0] == r"\periph":
                 # handle usfm attributes if present
-                if '|' in line[2]:
+                if "|" in line[2]:
                     osis, attributetext, attributes, isvalid = parseattributes(
-                        r'periph', line[2])
+                        r"periph", line[2]
+                    )
                 else:
                     osis, attributetext, attributes, isvalid = (
-                        line[2], None, dict(), True)
+                        line[2],
+                        None,
+                        dict(),
+                        True,
+                    )
                 if attributetext is not None:
-                    attributetext = '{}{}{}'.format(
-                        '<!-- USFM Attributes - ',
-                        attributetext,
-                        ' -->')
+                    attributetext = "{}{}{}".format(
+                        "<!-- USFM Attributes - ", attributetext, " -->"
+                    )
                 starttag = titletags[line[0]][0]
                 endtag = titletags[line[0]][1]
 
                 # process id attribute
-                if 'id' in attributes:
-                    idattribute = ' n="{}">'.format(attributes['id'])
-                    starttag = starttag.replace('>', idattribute)
+                if "id" in attributes:
+                    idattribute = ' n="{}">'.format(attributes["id"])
+                    starttag = starttag.replace(">", idattribute)
 
                 # finished processing periph now...
-                text = u'\ufdd0<!-- {} -->{}{}{}{}\ufdd0'.format(
-                    line[0].replace('\\', ''),
+                text = "\ufdd0<!-- {} -->{}{}{}{}\ufdd0".format(
+                    line[0].replace("\\", ""),
                     starttag,
                     osis.strip(),
                     endtag,
-                    attributetext)
+                    attributetext,
+                )
             else:
-                text = u'\ufdd0<!-- {} -->{}{}{}\ufdd0'.format(
-                    line[0].replace('\\', ''),
+                text = "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
+                    line[0].replace("\\", ""),
                     titletags[line[0]][0],
                     line[2].strip(),
-                    titletags[line[0]][1])
+                    titletags[line[0]][1],
+                )
 
         # process paragraphs
         elif line[0] in partags.keys():
             pstart, pend = partags[line[0]]
-            btag = ''
-            if pstart.startswith('<p'):
-                pstart = u'{}\ufdd0'.format(pstart)
-                pend = u'\ufdd0{}\ufdd0'.format(pend)
+            btag = ""
+            if pstart.startswith("<p"):
+                pstart = "{}\ufdd0".format(pstart)
+                pend = "\ufdd0{}\ufdd0".format(pend)
 
-            text = '{}{}'.format(pstart,
-                                 line[2].strip())
+            text = "{}{}".format(pstart, line[2].strip())
             # handle b  and ib tags in paragraphs and poetry...
-            if text.endswith('\\b') or text.endswith('\\ib'):
-                text = text.rstrip('\\b')
-                text = text.rstrip('\\ib')
-                btag = '<!-- b -->'
-            elif r'\b ' in text or r'\ib' in text:
-                text = text.replace('\\b ', '<!-- b -->')
-                text = text.replace('\\ib ', '<!-- b -->')
+            if text.endswith("\\b") or text.endswith("\\ib"):
+                text = text.rstrip("\\b")
+                text = text.rstrip("\\ib")
+                btag = "<!-- b -->"
+            elif r"\b " in text or r"\ib" in text:
+                text = text.replace("\\b ", "<!-- b -->")
+                text = text.replace("\\ib ", "<!-- b -->")
 
             # finish paragraphs.
-            text = u'{}{}{}\ufdd0'.format(text,
-                                          pend,
-                                          btag)
+            text = "{}{}{}\ufdd0".format(text, pend, btag)
 
         # process tables
-        elif line[0] == r'\tr':
+        elif line[0] == r"\tr":
             # make sure table rows don't end with b tags...
-            line[2] = line[2].strip().rstrip('\\b').strip()
+            line[2] = line[2].strip().rstrip("\\b").strip()
 
-            line[2] = line[2].replace(r'\th', '\n\\th')
-            line[2] = line[2].replace(r'\tc', '\n\\tc')
-            cells = line[2].split('\n')
+            line[2] = line[2].replace(r"\th", "\n\\th")
+            line[2] = line[2].replace(r"\tc", "\n\\tc")
+            cells = line[2].split("\n")
             for i in range(len(cells)):
-                tmp = list(cells[i].partition(' '))
+                tmp = list(cells[i].partition(" "))
                 if tmp[0] in celltags.keys():
-                    cells[i] = '{}{}{}'.format(
+                    cells[i] = "{}{}{}".format(
                         celltags[tmp[0]][0],
                         tmp[2].strip(),
-                        celltags[tmp[0]][1])
-            text = u'<row>{}</row>\ufdd0'.format(''.join(cells))
+                        celltags[tmp[0]][1],
+                    )
+            text = "<row>{}</row>\ufdd0".format("".join(cells))
 
         # other title, paragraph, intro tags
         for i in othertags.keys():
             text = text.replace(i, othertags[i])
 
         # fix selah
-        if '<selah>' in text:
+        if "<selah>" in text:
             tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
             selahfix = [_ for _ in tmp.split("\n") if _ != ""]
             for i in range(len(selahfix)):
-                if selahfix[i].startswith(r'<l') and '<selah>' in selahfix[i]:
+                if selahfix[i].startswith(r"<l") and "<selah>" in selahfix[i]:
                     selahfix[i] = selahfix[i].replace(
-                        '<selah>', '</l><l type="selah">')
-                    selahfix[i] = selahfix[i].replace(
-                        '</selah>', '</l><l>')
-                    if '<l> </l>' in selahfix[i]:
-                        selahfix[i] = selahfix[i].replace(
-                            '<l> </l>', '')
-                    if '<l>  </l>' in selahfix[i]:
-                        selahfix[i] = selahfix[i].replace(
-                            '<l>  </l>', '')
+                        "<selah>", '</l><l type="selah">'
+                    )
+                    selahfix[i] = selahfix[i].replace("</selah>", "</l><l>")
+                    if "<l> </l>" in selahfix[i]:
+                        selahfix[i] = selahfix[i].replace("<l> </l>", "")
+                    if "<l>  </l>" in selahfix[i]:
+                        selahfix[i] = selahfix[i].replace("<l>  </l>", "")
             for i in range(len(selahfix)):
-                if '<selah>' in selahfix[i] or '</selah>' in selahfix[i]:
+                if "<selah>" in selahfix[i] or "</selah>" in selahfix[i]:
                     selahfix[i] = selahfix[i].replace(
-                        '<selah>', '<lg><l type="selah">')
-                    selahfix[i] = selahfix[i].replace(
-                        '</selah>', '</l></lg>')
+                        "<selah>", '<lg><l type="selah">'
+                    )
+                    selahfix[i] = selahfix[i].replace("</selah>", "</l></lg>")
             text = " ".join(selahfix)
 
         return text
@@ -1584,71 +1895,71 @@ def convert_to_osis(text, bookid='TEST'):
     def fixgroupings(lines):
         """Fix linegroups in poetry, lists, etc."""
         # append a blank line. (needed in some cases)
-        lines.append('')
+        lines.append("")
 
         # process b tags...
         for i in range(len(lines)):
-            if '<!-- b -->' in lines[i]:
-                if lines[i][:2] in ['<l', '<p']:
+            if "<!-- b -->" in lines[i]:
+                if lines[i][:2] in ["<l", "<p"]:
                     lines[i] = lines[i].replace(
-                        '<!-- b -->',
-                        '<lb type="x-p" />')
+                        "<!-- b -->", '<lb type="x-p" />'
+                    )
                 else:
-                    lines[i] = lines[i].replace('<!-- b -->', '')
+                    lines[i] = lines[i].replace("<!-- b -->", "")
 
         # add breaks before chapter and verse tags
         for i in range(len(lines)):
-            lines[i] = lines[i].replace(r'\c ', u'\ufdd0\\c ')
-            lines[i] = lines[i].replace(r'\v ', u'\ufdd0\\v ')
+            lines[i] = lines[i].replace(r"\c ", "\ufdd0\\c ")
+            lines[i] = lines[i].replace(r"\v ", "\ufdd0\\v ")
 
         # add missing lg tags
         inlg = False
         for i in range(len(lines)):
-            if lines[i].startswith('<l '):
+            if lines[i].startswith("<l "):
                 if not inlg:
-                    lines[i] = u'<lg>\ufdd0{}'.format(lines[i])
+                    lines[i] = "<lg>\ufdd0{}".format(lines[i])
                     inlg = True
             else:
                 if inlg:
-                    lines[i - 1] = u'{}\ufdd0</lg>\ufdd0'.format(
-                        lines[i - 1])
+                    lines[i - 1] = "{}\ufdd0</lg>\ufdd0".format(lines[i - 1])
                     inlg = False
 
         # add missing list tags
         inlist = False
         for i in range(len(lines)):
-            if lines[i].startswith('<item '):
+            if lines[i].startswith("<item "):
                 if not inlist:
-                    lines[i] = u'<list>\ufdd0{}'.format(lines[i])
+                    lines[i] = "<list>\ufdd0{}".format(lines[i])
                     inlist = True
             else:
                 if inlist:
-                    lines[i - 1] = u'{}\ufdd0</list>\ufdd0'.format(
-                        lines[i - 1])
+                    lines[i - 1] = "{}\ufdd0</list>\ufdd0".format(lines[i - 1])
                     inlist = False
 
         # add missing table tags
         intable = False
         for i in range(len(lines)):
-            if lines[i].startswith('<row'):
+            if lines[i].startswith("<row"):
                 if not intable:
-                    lines[i] = u'\ufdd0<table>\ufdd0{}'.format(lines[i])
+                    lines[i] = "\ufdd0<table>\ufdd0{}".format(lines[i])
                     intable = True
             else:
                 if intable:
-                    lines[i - 1] = u'{}\ufdd0</table>\ufdd0'.format(
-                        lines[i - 1])
+                    lines[i - 1] = "{}\ufdd0</table>\ufdd0".format(
+                        lines[i - 1]
+                    )
                     intable = False
 
         # encapsulate introductions inside div's
         for i in range(len(lines)):
-            if lines[i] == u'\ufde0':
-                lines[i] = u'<div type="introduction">\ufdd0'
-            elif lines[i] == u'\ufde1':
-                lines[i] = u'</div>\ufdd0'
-            elif lines[i].endswith(u'\ufde1'):
-                lines[i] = u'{}</div>\ufdd0'.format(lines[i].replace(
-                    u'\ufde1', ''))
+            if lines[i] == "\ufde0":
+                lines[i] = '<div type="introduction">\ufdd0'
+            elif lines[i] == "\ufde1":
+                lines[i] = "</div>\ufdd0"
+            elif lines[i].endswith("\ufde1"):
+                lines[i] = "{}</div>\ufdd0".format(
+                    lines[i].replace("\ufde1", "")
+                )
 
         return lines
 
@@ -1667,16 +1978,18 @@ def convert_to_osis(text, bookid='TEST'):
         * lit tags are handled in the titlepar function
 
         """
+
         def simplerepl(match):
             """Simple regex replacement helper function."""
-            tag = SPECIALTEXT[match.group('tag')]
-            return '{}{}{}'.format(tag[0], match.group('osis'), tag[1])
+            tag = SPECIALTEXT[match.group("tag")]
+            return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
+
         text = SPECIALTEXTRE.sub(simplerepl, text, 0)
         # Make sure all nested tags are processed.
         # In order to avoid getting stuck here we abort
         # after a maximum of 5 attempts. (5 was chosen arbitrarily)
         nestcount = 0
-        while '\\' in text:
+        while "\\" in text:
             nestcount += 1
             text = SPECIALTEXTRE.sub(simplerepl, text, 0)
             if nestcount > 5:
@@ -1686,249 +1999,318 @@ def convert_to_osis(text, bookid='TEST'):
 
     def footnotecrossrefmarkers(text):
         """Process footnote and cross reference markers."""
+
         def notefix(notetext):
             """Additional footnote and cross reference tag processing."""
+
             def notefixsub(fnmatch):
                 """Simple regex replacement helper function."""
                 tag = NOTETAGS2[fnmatch.groups()[0]]
                 txt = fnmatch.groups()[1]
-                return ''.join([tag[0], txt, tag[1]])
+                return "".join([tag[0], txt, tag[1]])
+
             notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
-            for i in [r'\fm*', r'\fdc*', r'\fr*', r'\fk*', r'\fq*', r'\fqa*',
-                      r'\fl*', r'\fv*', r'\ft*', r'\xo*', r'\xk*', r'\xq*',
-                      r'\xt*', r'\xot*', r'\xnt*', r'\xdc*',
-                      r'\+fm*', r'\+fdc*', r'\+fr*', r'\+fk*', r'\+fq*',
-                      r'\+fqa*', r'\+fl*', r'\+fv*', r'\+ft*', r'\+xo*',
-                      r'\+xk*', r'\+xq*', r'\+xt*', r'\+xot*', r'\+xnt*',
-                      r'\+xdc*']:
+            for i in [
+                r"\fm*",
+                r"\fdc*",
+                r"\fr*",
+                r"\fk*",
+                r"\fq*",
+                r"\fqa*",
+                r"\fl*",
+                r"\fv*",
+                r"\ft*",
+                r"\xo*",
+                r"\xk*",
+                r"\xq*",
+                r"\xt*",
+                r"\xot*",
+                r"\xnt*",
+                r"\xdc*",
+                r"\+fm*",
+                r"\+fdc*",
+                r"\+fr*",
+                r"\+fk*",
+                r"\+fq*",
+                r"\+fqa*",
+                r"\+fl*",
+                r"\+fv*",
+                r"\+ft*",
+                r"\+xo*",
+                r"\+xk*",
+                r"\+xq*",
+                r"\+xt*",
+                r"\+xot*",
+                r"\+xnt*",
+                r"\+xdc*",
+            ]:
                 if i in notetext:
-                    notetext = notetext.replace(i, '')
+                    notetext = notetext.replace(i, "")
             return notetext
 
         def simplerepl(match):
             """Simple regex replacement helper function."""
-            tag = NOTETAGS[match.group('tag')]
-            notetext = match.group('osis').replace('\n', ' ')
-            if '<transChange' in notetext:
-                notetext = notetext.replace('<transChange type="added">',
-                                            '<seg><transChange type="added">')
-                notetext = notetext.replace('</transChange>',
-                                            '</transChange></seg>')
-            return '{}{}{}'.format(tag[0], notetext, tag[1])
+            tag = NOTETAGS[match.group("tag")]
+            notetext = match.group("osis").replace("\n", " ")
+            if "<transChange" in notetext:
+                notetext = notetext.replace(
+                    '<transChange type="added">',
+                    '<seg><transChange type="added">',
+                )
+                notetext = notetext.replace(
+                    "</transChange>", "</transChange></seg>"
+                )
+            return "{}{}{}".format(tag[0], notetext, tag[1])
+
         text = NOTERE.sub(simplerepl, text, 0)
 
         # process additional footnote tags if present
-        for i in [r'\f', r'\x', r'\+f', r'\+x']:
+        for i in [r"\f", r"\x", r"\+f", r"\+x"]:
             if i in text:
                 text = notefix(text)
 
         # handle fp tags
-        if r'\fp ' in text:
+        if r"\fp " in text:
             # xmllint says this works and validates.
-            text = text.replace('\uFDD2', '<p>')
-            text = text.replace('\uFDD3', '</p>')
-            text = text.replace(r'\fp ', r'</p><p>')
+            text = text.replace("\uFDD2", "<p>")
+            text = text.replace("\uFDD3", "</p>")
+            text = text.replace(r"\fp ", r"</p><p>")
         else:
-            text = text.replace('\uFDD2', '').replace('\uFDD3', '')
+            text = text.replace("\uFDD2", "").replace("\uFDD3", "")
 
         # study bible index categories
-        if r'\cat ' in text:
-            text = text.replace(r'\cat ', r'<index index="category" level1="')
-            text = text.replace(r'\cat*', r'" />')
+        if r"\cat " in text:
+            text = text.replace(r"\cat ", r'<index index="category" level1="')
+            text = text.replace(r"\cat*", r'" />')
 
         # return our processed text
         return text
 
     def specialfeatures(text):
         """Process special features."""
+
         def simplerepl(match):
             """Simple regex replacement helper function."""
-            matchtag = match.group('tag')
+            matchtag = match.group("tag")
             tag = FEATURETAGS[matchtag]
-            rawosis = match.group('osis')
+            rawosis = match.group("osis")
             attributetext = None
 
-            if '|' in rawosis:
+            if "|" in rawosis:
                 osis, attributetext, attributes, isvalid = parseattributes(
-                    matchtag, rawosis)
+                    matchtag, rawosis
+                )
             else:
                 osis, attributetext, attributes, isvalid = (
-                    rawosis, None, dict(), True)
+                    rawosis,
+                    None,
+                    dict(),
+                    True,
+                )
             osis2 = osis
 
             # handle w tag attributes
             tag2 = None
-            if matchtag in [r'\w', r'\+w']:
-                if 'lemma' in attributes.keys():
-                    osis2 = attributes['lemma']
-                if 'strong' in attributes.keys():
+            if matchtag in [r"\w", r"\+w"]:
+                if "lemma" in attributes.keys():
+                    osis2 = attributes["lemma"]
+                if "strong" in attributes.keys():
                     tag2 = STRONGSTAG
-                    tmp = " ".join(["strong:{}".format(_.strip())
-                                    for _ in attributes['strong'].split(",")])
+                    tmp = " ".join(
+                        [
+                            "strong:{}".format(_.strip())
+                            for _ in attributes["strong"].split(",")
+                        ]
+                    )
                     strong1 = 'lemma="{}"'.format(tmp)
-                    strong2 = ''
-                if 'x-morph' in attributes.keys():
+                    strong2 = ""
+                if "x-morph" in attributes.keys():
                     if tag == STRONGSTAG:
-                        strong2 = ' morph="{}"'.format(attributes['x-morph'])
+                        strong2 = ' morph="{}"'.format(attributes["x-morph"])
 
             # TODO: improve processing of tag attributes
 
-            if tag[0] == '' and tag2 is None:
+            if tag[0] == "" and tag2 is None:
                 # limited filtering of index entry contents...
                 if '<seg type="x-nested"><transChange type="added">' in osis2:
                     osis2 = osis2.replace(
-                        '<seg type="x-nested"><transChange type="added">',
-                        '')
-                    osis2 = osis2.replace('</transChange></seg>', '')
-                outtext = '{}{}'.format(
-                    osis,
-                    tag[1].format(osis2))
+                        '<seg type="x-nested"><transChange type="added">', ""
+                    )
+                    osis2 = osis2.replace("</transChange></seg>", "")
+                outtext = "{}{}".format(osis, tag[1].format(osis2))
             elif tag2 is not None:
                 # process strongs
-                outtext = '{}{}{}'.format(
-                    tag2[0].format(strong1, strong2),
-                    osis,
-                    tag2[1])
+                outtext = "{}{}{}".format(
+                    tag2[0].format(strong1, strong2), osis, tag2[1]
+                )
             else:
-                outtext = '{}{}{}'.format(
-                    tag[0],
-                    osis,
-                    tag[1])
+                outtext = "{}{}{}".format(tag[0], osis, tag[1])
 
             if attributetext is not None:
                 # problems can occur when strongs numbers are present...
                 # this avoids those problems.
-                if matchtag not in [r'\w', r'\+w']:
+                if matchtag not in [r"\w", r"\+w"]:
                     outtext = "{}{}".format(
                         outtext,
-                        '<!-- USFM Attributes: {} -->'.format(attributetext))
+                        "<!-- USFM Attributes: {} -->".format(attributetext),
+                    )
 
             return outtext
+
         text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
 
-        if r'\fig' in text:
-            text = text.replace(r'\fig ', '\n\\fig ')
-            text = text.replace(r'\fig*', '\\fig*\n')
-            tlines = text.split('\n')
+        if r"\fig" in text:
+            text = text.replace(r"\fig ", "\n\\fig ")
+            text = text.replace(r"\fig*", "\\fig*\n")
+            tlines = text.split("\n")
             for i in range(len(tlines)):
-                if tlines[i].startswith(r'\fig '):
+                if tlines[i].startswith(r"\fig "):
                     # old style \fig handling
                     # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
-                    if len(tlines[i][5:-5].split('|')) > 2:
-                        fig = tlines[i][5:-5].split('|')
-                        figref = ''
+                    if len(tlines[i][5:-5].split("|")) > 2:
+                        fig = tlines[i][5:-5].split("|")
+                        figref = ""
                         if len(fig[0]) > 0:
-                            fig[0] = '<!-- fig DESC - {} -->\n'.format(fig[0])
+                            fig[0] = "<!-- fig DESC - {} -->\n".format(fig[0])
                         if len(fig[1]) > 0:
                             fig[1] = ' src="{}"'.format(fig[1])
                         if len(fig[2]) > 0:
                             fig[2] = ' size="{}"'.format(fig[2])
                         if len(fig[3]) > 0:
-                            fig[3] = '<!-- fig LOC - {} -->\n'.format(fig[3])
+                            fig[3] = "<!-- fig LOC - {} -->\n".format(fig[3])
                         if len(fig[4]) > 0:
                             fig[4] = ' rights="{}"'.format(fig[4])
                         if len(fig[5]) > 0:
-                            fig[5] = '<caption>{}</caption>\n'.format(fig[5])
+                            fig[5] = "<caption>{}</caption>\n".format(fig[5])
                         # this is likely going to be very broken without
                         # further processing of the references.
                         if len(fig[6]) > 0:
-                            figref = '<reference {}>{}</reference>\n'.format(
-                                'type="annotateRef"', fig[6])
+                            figref = "<reference {}>{}</reference>\n".format(
+                                'type="annotateRef"', fig[6]
+                            )
                             fig[6] = ' annotateRef="{}"'.format(fig[6])
 
                     # new style \fig handling
                     else:
-                        figattr = parseattributes(r'\fig', tlines[i][5:-5])
+                        figattr = parseattributes(r"\fig", tlines[i][5:-5])
                         fig = []
                         figparts = {
-                            'alt': '<!-- fig ALT - {} -->\n',
-                            'src': ' src="{}"',
-                            'size': ' size="{}"',
-                            'loc': '<!-- fig LOC - {} -->\n',
-                            'copy': ' rights="{}"'
+                            "alt": "<!-- fig ALT - {} -->\n",
+                            "src": ' src="{}"',
+                            "size": ' size="{}"',
+                            "loc": "<!-- fig LOC - {} -->\n",
+                            "copy": ' rights="{}"',
                         }
-                        for _ in ['alt', 'src', 'size', 'loc', 'copy']:
+                        for _ in ["alt", "src", "size", "loc", "copy"]:
                             if _ in figattr[2]:
-                                fig.append(figparts[_].format(
-                                    figattr[2][_]))
+                                fig.append(figparts[_].format(figattr[2][_]))
                             else:
-                                fig.append('')
+                                fig.append("")
                             # caption absent in new style fig attributes
-                            fig.append('')
+                            fig.append("")
                             # this is likely going to be very broken without
                             # further processing of the references.
-                            if 'ref' in figattr[2]:
-                                figref = '{}{}{}\n'.format(
+                            if "ref" in figattr[2]:
+                                figref = "{}{}{}\n".format(
                                     '<reference type="annotateRef">',
-                                    figattr[2]['ref'],
-                                    '</reference>\n')
-                                fig.append(' annotateRef="{}"'.format(
-                                    figattr[2]['ref']))
+                                    figattr[2]["ref"],
+                                    "</reference>\n",
+                                )
+                                fig.append(
+                                    ' annotateRef="{}"'.format(
+                                        figattr[2]["ref"]
+                                    )
+                                )
                             else:
-                                figref = ''
-                                fig.append('')
+                                figref = ""
+                                fig.append("")
                     # build our osis figure tag
-                    tlines[i] = ''.join([fig[0], fig[3], '<figure', fig[1],
-                                         fig[2], fig[4], fig[6], '>', '\n',
-                                         figref, fig[5], '</figure>'])
+                    tlines[i] = "".join(
+                        [
+                            fig[0],
+                            fig[3],
+                            "<figure",
+                            fig[1],
+                            fig[2],
+                            fig[4],
+                            fig[6],
+                            ">\n",
+                            figref,
+                            fig[5],
+                            "</figure>",
+                        ]
+                    )
 
-            text = ''.join(tlines)
+            text = "".join(tlines)
 
         # Process usfm milestone quotation tags... up to 5 levels.
-        for i in [r'\qt-', r'\qt1-', r'\qt2-', r'\qt3-', r'\qt4-', r'\qt5-']:
+        for i in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
             if i in text:
-                for i in [r'\qt-', r'\qt1-', r'\qt2-',
-                          r'\qt3-' r'\qt4-', r'\qt5-']:
+                for i in [
+                    r"\qt-",
+                    r"\qt1-",
+                    r"\qt2-",
+                    r"\qt3-",
+                    r"\qt4-",
+                    r"\qt5-",
+                ]:
                     if i in text:
                         text = text.replace(i, "\n{}".format(i))
-                text = text.replace(r'\*', '\\*\n')
-                tlines = text.split('\n')
+                text = text.replace(r"\*", "\\*\n")
+                tlines = text.split("\n")
 
                 for i in range(len(tlines)):
                     # make sure we're processing milestone \qt tags
-                    if tlines[i].endswith(r'\*'):
-                        if tlines[i].startswith(r'\qt-') or \
-                           tlines[i].startswith(r'\qt1-') or \
-                           tlines[i].startswith(r'\qt2-') or \
-                           tlines[i].startswith(r'\qt3-') or \
-                           tlines[i].startswith(r'\qt4-') or \
-                           tlines[i].startswith(r'\qt5-'):
+                    if tlines[i].endswith(r"\*"):
+                        if (
+                            tlines[i].startswith(r"\qt-")
+                            or tlines[i].startswith(r"\qt1-")
+                            or tlines[i].startswith(r"\qt2-")
+                            or tlines[i].startswith(r"\qt3-")
+                            or tlines[i].startswith(r"\qt4-")
+                            or tlines[i].startswith(r"\qt5-")
+                        ):
                             # replace with milestone osis tags
-                            newline = ''
-                            tlines[i] = tlines[i].strip().replace(r'\*', '')
-                            tag, _, qttext = tlines[i].partition(' ')
+                            newline = ""
+                            tlines[i] = tlines[i].strip().replace(r"\*", "")
+                            tag, _, qttext = tlines[i].partition(" ")
                             # milestone start tag
-                            if tag.endswith(r'-s'):
-                                _, attributetext, attributes, isvalid = \
-                                    parseattributes(r'\qt-s', qttext)
-                                newline = r'<q'
-                                if 'id' in attributes:
+                            if tag.endswith(r"-s"):
+                                _, attributetext, attributes, isvalid = parseattributes(
+                                    r"\qt-s", qttext
+                                )
+                                newline = r"<q"
+                                if "id" in attributes:
                                     newline = "{}{}".format(
                                         newline,
-                                        r' sID="{}"'.format(attributes['id']))
-                                if 'who' in attributes:
+                                        r' sID="{}"'.format(attributes["id"]),
+                                    )
+                                if "who" in attributes:
                                     newline = "{}{}".format(
                                         newline,
-                                        r' who="{}"'.format(
-                                            attributes['who']))
-                                qlevel = '1'
-                                if tag[3] in ['2', '3', '4', '5']:
+                                        r' who="{}"'.format(attributes["who"]),
+                                    )
+                                qlevel = "1"
+                                if tag[3] in ["2", "3", "4", "5"]:
                                     qlevel = tag[3]
                                 newline = "{}{}{}".format(
                                     newline,
                                     ' level="{}"'.format(qlevel),
-                                    r' />')
+                                    r" />",
+                                )
                             # milestone end tag
-                            elif tag.endswith(r'-e'):
-                                _, attributetext, attributes, isvalid = \
-                                    parseattributes(r'\qt-e', qttext)
-                                newline = r'<q'
-                                if 'id' in attributes:
+                            elif tag.endswith(r"-e"):
+                                _, attributetext, attributes, isvalid = parseattributes(
+                                    r"\qt-e", qttext
+                                )
+                                newline = r"<q"
+                                if "id" in attributes:
                                     newline = "{}{}".format(
                                         newline,
-                                        r' eID="{}"'.format(attributes['id']))
-                                qlevel = '1'
-                                if tag[3] in ['2', '3', '4', '5']:
+                                        r' eID="{}"'.format(attributes["id"]),
+                                    )
+                                qlevel = "1"
+                                if tag[3] in ["2", "3", "4", "5"]:
                                     qlevel = tag[3]
 
                                 # I don't know if I need the level attribute
@@ -1938,75 +2320,83 @@ def convert_to_osis(text, bookid='TEST'):
                                 newline = "{}{}{}".format(
                                     newline,
                                     ' level="{}"'.format(qlevel),
-                                    r' />')
+                                    r" />",
+                                )
                             # replace line with osis milestone tag
-                            if newline != '':
+                            if newline != "":
                                 tlines[i] = newline
                 # rejoin lines
-                text = ''.join(tlines)
+                text = "".join(tlines)
                 break
         return text
 
     def ztags(text):
         """Process z tags that have both a start and end marker."""
+
         def simplerepl(match):
             """Simple regex replacement helper function."""
             return '<seg type="x-usfm-z{}">{}</seg>'.format(
-                match.group('tag').replace(r'\z', ''),
-                match.group('osis'))
+                match.group("tag").replace(r"\z", ""), match.group("osis")
+            )
+
         text = ZTAGSRE.sub(simplerepl, text, 0)
         # milestone z tags… this may need more work…
-        if r'\z' in text:
-            words = text.split(' ')
+        if r"\z" in text:
+            words = text.split(" ")
             for i in enumerate(words):
-                if i[1].startswith(r'\z'):
+                if i[1].startswith(r"\z"):
                     words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
-                        i[1].replace(r'\z', ''))
-            text = ' '.join(words)
+                        i[1].replace(r"\z", "")
+                    )
+            text = " ".join(words)
         return text
 
     def chapverse(lines):
         """Process chapter and verse tags."""
+
         def verserange(text):
             """Generate list for verse ranges."""
-            low, high = text.split('-')
+            low, high = text.split("-")
             if low.isdigit() and high.isdigit():
                 return [str(i) for i in range(int(low), int(high) + 1)]
             else:
                 return -1
 
         # chapter and verse numbers
-        chap = ''
-        verse = ''
-        caid = ''
+        chap = ""
+        verse = ""
+        caid = ""
         haschap = False
         hasverse = False
         hascloser = False
-        cvlist = [i for i in range(len(lines)) if
-                  lines[i].startswith(r'\c ') or
-                  lines[i].startswith(r'\v ') or
-                  lines[i].startswith(r'<closer')]
+        cvlist = [
+            i
+            for i in range(len(lines))
+            if lines[i].startswith(r"\c ")
+            or lines[i].startswith(r"\v ")
+            or lines[i].startswith(r"<closer")
+        ]
         for i in cvlist:
             # ## chapter numbers
-            if lines[i].startswith(r'\c '):
+            if lines[i].startswith(r"\c "):
                 haschap = True
-                tmp = list(lines[i].split(' ', 2))
+                tmp = list(lines[i].split(" ", 2))
                 if len(tmp) < 3:
-                    tmp.append('')
+                    tmp.append("")
                 cnum, cnum2 = tmp[1], tmp[1]
 
                 # nb fix...
-                if '<!--' in cnum and 'nb -->' in tmp[2]:
-                    cnum = cnum.replace('<!--', '').strip()
-                    tmp[2] = '<!-- {}'.format(tmp[2])
+                if "<!--" in cnum and "nb -->" in tmp[2]:
+                    cnum = cnum.replace("<!--", "").strip()
+                    tmp[2] = "<!-- {}".format(tmp[2])
 
                 # get printed chapter character with chapter from \cp tag
-                if r'\cp ' in lines[i]:
-                    cnum2 = CPRE.search(tmp[2]).group('num')
-                    tmp[2] = CPRE.sub('', tmp[2])
+                if r"\cp " in lines[i]:
+                    cnum2 = CPRE.search(tmp[2]).group("num")
+                    tmp[2] = CPRE.sub("", tmp[2])
                 # get alternate chapter number from \ca tags
                 # this will be added to the chapter osisID
-                caid = ''
+                caid = ""
                 # Commented out since The SWORD Project can't handle this...
                 # Handled with specialtext now.
                 # if r'\ca ' in lines[i]:
@@ -2021,54 +2411,58 @@ def convert_to_osis(text, bookid='TEST'):
                 #     caid = ''
 
                 # generate chapter number
-                if chap == '':
-                    lines[i] = '<chapter {} {} {} />{}'.format(
+                if chap == "":
+                    lines[i] = "<chapter {} {} {} />{}".format(
                         'sID="{}.{}"'.format(bookid, cnum),
                         'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                         'n="{}"'.format(cnum2),
-                        tmp[2])
+                        tmp[2],
+                    )
                     chap = cnum
                 else:
                     if not hascloser:
-                        lines[i] = '{}\n{}\n<chapter {} {} {} />{}'.format(
+                        lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
                             '<verse eID="{}.{}.{}" />'.format(
-                                bookid, chap, verse),
+                                bookid, chap, verse
+                            ),
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum2),
-                            tmp[2])
+                            tmp[2],
+                        )
                     else:
-                        lines[i] = '{}\n<chapter {} {} {} />{}'.format(
+                        lines[i] = "{}\n<chapter {} {} {} />{}".format(
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
                             'n="{}"'.format(cnum2),
-                            tmp[2])
+                            tmp[2],
+                        )
 
                     chap = cnum
-                    verse = ''
+                    verse = ""
 
             # ## verse numbers
             # BUG?: \va tags won't be handled unless lines start with a \v tag
-            elif lines[i].startswith(r'\v '):
+            elif lines[i].startswith(r"\v "):
 
                 # test for books with only one chapter
                 if bookid in ONECHAP and haschap is False:
-                    chap = '1'
+                    chap = "1"
 
                 hasverse = True
-                tmp = list(lines[i].split(' ', 2))
+                tmp = list(lines[i].split(" ", 2))
                 if len(tmp) < 3:
-                    tmp.append('')
+                    tmp.append("")
                 vnum, vnum2 = tmp[1], tmp[1]
 
                 # replace verse num with verse from \vp tag
-                if r'\vp ' in lines[i]:
-                    vnum2 = VPRE.search(tmp[2]).group('num')
-                    tmp[2] = VPRE.sub('', tmp[2])
+                if r"\vp " in lines[i]:
+                    vnum2 = VPRE.search(tmp[2]).group("num")
+                    tmp[2] = VPRE.sub("", tmp[2])
                 # add va to osis id.
-                vaid = ''
+                vaid = ""
                 # Commented out since The SWORD Project can't handle this...
                 # Handled with specialtext now.
                 # if r'\va ' in lines[i]:
@@ -2083,64 +2477,66 @@ def convert_to_osis(text, bookid='TEST'):
                 #     vaid = ''
 
                 # handle verse ranges
-                if '-' in vnum:
+                if "-" in vnum:
                     try:
                         vlist = verserange(vnum)
                         for j in range(len(vlist)):
-                            vlist[j] = '{}.{}.{}'.format(bookid,
-                                                         chap,
-                                                         vlist[j])
-                        osisid = 'osisID="{}{}"'.format(' '.join(vlist), vaid)
+                            vlist[j] = "{}.{}.{}".format(
+                                bookid, chap, vlist[j]
+                            )
+                        osisid = 'osisID="{}{}"'.format(" ".join(vlist), vaid)
                     except TypeError:
-                        vnum = vnum.strip('-')
-                        osisid = 'osisID="{}.{}.{}{}"'.format(bookid,
-                                                              chap,
-                                                              vnum,
-                                                              vaid)
+                        vnum = vnum.strip("-")
+                        osisid = 'osisID="{}.{}.{}{}"'.format(
+                            bookid, chap, vnum, vaid
+                        )
                 else:
-                    osisid = 'osisID="{}.{}.{}{}"'.format(bookid,
-                                                          chap,
-                                                          vnum,
-                                                          vaid)
+                    osisid = 'osisID="{}.{}.{}{}"'.format(
+                        bookid, chap, vnum, vaid
+                    )
 
                 # generate verse tag
-                if verse == '':
+                if verse == "":
                     # handle single chapter books without chapter marker
-                    if chap == '1' and haschap is False:
-                        chapmark = '<chapter {} {} {} />\n'.format(
+                    if chap == "1" and haschap is False:
+                        chapmark = "<chapter {} {} {} />\n".format(
                             'sID="{}.1"'.format(bookid),
                             'osisID="{}.1{}"'.format(bookid, caid),
-                            'n="1"')
+                            'n="1"',
+                        )
                         haschap = True
                     else:
-                        chapmark = ''
+                        chapmark = ""
 
-                    lines[i] = '{}<verse {} {} {} />{}'.format(
+                    lines[i] = "{}<verse {} {} {} />{}".format(
                         chapmark,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
                         'n="{}"'.format(vnum2),
-                        tmp[2])
+                        tmp[2],
+                    )
                     verse = vnum
                 else:
-                    lines[i] = '<verse {} />\n<verse {} {} {} />{}'.format(
+                    lines[i] = "<verse {} />\n<verse {} {} {} />{}".format(
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
                         'n="{}"'.format(vnum2),
-                        tmp[2])
+                        tmp[2],
+                    )
                     verse = vnum
 
-            elif lines[i].startswith(r'<closer'):
-                lines[i] = '<verse {} />\n{}'.format(
-                    'eID="{}.{}.{}"'.format(bookid, chap, verse),
-                    tmp[2])
+            elif lines[i].startswith(r"<closer"):
+                lines[i] = "<verse {} />\n{}".format(
+                    'eID="{}.{}.{}"'.format(bookid, chap, verse), tmp[2]
+                )
                 verse = vnum
                 hascloser = True
 
         if hasverse and not hascloser:
-            lines.append('<verse eID="{}.{}.{}" />'.format(
-                bookid, chap, verse))
+            lines.append(
+                '<verse eID="{}.{}.{}" />'.format(bookid, chap, verse)
+            )
         if haschap:
             lines.append('<chapter eID="{}.{}" />'.format(bookid, chap))
 
@@ -2155,30 +2551,31 @@ def convert_to_osis(text, bookid='TEST'):
 
         """
         # prepare for processing by joining lines together
-        text = u'\ufdd1'.join(lines)
+        text = "\ufdd1".join(lines)
 
         # split words of jesus from the rest of the text.
-        text = text.replace('\\wj ', '\n\\wj ')
-        text = text.replace('\\wj*', '\\wj*\n ')
-        lines = text.split('\n')
+        text = text.replace("\\wj ", "\n\\wj ")
+        text = text.replace("\\wj*", "\\wj*\n ")
+        lines = text.split("\n")
 
         # process words of Jesus.
         wjcount = 1
         for i in range(len(lines)):
-            if lines[i].startswith(r'\wj '):
+            if lines[i].startswith(r"\wj "):
                 wjmarker = '"{}.wj{}"'.format(bookid, wjcount)
-                lines[i] = lines[i].replace(r'\wj ', '')
-                lines[i] = lines[i].replace(r'\wj*', '')
+                lines[i] = lines[i].replace(r"\wj ", "")
+                lines[i] = lines[i].replace(r"\wj*", "")
 
-                lines[i] = '{}{}{}'.format(
+                lines[i] = "{}{}{}".format(
                     '<q who="Jesus" marker="" sID={} />'.format(wjmarker),
                     lines[i],
-                    '<q eID={} />'.format(wjmarker))
+                    "<q eID={} />".format(wjmarker),
+                )
                 wjcount += 1
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
-        return text.split(u'\ufdd1')
+        return text.split("\ufdd1")
 
     def processwj2(lines):
         """
@@ -2192,66 +2589,70 @@ def convert_to_osis(text, bookid='TEST'):
         wjstarttags = set()
         wjendtags = set()
         for i in TITLETAGS:
-            if TITLETAGS[i][0] != '' and TITLETAGS[i][1] != '':
+            if TITLETAGS[i][0] != "" and TITLETAGS[i][1] != "":
                 wjstarttags.add(TITLETAGS[i][0].strip())
                 wjendtags.add(TITLETAGS[i][1].strip())
         for i in PARTAGS:
-            if PARTAGS[i][0] != '' and PARTAGS[i][1] != '':
+            if PARTAGS[i][0] != "" and PARTAGS[i][1] != "":
                 wjstarttags.add(PARTAGS[i][0].strip())
                 wjendtags.add(PARTAGS[i][1].strip())
 
         # prepare for processing by joining lines together
-        text = u'\ufdd1'.join(lines)
+        text = "\ufdd1".join(lines)
 
         # split words of jesus from the rest of the text.
-        text = text.replace('\\wj ', '\n\\wj ')
-        text = text.replace('\\wj*', '\\wj*\n ')
-        lines = text.split('\n')
+        text = text.replace("\\wj ", "\n\\wj ")
+        text = text.replace("\\wj*", "\\wj*\n ")
+        lines = text.split("\n")
 
         # process words of Jesus.
         for i in range(len(lines)):
-            if lines[i].startswith(r'\wj '):
+            if lines[i].startswith(r"\wj "):
                 # Add initial start and end q tags
-                lines[i] = lines[i].replace(r'\wj ',
-                                            '<q who="Jesus" marker="">')
-                lines[i] = lines[i].replace(r'\wj*',
-                                            '</q>')
+                lines[i] = lines[i].replace(
+                    r"\wj ", '<q who="Jesus" marker="">'
+                )
+                lines[i] = lines[i].replace(r"\wj*", "</q>")
 
                 # add additional closing and opening q tags
                 for j in wjstarttags:
                     lines[i] = lines[i].replace(
-                        j, '{}<q who="Jesus" marker="">'.format(j))
+                        j, '{}<q who="Jesus" marker="">'.format(j)
+                    )
                 for j in wjendtags:
-                    lines[i] = lines[i].replace(
-                        j, '</q>{}'.format(j))
+                    lines[i] = lines[i].replace(j, "</q>{}".format(j))
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
-        return text.split(u'\ufdd1')
+        return text.split("\ufdd1")
 
     def postprocess(lines):
         """Attempt to fix some formatting issues."""
         # resplit lines for post processing,
         # removing leading and trailing whitespace, and b comments
-        lines = [i.strip() for i in '\n'.join(lines).split('\n') if
-                 i.strip() != '' and i.strip() != '<!-- b -->']
+        lines = [
+            i.strip()
+            for i in "\n".join(lines).split("\n")
+            if i.strip() != "" and i.strip() != "<!-- b -->"
+        ]
 
         # fix SIDEBAR
         for i in range(len(lines)):
-            if 'SIDEBAR' in lines[i]:
-                lines[i] = lines[i].replace('<SIDEBAR>',
-                                            '<div type="x-sidebar">')
-                lines[i] = lines[i].replace('</SIDEBAR>',
-                                            '</div>')
+            if "SIDEBAR" in lines[i]:
+                lines[i] = lines[i].replace(
+                    "<SIDEBAR>", '<div type="x-sidebar">'
+                )
+                lines[i] = lines[i].replace("</SIDEBAR>", "</div>")
 
         # Convert unhandled vp tags, to milestones...
         for i in range(len(lines)):
-            while r'\vp ' in lines[i]:
-                vpnum = VPRE.search(lines[i]).group('num')
+            while r"\vp " in lines[i]:
+                vpnum = VPRE.search(lines[i]).group("num")
                 lines[i] = VPRE.sub(
                     '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
                     lines[i],
-                    1)
+                    1,
+                )
 
         # adjust some tags for postprocessing purposes.
         i = len(lines)
@@ -2266,174 +2667,232 @@ def convert_to_osis(text, bookid='TEST'):
                 lines.insert(i + 1, '<lb type="x-p" />')
                 lines[i] = lines[i].rpartition('<lb type="x-p" />')[0].strip()
             # move lg to it's own line
-            if lines[i].endswith('<lg>'):
-                lines.insert(i + 1, '<lg>')
-                lines[i] = lines[i].rpartition('<lg>')[0].strip()
+            if lines[i].endswith("<lg>"):
+                lines.insert(i + 1, "<lg>")
+                lines[i] = lines[i].rpartition("<lg>")[0].strip()
 
         # swap lb and lg end tag when lg end tag follows lb.
         i = len(lines)
         while i > 0:
             i -= 1
-            if lines[i] == '<lb type="x-p" />' and lines[i + 1] == '</lg>':
+            if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
 
         # adjust placement of some verse end tags...
-        for j in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            if lines[j - 1].strip() in OSISL or\
-               lines[j - 1].strip() in OSISITEM:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if (
+                lines[j - 1].strip() in OSISL
+                or lines[j - 1].strip() in OSISITEM
+            ):
                 lines.insert(j - 1, lines.pop(j))
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            if lines[i - 1] == '<row><cell>' and \
-               lines[i - 2] == '<table>':
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
                 lines.insert(i - 2, lines.pop(i))
 
-        for i in ['<p', '<lb ', '</p>', '<lg', '<lb ', '</lg>',
-                  '<list', '<lb', '</list>', '<title', '<div', '</div>']:
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<verse eID')]:
+        for i in [
+            "<p",
+            "<lb ",
+            "</p>",
+            "<lg",
+            "<lb ",
+            "</lg>",
+            "<list",
+            "<lb",
+            "</list>",
+            "<title",
+            "<div",
+            "</div>",
+        ]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<verse eID")
+            ]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
 
-        for i in ['<lb ', '</p>', '</lg>', '<lb', '</list>',
-                  '<lb', '</p>', '</div>']:
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<verse eID')]:
+        for i in [
+            "<lb ",
+            "</p>",
+            "</lg>",
+            "<lb",
+            "</list>",
+            "<lb",
+            "</p>",
+            "</div>",
+        ]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<verse eID")
+            ]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
 
-        for i in ['</l>', '</item>']:
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<verse eID')]:
+        for i in ["</l>", "</item>"]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<verse eID")
+            ]:
                 if lines[j - 1].endswith(i):
-                    tmp = lines[j - 1].rpartition('<')
-                    lines[j - 1] = '{}{}{}{}'.format(tmp[0],
-                                                     lines[j],
-                                                     tmp[1],
-                                                     tmp[2])
-                    lines[j] = ''
-        lines = [_ for _ in lines if _ != '']
+                    tmp = lines[j - 1].rpartition("<")
+                    lines[j - 1] = "{}{}{}{}".format(
+                        tmp[0], lines[j], tmp[1], tmp[2]
+                    )
+                    lines[j] = ""
+        lines = [_ for _ in lines if _ != ""]
 
         # special fix for verse end markers following "acrostic" titles...
         # because I can't figure out why my other fixes aren't working.
-        for i in ['<title type="acrostic"', '</lg']:
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<verse eID')]:
+        for i in ['<title type="acrostic"', "</lg"]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<verse eID")
+            ]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
-        for j in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<verse eID')]:
-            if lines[j - 1].endswith('</l>'):
-                lines[j - 1] = '{}{}</l>'.format(
-                    lines[j - 1].rpartition('<')[0],
-                    lines[j])
-                lines[j] = ''
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].endswith("</l>"):
+                lines[j - 1] = "{}{}</l>".format(
+                    lines[j - 1].rpartition("<")[0], lines[j]
+                )
+                lines[j] = ""
 
         # handling of verse end tags in relation to titles...
-        for i in ['<!-- ', '</p>']:
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<verse eID')]:
+        for i in ["<!-- ", "</p>"]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<verse eID")
+            ]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
 
         # adjust placement of verse tags in relation
         # to d titles that contain verses.
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<!-- d -->')]:
-            if lines[i + 1].startswith('<verse sID') and \
-               lines[i + 1].endswith('</title>') and \
-               lines[i + 2].startswith('<verse eID'):
-                tmp1 = lines[i + 1].rpartition('<')
-                lines[i] = '{}{}{}</title>'.format(lines[i],
-                                                   tmp1[0],
-                                                   lines[i + 2])
-                lines[i + 1] = ''
-                lines[i + 2] = ''
-        lines = [_ for _ in lines if _ != '']
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")
+        ]:
+            if (
+                lines[i + 1].startswith("<verse sID")
+                and lines[i + 1].endswith("</title>")
+                and lines[i + 2].startswith("<verse eID")
+            ):
+                tmp1 = lines[i + 1].rpartition("<")
+                lines[i] = "{}{}{}</title>".format(
+                    lines[i], tmp1[0], lines[i + 2]
+                )
+                lines[i + 1] = ""
+                lines[i + 2] = ""
+        lines = [_ for _ in lines if _ != ""]
 
         # -- # -- # -- #
 
         # adjust placement of some chapter end tags
         for i in range(3):
-            for j in [_ for _ in range(len(lines)) if
-                      lines[_].startswith('<chapter eID')]:
+            for j in [
+                _
+                for _ in range(len(lines))
+                if lines[_].startswith("<chapter eID")
+            ]:
                 try:
-                    if '<title' in lines[j - 1]:
+                    if "<title" in lines[j - 1]:
                         lines.insert(j - 1, lines.pop(j))
-                    elif 'chapterLabel' in lines[j - 1]:
+                    elif "chapterLabel" in lines[j - 1]:
                         lines.insert(j - 1, lines.pop(j))
-                    elif lines[j - 1] == '</p>':
+                    elif lines[j - 1] == "</p>":
                         lines.insert(j - 1, lines.pop(j))
                 except IndexError:
                     pass
         # adjust placement of some chapter start tags
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter sID')]:
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+        ]:
             try:
-                if lines[i + 1] == '</p>' and lines[i + 2].startswith('<p'):
+                if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
                     lines.insert(i + 2, lines.pop(i))
-                elif lines[i + 1] == '</p>' \
-                        and 'chapterLabel' in lines[i + 2] \
-                        and lines[i + 3].startswith('<p'):
+                elif (
+                    lines[i + 1] == "</p>"
+                    and "chapterLabel" in lines[i + 2]
+                    and lines[i + 3].startswith("<p")
+                ):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter sID')]:
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+        ]:
             try:
-                if lines[i + 1] == '</p>' and \
-                   lines[i + 2] == '</div>' and \
-                   lines[i + 3].startswith('<div'):
+                if (
+                    lines[i + 1] == "</p>"
+                    and lines[i + 2] == "</div>"
+                    and lines[i + 3].startswith("<div")
+                ):
                     lines.insert(i + 3, lines.pop(i))
             except IndexError:
                 pass
 
         # some chapter start tags have had div's or p's appended to the end...
         # fix that.
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter sID')]:
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+        ]:
             try:
-                if re.match('<chapter sID[^>]+> ?</div>', lines[i]) and \
-                   lines[i + 1].startswith('<div'):
-                    lines.insert(i + 2, lines[i].replace('</div>', ''))
-                    lines[i] = '</div>'
-                elif re.match('<chapter sID[^>]+> ?<div', lines[i]):
-                    tmp = lines[i].replace('<div', '\n<div').split('\n', 1)
+                if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
+                    i + 1
+                ].startswith("<div"):
+                    lines.insert(i + 2, lines[i].replace("</div>", ""))
+                    lines[i] = "</div>"
+                elif re.match("<chapter sID[^>]+> ?<div", lines[i]):
+                    tmp = lines[i].replace("<div", "\n<div").split("\n", 1)
                     lines[i] = tmp[0]
                     lines.insert(i + 1, tmp[1])
-                elif re.match('<chapter sID[^>]+> ?<p>', lines[i]):
-                    lines.insert(i + 1, lines[i].replace('<p>', ''))
-                    lines[i] = '<p>'
+                elif re.match("<chapter sID[^>]+> ?<p>", lines[i]):
+                    lines.insert(i + 1, lines[i].replace("<p>", ""))
+                    lines[i] = "<p>"
             except IndexError:
                 pass
-        lines = [_ for _ in lines if _ != '']
+        lines = [_ for _ in lines if _ != ""]
 
         # -- # -- # -- #
 
         # selah processing sometimes does weird things with l and lg tags
         # that needs to be fixed.
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter sID')]:
-            if lines[i].endswith('</l>') and \
-               lines[i + 1] == '</lg>' and \
-               lines[i - 1].startswith('<chapter eID') and \
-               lines[i - 2].startswith('<verse eID') and \
-               lines[i - 3].endswith('</l><l>'):
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+        ]:
+            if (
+                lines[i].endswith("</l>")
+                and lines[i + 1] == "</lg>"
+                and lines[i - 1].startswith("<chapter eID")
+                and lines[i - 2].startswith("<verse eID")
+                and lines[i - 3].endswith("</l><l>")
+            ):
                 lines[i - 3] = lines[i - 3][:-3]
-                lines[i - 2] = '{}{}'.format(lines[i - 2], '</lg>')
+                lines[i - 2] = "{}{}".format(lines[i - 2], "</lg>")
                 lines[i] = lines[i][:-4]
-                lines[i + 1] = ''
+                lines[i + 1] = ""
 
         # additional postprocessing for l and lg tags
-        for i in [_ for _ in range(len(lines)) if
-                  lines[_].startswith('<chapter sID')]:
-            if lines[i].endswith('</l>') and \
-               lines[i - 1].startswith('<chapter eID') and \
-               lines[i + 1] == '</lg>':
-                lines[i - 2] = '{}</l></lg>'.format(lines[i - 2])
+        for i in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+        ]:
+            if (
+                lines[i].endswith("</l>")
+                and lines[i - 1].startswith("<chapter eID")
+                and lines[i + 1] == "</lg>"
+            ):
+                lines[i - 2] = "{}</l></lg>".format(lines[i - 2])
                 lines[i] = lines[i][:-4]
-                lines[i + 1] = ''
+                lines[i + 1] = ""
 
         # done postprocessing of lines
         return lines
@@ -2441,10 +2900,10 @@ def convert_to_osis(text, bookid='TEST'):
     # ---------------------------------------------------------------------- #
 
     # split text into lines for processing
-    lines = text.split('\n')
+    lines = text.split("\n")
 
     # mark introduction endings...
-    for i in [r'\ib', r'\ie', r'\il', r'\im', r'\io', r'\ip', r'\iq', r'\is', ]:
+    for i in [r"\ib", r"\ie", r"\il", r"\im", r"\io", r"\ip", r"\iq", r"\is"]:
         if i in text:
             lines = markintroend(lines)
             break
@@ -2452,7 +2911,7 @@ def convert_to_osis(text, bookid='TEST'):
     for i in range(len(lines)):
 
         # preprocessing and special spacing... if necessary
-        for j in ['&', '<', '>', '~', r'//', r'\pb']:
+        for j in ["&", "<", ">", "~", r"//", r"\pb"]:
             if j in lines[i]:
                 lines[i] = preprocess(lines[i])
                 break
@@ -2465,23 +2924,23 @@ def convert_to_osis(text, bookid='TEST'):
         lines[i] = specialtext(lines[i])
 
         # special features if present
-        for j in [r'\ndx', r'\pro', r'\w', r'\+w', r'\fig']:
+        for j in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig"]:
             if j in lines[i]:
                 lines[i] = specialfeatures(lines[i])
                 break
-        for j in [r'\qt-', r'\qt1-', r'\qt2-', r'\qt3-', r'\qt4-', r'\qt5-']:
+        for j in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
             if j in lines[i]:
                 lines[i] = specialfeatures(lines[i])
 
         # z tags if present
-        if r'\z' in lines[i]:
+        if r"\z" in lines[i]:
             lines[i] = ztags(lines[i])
 
         # paragraph style formatting.
         lines[i] = titlepar(lines[i])
 
     # process words of Jesus
-    if r'\wj' in text:
+    if r"\wj" in text:
         lines = processwj2(lines)
 
     # postprocessing of poetry, lists, tables, and sections
@@ -2489,16 +2948,16 @@ def convert_to_osis(text, bookid='TEST'):
     lines = fixgroupings(lines)
 
     # process chapter/verse markers
-    lines = [i.strip() for i in ' '.join(lines).split(u'\ufdd0')]
+    lines = [i.strip() for i in " ".join(lines).split("\ufdd0")]
     lines = chapverse(lines)
 
     # postprocessing to fix some issues that may be present
     lines = postprocess(lines)
 
-    descriptiontext = '\n'.join(description)
+    descriptiontext = "\n".join(description)
 
     # rejoin lines after processing
-    return ('\n'.join([i for i in lines if i != '']), descriptiontext)
+    return ("\n".join([i for i in lines if i != ""]), descriptiontext)
 
 
 # -------------------------------------------------------------------------- #
@@ -2510,7 +2969,7 @@ def doconvert(args):
 
     # convert cl lines to form that follows each chapter marker instead of
     # form that precedes first chapter.
-    if r'\cl ' in text:
+    if r"\cl " in text:
         text = convertcl(text)
 
     # decode and reflow our text
@@ -2519,15 +2978,14 @@ def doconvert(args):
     # get book id. use TEST if none present.
     bookid = getbookid(newtext)
     if bookid is not None:
-        if bookid.startswith('* '):
-            print('Book id naming issue - {}'.format(
-                bookid.replace('* ', '')))
+        if bookid.startswith("* "):
+            print("Book id naming issue - {}".format(bookid.replace("* ", "")))
     else:
-        bookid = 'TEST'
+        bookid = "TEST"
 
     # convert file to osis
     if verbose:
-        print('... Processing {} ...'.format(bookid))
+        print("... Processing {} ...".format(bookid))
     newtext, descriptiontext = convert_to_osis(newtext, bookid)
     return (bookid, descriptiontext, newtext)
 
@@ -2541,17 +2999,16 @@ def processfiles(args):
     files = []
 
     # get username from operating system
-    username = {
-        True: os.getenv("LOGNAME"),
-        False: os.getenv("USERNAME")
-    }[os.getenv("USERNAME") is None]
+    username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
+        os.getenv("USERNAME") is None
+    ]
 
     # read all files
     if args.v:
-        print('Reading files... ')
+        print("Reading files... ")
     for fname in args.file:
         # read our text files
-        with open(fname, 'rb') as ifile:
+        with open(fname, "rb") as ifile:
             text = ifile.read()
 
         # strip whitespace from beginning and end of file
@@ -2565,21 +3022,23 @@ def processfiles(args):
             else:
                 bookencoding = getencoding(text)
                 if bookencoding is not None:
-                    if bookencoding == '65001 - Unicode (UTF-8)':
-                        bookencoding = 'utf-8-sig'
+                    if bookencoding == "65001 - Unicode (UTF-8)":
+                        bookencoding = "utf-8-sig"
                     else:
                         bookencoding = codecs.lookup(bookencoding).name
                 else:
-                    bookencoding = 'utf-8-sig'
+                    bookencoding = "utf-8-sig"
             # use utf-8-sig in place of utf-8 encoding to eliminate errors that
             # may occur if a Byte Order Mark is present in the input file.
-            if bookencoding == 'utf-8':
-                bookencoding = 'utf-8-sig'
+            if bookencoding == "utf-8":
+                bookencoding = "utf-8-sig"
         except LookupError:
-            print('ERROR: Unknown encoding... aborting conversion.')
-            print(r'       \ide line for {} says --> {}'.format(
-                fname,
-                bookencoding))
+            print("ERROR: Unknown encoding... aborting conversion.")
+            print(
+                r"       \ide line for {} says --> {}".format(
+                    fname, bookencoding
+                )
+            )
             sys.exit()
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
@@ -2596,7 +3055,7 @@ def processfiles(args):
     filelist = [(_, args.v) for _ in files]
     results = []
     if args.v:
-        print('Processing files...')
+        print("Processing files...")
     if numprocesses == 1:
         results = [doconvert(_) for _ in filelist]
     else:
@@ -2614,142 +3073,154 @@ def processfiles(args):
     # store results
     for bookid, descriptiontext, newtext in results:
         # store our converted text for output
-        if bookid != 'TEST':
+        if bookid != "TEST":
             if bookid in NONCANONICAL:
-                books[bookid] = \
-                    '<div type="{}">\n{}\n</div>\n\n'.format(
-                        NONCANONICAL[bookid],
-                        newtext)
+                books[bookid] = '<div type="{}">\n{}\n</div>\n\n'.format(
+                    NONCANONICAL[bookid], newtext
+                )
             else:
-                books[bookid] = \
-                    '<div type="book" osisID="{}" {}>\n{}\n</div>\n\n'.format(
-                        bookid,
-                        'canonical="true"',
-                        newtext)
+                books[
+                    bookid
+                ] = '<div type="book" osisID="{}" {}>\n{}\n</div>\n\n'.format(
+                    bookid, 'canonical="true"', newtext
+                )
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
             if bookid in books.keys():
-                books[bookid] = '{}\n{}'.format(books[bookid], newtext)
-                descriptions[bookid] = '{}\n{}'.format(
-                    books[bookid], descriptiontext)
+                books[bookid] = "{}\n{}".format(books[bookid], newtext)
+                descriptions[bookid] = "{}\n{}".format(
+                    books[bookid], descriptiontext
+                )
             else:
                 books[bookid] = newtext
                 descriptions[bookid] = descriptiontext
-            if 'TEST' not in booklist:
-                booklist.append('TEST')
+            if "TEST" not in booklist:
+                booklist.append("TEST")
 
     # ## Get order for books...
-    if args.s == 'none':
-        tmp = '\n'.join([books[_] for _ in booklist])
+    if args.s == "none":
+        tmp = "\n".join([books[_] for _ in booklist])
         tmp2 = [descriptions[_] for _ in booklist]
-    elif args.s == 'canonical':
-        tmp = '\n'.join(
-            [books[_] for _ in CANONICALORDER if _ in books.keys()])
+    elif args.s == "canonical":
+        tmp = "\n".join(
+            [books[_] for _ in CANONICALORDER if _ in books.keys()]
+        )
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
     else:
-        with open('order-{}.txt'.format(args.s), 'r') as order:
+        with open("order-{}.txt".format(args.s), "r") as order:
             bookorder = order.read()
-            bookorder = [_ for _ in bookorder.split('\n') if
-                         _ != '' and not _.startswith('#')]
-        tmp = '\n'.join([books[_] for _ in bookorder if _ in books.keys()])
+            bookorder = [
+                _
+                for _ in bookorder.split("\n")
+                if _ != "" and not _.startswith("#")
+            ]
+        tmp = "\n".join([books[_] for _ in bookorder if _ in books.keys()])
         tmp2 = [descriptions[_] for _ in bookorder if _ in books.keys()]
     # check for strongs presence in osis
-    strongsheader = {
-        True: STRONGSWORK,
-        False: ''
-    }['<w ' in tmp]
+    strongsheader = {True: STRONGSWORK, False: ""}["<w " in tmp]
     # assemble osis doc in desired order
-    osisdoc = '{}{}{}\n'.format(
-        OSISHEADER.format(args.workid,
-                          args.l,
-                          username,
-                          datetime.datetime.now().strftime(
-                              "%Y.%m.%dT%H.%M.%S"),
-                          args.workid,
-                          args.workid,
-                          '\n'.join(tmp2),
-                          args.l,
-                          args.workid,
-                          strongsheader),
+    osisdoc = "{}{}{}\n".format(
+        OSISHEADER.format(
+            args.workid,
+            args.l,
+            username,
+            datetime.datetime.now().strftime("%Y.%m.%dT%H.%M.%S"),
+            args.workid,
+            args.workid,
+            "\n".join(tmp2),
+            args.l,
+            args.workid,
+            strongsheader,
+        ),
         tmp,
-        OSISFOOTER)
+        OSISFOOTER,
+    )
 
     # Print note about references not being processed.
-    print('NOTE: References have not been processed.')
+    print("NOTE: References have not been processed.")
     # print('      Use orefs to add osisRef attributes to references.')
 
     # apply NFC normalization to text unless explicitly disabled.
     if not args.n:
-        osisdoc = codecs.encode(unicodedata.normalize('NFC', osisdoc), 'utf-8')
+        osisdoc = codecs.encode(unicodedata.normalize("NFC", osisdoc), "utf-8")
     else:
-        osisdoc = codecs.encode(osisdoc, 'utf-8')
+        osisdoc = codecs.encode(osisdoc, "utf-8")
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
         # a test string allows output to still be generated
         # even when when validation fails.
-        testosis = SQUEEZE.sub(' ', osisdoc.decode('utf-8'))
+        testosis = SQUEEZE.sub(" ", osisdoc.decode("utf-8"))
 
         # validation is requested...
         if not args.x:
-            print('Validating osis xml... ')
+            print("Validating osis xml... ")
             osisschema = codecs.decode(
-                codecs.decode(codecs.decode(SCHEMA, 'base64'), 'bz2'), 'utf-8')
+                codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
+            )
             try:
                 vparser = et.XMLParser(
                     schema=et.XMLSchema(et.XML(osisschema)),
-                    remove_blank_text=True)
-                _ = et.fromstring(testosis.encode('utf-8'), vparser)
-                print('Validation passed!')
-                osisdoc = et.tostring(_,
-                                      pretty_print=True,
-                                      xml_declaration=True,
-                                      encoding='utf-8')
+                    remove_blank_text=True,
+                )
+                _ = et.fromstring(testosis.encode("utf-8"), vparser)
+                print("Validation passed!")
+                osisdoc = et.tostring(
+                    _,
+                    pretty_print=True,
+                    xml_declaration=True,
+                    encoding="utf-8",
+                )
             except et.XMLSyntaxError as err:
-                print('Validation failed: {}'.format(str(err)))
+                print("Validation failed: {}".format(str(err)))
         # no validation, just pretty printing...
         else:
             # ... but only if we're not debugging.
             if not args.d:
                 vparser = et.XMLParser(remove_blank_text=True)
-                _ = et.fromstring(testosis.encode('utf-8'), vparser)
-                osisdoc = et.tostring(_,
-                                      pretty_print=True,
-                                      xml_declaration=True,
-                                      encoding='utf-8')
+                _ = et.fromstring(testosis.encode("utf-8"), vparser)
+                osisdoc = et.tostring(
+                    _,
+                    pretty_print=True,
+                    xml_declaration=True,
+                    encoding="utf-8",
+                )
     else:
         if not args.x:
-            print('LXML needs to be installed for validation.')
+            print("LXML needs to be installed for validation.")
 
     # find unhandled usfm tags that are leftover after processing
     usfmtagset = set()
-    usfmtagset.update(USFMRE.findall(osisdoc.decode('utf-8')))
+    usfmtagset.update(USFMRE.findall(osisdoc.decode("utf-8")))
     if len(usfmtagset) > 0:
-        print('Unhandled USFM Tags: {}'.format(', '.join(sorted(usfmtagset))))
+        print("Unhandled USFM Tags: {}".format(", ".join(sorted(usfmtagset))))
 
     # simple whitespace cleanups before writing to file...
-    osisdoc = osisdoc.decode('utf-8')
-    for i in ((' <note', '<note'),
-              (' </p>', '</p>'),
-              (' </item>', '</item>'),
-              (' </l>', '</l>'),
-              ('</w><w', '</w> <w')):
+    osisdoc = osisdoc.decode("utf-8")
+    for i in (
+        (" <note", "<note"),
+        (" </p>", "</p>"),
+        (" </item>", "</item>"),
+        (" </l>", "</l>"),
+        ("</w><w", "</w> <w"),
+    ):
         osisdoc = osisdoc.replace(i[0], i[1])
-    osisdoc = osisdoc.encode('utf-8')
+    osisdoc = osisdoc.encode("utf-8")
 
     # write doc to file
-    outfile = '{}.osis'.format(args.workid)
+    outfile = "{}.osis".format(args.workid)
     if args.o is not None:
         outfile = args.o
-    with open(outfile, 'wb') as ofile:
+    with open(outfile, "wb") as ofile:
         ofile.write(osisdoc)
 
-    if 'TEST' in books.keys():
-        print(books['TEST'])
+    if "TEST" in books.keys():
+        print(books["TEST"])
 
 
 # -------------------------------------------------------------------------- #
+
 
 def main():
     """
@@ -2761,54 +3232,53 @@ def main():
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='''
+        description="""
             convert USFM bibles to OSIS.
-        ''',
-        epilog='''
+        """,
+        epilog="""
             * Version: {} * {} * This script is public domain. *
-        '''.format(META['VERSION'], META['DATE'])
+        """.format(
+            META["VERSION"], META["DATE"]
+        ),
+    )
+    parser.add_argument("workid", help="work id to use for OSIS file")
+    parser.add_argument("-d", help="debug mode", action="store_true")
+    parser.add_argument(
+        "-e",
+        help="set encoding to use for USFM files",
+        default=None,
+        metavar="encoding",
     )
     parser.add_argument(
-        'workid',
-        help='work id to use for OSIS file')
-    parser.add_argument('-d',
-                        help='debug mode',
-                        action='store_true')
+        "-o", help="specify output file", metavar="output_file"
+    )
     parser.add_argument(
-        '-e',
-        help='set encoding to use for USFM files',
-        default=None,
-        metavar='encoding')
-    parser.add_argument('-o',
-                        help='specify output file',
-                        metavar='output_file')
-    parser.add_argument('-l',
-                        help='specify langauge code',
-                        metavar='LANG',
-                        default='und')
-    parser.add_argument('-s',
-                        help='sort order',
-                        choices=BOOKORDERS,
-                        default='canonical')
-    parser.add_argument('-v',
-                        help='verbose output',
-                        action='store_true')
-    parser.add_argument('-x',
-                        help='disable OSIS validation and reformatting',
-                        action='store_true')
-    parser.add_argument('-n',
-                        help='disable unicode NFC normalization',
-                        action='store_true')
-    parser.add_argument('file',
-                        help='file or files to process (wildcards allowed)',
-                        nargs='+',
-                        metavar='filename')
+        "-l", help="specify langauge code", metavar="LANG", default="und"
+    )
+    parser.add_argument(
+        "-s", help="sort order", choices=BOOKORDERS, default="canonical"
+    )
+    parser.add_argument("-v", help="verbose output", action="store_true")
+    parser.add_argument(
+        "-x",
+        help="disable OSIS validation and reformatting",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-n", help="disable unicode NFC normalization", action="store_true"
+    )
+    parser.add_argument(
+        "file",
+        help="file or files to process (wildcards allowed)",
+        nargs="+",
+        metavar="filename",
+    )
     args = parser.parse_args()
 
     # make sure we skip OSIS validation if we don't have lxml
     if not args.x and not HAVELXML:
         args.x = True
-        print('Note:  lxml is not installed. Skipping OSIS validation.')
+        print("Note:  lxml is not installed. Skipping OSIS validation.")
 
     filenames = []
     for _ in args.file:
@@ -2821,8 +3291,10 @@ def main():
 
     for _ in args.file:
         if not os.path.isfile(_):
-            print('*** input file not present or not a normal file. ***',
-                  file=sys.stderr)
+            print(
+                "*** input file not present or not a normal file. ***",
+                file=sys.stderr,
+            )
             sys.exit()
 
     if args.d:
@@ -2832,8 +3304,9 @@ def main():
         # normal mode
         processfiles(args)
 
+
 # -------------------------------------------------------------------------- #
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
