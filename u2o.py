@@ -107,7 +107,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2019-8-30",  # THIS SCRIPT revision date
+    "DATE": "2019-9-21",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -3282,10 +3282,15 @@ def main():
 
     filenames = []
     for _ in args.file:
+        globfiles = glob.glob(_)
+
         if os.path.isfile(_):
             filenames.append(_)
+        elif len(globfiles) > 0:
+            filenames.extend(globfiles)
         else:
-            filenames.extend(glob.glob(_))
+            filenames.append(_)
+
     args.file = filenames
     del filenames
 
