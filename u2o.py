@@ -108,7 +108,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2019-9-21",  # THIS SCRIPT revision date
+    "DATE": "2019-9-22",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -973,11 +973,7 @@ SPECIALTEXTRE_S = r"""
         (?P=tag)\*
     """.format(
     "|".join(
-        [
-            _.replace("\\", "")
-            for _ in SPECIALTEXT.keys()
-            if not _.startswith(r"\+")
-        ]
+        [_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")]
     )
 )
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
@@ -1032,11 +1028,7 @@ SPECIALFEATURESRE_S = r"""
         (?P=tag)\*
     """.format(
     "|".join(
-        [
-            _.replace("\\", "")
-            for _ in FEATURETAGS.keys()
-            if not _.startswith(r"\+")
-        ]
+        [_.replace("\\", "") for _ in FEATURETAGS if not _.startswith(r"\+")]
     )
 )
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
@@ -1072,11 +1064,7 @@ NOTERE_S = r"""
         (?P=tag)\*
     """.format(
     "|".join(
-        [
-            _.replace("\\", "")
-            for _ in NOTETAGS.keys()
-            if not _.startswith(r"\+")
-        ]
+        [_.replace("\\", "") for _ in NOTETAGS if not _.startswith(r"\+")]
     )
 )
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
@@ -1105,11 +1093,7 @@ NOTEFIXRE_S = r"""
         (?=\\\+?[fx]|</note)
     """.format(
     "|".join(
-        [
-            _.replace("\\", "")
-            for _ in NOTETAGS2.keys()
-            if not _.startswith(r"\+")
-        ]
+        [_.replace("\\", "") for _ in NOTETAGS2 if not _.startswith(r"\+")]
     )
 )
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
@@ -1209,9 +1193,9 @@ PARFLOW.update([r"\ide", r"\rem", r"\tr", r"\pb", r"\periph"])
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
 PARCHECK = set(PARTAGS.keys())
-for i in [r"\iex", r"\ie", r"\qa"]:
+for _ in [r"\iex", r"\ie", r"\qa"]:
     try:
-        PARCHECK.remove(i)
+        PARCHECK.remove(_)
     except KeyError:
         pass
 
@@ -1435,14 +1419,10 @@ def reflow(text):
             mangletext = True
             break
 
-    # mark end of cl and sp tags
+    # mark end of cl, sp, and qa tags
     textlines = text.split("\n")
     for i in range(len(textlines)):
-        if textlines[i].startswith(r"\cl "):
-            textlines[i] = "{}\uFDD4".format(textlines[i])
-        elif textlines[i].startswith(r"\sp "):
-            textlines[i] = "{}\uFDD4".format(textlines[i])
-        elif textlines[i].startswith(r"\qa "):
+        if textlines[i][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
             textlines[i] = "{}\uFDD4".format(textlines[i])
     text = "\n".join(textlines)
 
@@ -1454,27 +1434,21 @@ def reflow(text):
         if i in text:
             text = text.replace(r"{} ".format(i), "\n{} ".format(i))
 
-    # always make sure \cl and \cd appear on newlines if present
-    # since we handle those with titles.
-    if r"\cl " in text:
-        text = text.replace(r"\cl ", "\n\\cl ")
-    if r"\cd " in text:
-        text = text.replace(r"\cd ", "\n\\cd ")
-
-    # always add a newline after \ie (may miss some of these tags)
-    if r"\ie " in text:
-        text = text.replace(r"\ie ", "\\ie\n")
+    for i in (
+        # always put \cl and \cd on newlines
+        (r"\cl ", "\n\\cl "),
+        (r"\cd ", "\n\\cd "),
+        # always add newline after \ie
+        (r"\ie ", "\\ie\n"),
+        # always put a space before \cp and \ca tags
+        (r"\cp", r" \cp"),
+        (r"\ca", r" \ca"),
+    ):
+        if i[0] in text:
+            text = text.replace(i[0], i[1])
 
     # always make sure chapter 1 marker is on a new line.
     text = text.replace(r"\c 1 ", "\n\\c 1")
-
-    # always make sure \cp tag has a space preceding it if present
-    if r"\cp" in text:
-        text = text.replace(r"\cp", r" \cp")
-
-    # always make sure \ca tag has a space preceding it if present
-    if r"\ca" in text:
-        text = text.replace(r"\ca", r" \ca")
 
     # always make sure chapter markers are on a separate line from titles.
     textlines = text.split("\n")
@@ -1531,9 +1505,12 @@ def reflow(text):
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
         # force some things  onto newlines.
-        text = text.replace(r"\c ", "\n\\c ")
-        text = text.replace(r"\v ", "\n\\v ")
-        text = text.replace(r"\ide ", "\n\\ide ")
+        for i in (
+            (r"\c ", "\n\\c "),
+            (r"\v ", "\n\\v "),
+            (r"\ide ", "\n\\ide "),
+        ):
+            text = text.replace(i[0], i[1])
 
         # make sure all lines start with a usfm tag...
         lines = text.split("\n")
@@ -1546,7 +1523,7 @@ def reflow(text):
         for i in [r"\ca", r"\cp", r"\va", r"\vp"]:
             text = text.replace("\n{}".format(i), " {}".format(i))
 
-    # fix cl and sp newline issue
+    # fix newline issue
     if "\uFDD4" in text:
         text = text.replace("\uFDD4", "\n")
 
@@ -1558,15 +1535,14 @@ def getbookid(text):
     """Get book id from file text."""
     bookid = None
     lines = [i for i in text.split("\n") if i.startswith("\\id ")]
-    if len(lines) > 0:
+    if lines:
         tmp = lines[0].split()
         bookid = tmp[1].strip()
 
     if bookid is not None:
-        if bookid in BOOKNAMES.keys():
-            return BOOKNAMES[bookid]
-        else:
-            return "* {}".format(bookid)
+        return {True: BOOKNAMES[bookid], False: "* {}".format(bookid)}[
+            bookid in BOOKNAMES
+        ]
     else:
         return None
 
@@ -1643,13 +1619,13 @@ def parseattributes(tag, tagtext):
 
     # attribute validity check
     isinvalid = False
-    if tag in DEFINEDATTRIBUTES.keys():
+    if tag in DEFINEDATTRIBUTES:
         attribtest = DEFINEDATTRIBUTES[tag]
-        for i in attribs.keys():
+        for i in attribs:
             if i not in attribtest and not i.startswith("x-"):
                 isinvalid = True
     else:
-        for i in attribs.keys():
+        for i in attribs:
             if not i.startswith("x-"):
                 isinvalid = True
 
@@ -1675,21 +1651,19 @@ def convert_to_osis(text, bookid="TEST"):
     def preprocess(text):
         """Preprocess text."""
         # preprocessing...
-        if "&" in text:
-            text = text.replace("&", "&amp;")
-        if "<" in text:
-            text = text.replace("<", "&lt;")
-        if ">" in text:
-            text = text.replace(">", "&gt;")
-
-        # special spacing characters
-        if "~" in text:
-            text = text.replace("~", "\u00a0")
-        if r"//" in text:
-            text = text.replace(r"//", '<lb type="x-optional" />')
-        if r"\pb" in text:
-            text = text.replace(r"\pb ", '<milestone type="pb" />')
-            text = text.replace(r"\pb", '<milestone type="pb" />')
+        for i in (
+            # special xml characters
+            ("&", "&amp;"),
+            ("<", "&lt;"),
+            (">", "&gt;"),
+            # special spacing characters
+            ("~", "\u00a0"),
+            (r"//", '<lb type="x-optional" />'),
+            (r"\pb ", '<milestone type="pb" />'),
+            (r"\pb", '<milestone type="pb" />'),
+        ):
+            if i[0] in text:
+                text = text.replace(i[0], i[1])
 
         return text.strip()
 
@@ -2178,21 +2152,21 @@ def convert_to_osis(text, bookid="TEST"):
                     if len(tlines[i][5:-5].split("|")) > 2:
                         fig = tlines[i][5:-5].split("|")
                         figref = ""
-                        if len(fig[0]) > 0:
+                        if fig[0]:
                             fig[0] = "<!-- fig DESC - {} -->\n".format(fig[0])
-                        if len(fig[1]) > 0:
+                        if fig[1]:
                             fig[1] = ' src="{}"'.format(fig[1])
-                        if len(fig[2]) > 0:
+                        if fig[2]:
                             fig[2] = ' size="{}"'.format(fig[2])
-                        if len(fig[3]) > 0:
+                        if fig[3]:
                             fig[3] = "<!-- fig LOC - {} -->\n".format(fig[3])
-                        if len(fig[4]) > 0:
+                        if fig[4]:
                             fig[4] = ' rights="{}"'.format(fig[4])
-                        if len(fig[5]) > 0:
+                        if fig[5]:
                             fig[5] = "<caption>{}</caption>\n".format(fig[5])
                         # this is likely going to be very broken without
                         # further processing of the references.
-                        if len(fig[6]) > 0:
+                        if fig[6]:
                             figref = "<reference {}>{}</reference>\n".format(
                                 'type="annotateRef"', fig[6]
                             )
@@ -2254,7 +2228,7 @@ def convert_to_osis(text, bookid="TEST"):
         # Process usfm milestone quotation tags... up to 5 levels.
         for i in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
             if i in text:
-                for i in [
+                for j in [
                     r"\qt-",
                     r"\qt1-",
                     r"\qt2-",
@@ -2262,14 +2236,14 @@ def convert_to_osis(text, bookid="TEST"):
                     r"\qt4-",
                     r"\qt5-",
                 ]:
-                    if i in text:
-                        text = text.replace(i, "\n{}".format(i))
+                    if j in text:
+                        text = text.replace(j, "\n{}".format(j))
                 text = text.replace(r"\*", "\\*\n")
                 tlines = text.split("\n")
 
-                for i in range(len(tlines)):
+                for j in range(len(tlines)):
                     # make sure we're processing milestone \qt tags
-                    if tlines[i].endswith(r"\*"):
+                    if tlines[j].endswith(r"\*"):
                         if (
                             tlines[i].startswith(r"\qt-")
                             or tlines[i].startswith(r"\qt1-")
@@ -2280,8 +2254,8 @@ def convert_to_osis(text, bookid="TEST"):
                         ):
                             # replace with milestone osis tags
                             newline = ""
-                            tlines[i] = tlines[i].strip().replace(r"\*", "")
-                            tag, _, qttext = tlines[i].partition(" ")
+                            tlines[j] = tlines[j].strip().replace(r"\*", "")
+                            tag, _, qttext = tlines[j].partition(" ")
                             # milestone start tag
                             if tag.endswith(r"-s"):
                                 _, attributetext, attributes, isvalid = parseattributes(
@@ -2550,40 +2524,40 @@ def convert_to_osis(text, bookid="TEST"):
 
         return lines
 
-    def processwj(lines):
-        """
-        Create milestone form of q tags for words of Jesus.
-
-        NOTE: Not currently used as this seems to be problematic for the
-              sword lib to handle.
-
-        """
-        # prepare for processing by joining lines together
-        text = "\ufdd1".join(lines)
-
-        # split words of jesus from the rest of the text.
-        text = text.replace("\\wj ", "\n\\wj ")
-        text = text.replace("\\wj*", "\\wj*\n ")
-        lines = text.split("\n")
-
-        # process words of Jesus.
-        wjcount = 1
-        for i in range(len(lines)):
-            if lines[i].startswith(r"\wj "):
-                wjmarker = '"{}.wj{}"'.format(bookid, wjcount)
-                lines[i] = lines[i].replace(r"\wj ", "")
-                lines[i] = lines[i].replace(r"\wj*", "")
-
-                lines[i] = "{}{}{}".format(
-                    '<q who="Jesus" marker="" sID={} />'.format(wjmarker),
-                    lines[i],
-                    "<q eID={} />".format(wjmarker),
-                )
-                wjcount += 1
-
-        # rejoin lines, then resplit and return processed lines...
-        text = "".join(lines)
-        return text.split("\ufdd1")
+    # def processwj(lines):
+    #     """
+    #     Create milestone form of q tags for words of Jesus.
+    #
+    #     NOTE: Not currently used as this seems to be problematic for the
+    #           sword lib to handle.
+    #
+    #     """
+    #     # prepare for processing by joining lines together
+    #     text = "\ufdd1".join(lines)
+    #
+    #     # split words of jesus from the rest of the text.
+    #     text = text.replace("\\wj ", "\n\\wj ")
+    #     text = text.replace("\\wj*", "\\wj*\n ")
+    #     lines = text.split("\n")
+    #
+    #     # process words of Jesus.
+    #     wjcount = 1
+    #     for i in range(len(lines)):
+    #         if lines[i].startswith(r"\wj "):
+    #             wjmarker = '"{}.wj{}"'.format(bookid, wjcount)
+    #             lines[i] = lines[i].replace(r"\wj ", "")
+    #             lines[i] = lines[i].replace(r"\wj*", "")
+    #
+    #             lines[i] = "{}{}{}".format(
+    #                 '<q who="Jesus" marker="" sID={} />'.format(wjmarker),
+    #                 lines[i],
+    #                 "<q eID={} />".format(wjmarker),
+    #             )
+    #             wjcount += 1
+    #
+    #     # rejoin lines, then resplit and return processed lines...
+    #     text = "".join(lines)
+    #     return text.split("\ufdd1")
 
     def processwj2(lines):
         """
@@ -2973,7 +2947,7 @@ def convert_to_osis(text, bookid="TEST"):
 
 def doconvert(args):
     """Convert our text and return our results."""
-    text, verbose = args
+    text = args
 
     # convert cl lines to form that follows each chapter marker instead of
     # form that precedes first chapter.
@@ -2987,14 +2961,12 @@ def doconvert(args):
     bookid = getbookid(newtext)
     if bookid is not None:
         if bookid.startswith("* "):
-            LOG.error(
-                "Book id naming issue - {}".format(bookid.replace("* ", ""))
-            )
+            LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
     else:
         bookid = "TEST"
 
     # convert file to osis
-    LOG.info("... Processing {} ...".format(bookid))
+    LOG.info("... Processing %s ...", bookid)
     newtext, descriptiontext = convert_to_osis(newtext, bookid)
     return (bookid, descriptiontext, newtext)
 
@@ -3042,9 +3014,7 @@ def processfiles(args):
                 bookencoding = "utf-8-sig"
         except LookupError:
             LOG.error("ERROR: Unknown encoding... aborting conversion.")
-            LOG.error(
-                r"    \ide line for {} says --> {}".format(fname, bookencoding)
-            )
+            LOG.error(r"    \ide line for %s says --> %s", fname, bookencoding)
             sys.exit()
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
@@ -3058,7 +3028,7 @@ def processfiles(args):
             numprocesses = 1
 
     # process file contents
-    filelist = [(_, args.v) for _ in files]
+    filelist = [_ for _ in files]
     results = []
     LOG.info("Processing files...")
     if numprocesses == 1:
@@ -3177,7 +3147,7 @@ def processfiles(args):
                     encoding="utf-8",
                 )
             except et.XMLSyntaxError as err:
-                LOG.error("Validation failed: {}".format(str(err)))
+                LOG.error("Validation failed: %s", str(err))
         # no validation, just pretty printing...
         else:
             # ... but only if we're not debugging.
@@ -3197,10 +3167,8 @@ def processfiles(args):
     # find unhandled usfm tags that are leftover after processing
     usfmtagset = set()
     usfmtagset.update(USFMRE.findall(osisdoc.decode("utf-8")))
-    if len(usfmtagset) > 0:
-        LOG.warning(
-            "Unhandled USFM Tags: {}".format(", ".join(sorted(usfmtagset)))
-        )
+    if usfmtagset:
+        LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
 
     # simple whitespace cleanups before writing to file...
     osisdoc = osisdoc.decode("utf-8")
@@ -3292,7 +3260,7 @@ def main():
 
         if os.path.isfile(_):
             filenames.append(_)
-        elif len(globfiles) > 0:
+        elif globfiles:
             filenames.extend(globfiles)
         else:
             filenames.append(_)
