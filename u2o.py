@@ -2636,7 +2636,7 @@ def convert_to_osis(text, bookid="TEST"):
         # fix SIDEBAR
         for i in enumerate(lines):
             if "SIDEBAR" in lines[i[0]]:
-                lines[i] = lines[i[0]].replace(
+                lines[i[0]] = lines[i[0]].replace(
                     "<SIDEBAR>", '<div type="x-sidebar">'
                 )
                 lines[i[0]] = lines[i[0]].replace("</SIDEBAR>", "</div>")
