@@ -439,9 +439,9 @@ def processtags(args):
 
     # output results.
     print()
-    if len(knownset) > 0:
+    if knownset:
         print("Known USFM Tags: {}\n".format(", ".join(sorted(knownset))))
-    if len(unknownset) > 0:
+    if unknownset:
         print("Unknown USFM Tags: {}\n".format(", ".join(sorted(unknownset))))
 
     # print tag usage counts
