@@ -1421,9 +1421,9 @@ def reflow(text):
 
     # mark end of cl, sp, and qa tags
     textlines = text.split("\n")
-    for i in range(len(textlines)):
-        if textlines[i][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
-            textlines[i] = "{}\uFDD4".format(textlines[i])
+    for i in enumerate(textlines):
+        if textlines[i[0]][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
+            textlines[i[0]] = "{}\uFDD4".format(textlines[i[0]])
     text = "\n".join(textlines)
 
     # process text with paragraph formatting
@@ -1452,32 +1452,32 @@ def reflow(text):
 
     # always make sure chapter markers are on a separate line from titles.
     textlines = text.split("\n")
-    for i in range(len(textlines)):
-        if textlines[i].partition(" ")[0] in TITLEFLOW:
-            if r"\c " in textlines[i]:
-                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
+    for i in enumerate(textlines):
+        if textlines[i[0]].partition(" ")[0] in TITLEFLOW:
+            if r"\c " in textlines[i[0]]:
+                textlines[i[0]] = textlines[i[0]].replace("\\c ", "\n\\c ")
 
     # fix placement of chapter markers with regards to lists...
     # this probably needs more work.
-    for i in range(len(textlines)):
-        if textlines[i].partition(" ")[0].startswith(r"\li"):
-            if r"\c " in textlines[i]:
+    for i in enumerate(textlines):
+        if textlines[i[0]].partition(" ")[0].startswith(r"\li"):
+            if r"\c " in textlines[i[0]]:
                 if (
-                    textlines[i + 1].startswith(r"\s")
-                    or textlines[i + 1].startswith(r"\ms")
-                    or textlines[i + 1].startswith(r"\p")
+                    textlines[i[0] + 1].startswith(r"\s")
+                    or textlines[i[0] + 1].startswith(r"\ms")
+                    or textlines[i[0] + 1].startswith(r"\p")
                 ):
-                    textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
+                    textlines[i[0]] = textlines[i[0]].replace("\\c ", "\n\\c ")
 
     # fix placement of chapter markers with regards to tables...
     # this probably needs more work.
-    for i in range(len(textlines)):
-        if textlines[i].partition(" ")[0].startswith(r"\tr"):
-            if r"\c " in textlines[i]:
-                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
+    for i in enumerate(textlines):
+        if textlines[i[0]].partition(" ")[0].startswith(r"\tr"):
+            if r"\c " in textlines[i[0]]:
+                textlines[i[0]] = textlines[i[0]].replace("\\c ", "\n\\c ")
 
     # make sure some lines don't contain chapter or verse markers
-    for i in range(len(textlines)):
+    for i in enumerate(textlines):
         for j in [
             r"\rem ",
             r"\is",
@@ -1490,15 +1490,15 @@ def reflow(text):
             r"\th",
             r"\tc",
         ]:
-            if textlines[i].startswith(j):
-                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
-                textlines[i] = textlines[i].replace("\\v ", "\n\\v ")
+            if textlines[i[0]].startswith(j):
+                textlines[i[0]] = textlines[i[0]].replace("\\c ", "\n\\c ")
+                textlines[i[0]] = textlines[i[0]].replace("\\v ", "\n\\v ")
 
     # make sure some lines don't contain chapter markers
-    for i in range(len(textlines)):
+    for i in enumerate(textlines):
         for j in [r"\li", r"\ph", r"\io", "ili"]:
-            if textlines[i].startswith(j):
-                textlines[i] = textlines[i].replace("\\c ", "\n\\c ")
+            if textlines[i[0]].startswith(j):
+                textlines[i[0]] = textlines[i[0]].replace("\\c ", "\n\\c ")
 
     text = "\n".join(textlines)
 
@@ -1539,12 +1539,12 @@ def getbookid(text):
         tmp = lines[0].split()
         bookid = tmp[1].strip()
 
-    if bookid is not None:
-        return {True: BOOKNAMES[bookid], False: "* {}".format(bookid)}[
+    return {
+        True: {True: BOOKNAMES[bookid], False: "* {}".format(bookid)}[
             bookid in BOOKNAMES
-        ]
-    else:
-        return None
+        ],
+        False: None,
+    }[bookid is not None]
 
 
 def getencoding(text):
@@ -1836,10 +1836,10 @@ def convert_to_osis(text, bookid="TEST"):
             line[2] = line[2].replace(r"\th", "\n\\th")
             line[2] = line[2].replace(r"\tc", "\n\\tc")
             cells = line[2].split("\n")
-            for i in range(len(cells)):
-                tmp = list(cells[i].partition(" "))
+            for i in enumerate(cells):
+                tmp = list(cells[i[0]].partition(" "))
                 if tmp[0] in celltags.keys():
-                    cells[i] = "{}{}{}".format(
+                    cells[i[0]] = "{}{}{}".format(
                         celltags[tmp[0]][0],
                         tmp[2].strip(),
                         celltags[tmp[0]][1],
@@ -1854,22 +1854,31 @@ def convert_to_osis(text, bookid="TEST"):
         if "<selah>" in text:
             tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
             selahfix = [_ for _ in tmp.split("\n") if _ != ""]
-            for i in range(len(selahfix)):
-                if selahfix[i].startswith(r"<l") and "<selah>" in selahfix[i]:
-                    selahfix[i] = selahfix[i].replace(
+            for i in enumerate(selahfix):
+                if (
+                    selahfix[i[0]].startswith(r"<l")
+                    and "<selah>" in selahfix[i[0]]
+                ):
+                    selahfix[i[0]] = selahfix[i[0]].replace(
                         "<selah>", '</l><l type="selah">'
                     )
-                    selahfix[i] = selahfix[i].replace("</selah>", "</l><l>")
-                    if "<l> </l>" in selahfix[i]:
-                        selahfix[i] = selahfix[i].replace("<l> </l>", "")
-                    if "<l>  </l>" in selahfix[i]:
-                        selahfix[i] = selahfix[i].replace("<l>  </l>", "")
-            for i in range(len(selahfix)):
-                if "<selah>" in selahfix[i] or "</selah>" in selahfix[i]:
-                    selahfix[i] = selahfix[i].replace(
+                    selahfix[i[0]] = selahfix[i[0]].replace(
+                        "</selah>", "</l><l>"
+                    )
+                    if "<l> </l>" in selahfix[i[0]]:
+                        selahfix[i[0]] = selahfix[i[0]].replace("<l> </l>", "")
+                    if "<l>  </l>" in selahfix[i[0]]:
+                        selahfix[i[0]] = selahfix[i[0]].replace(
+                            "<l>  </l>", ""
+                        )
+            for i in enumerate(selahfix):
+                if "<selah>" in selahfix[i[0]] or "</selah>" in selahfix[i[0]]:
+                    selahfix[i[0]] = selahfix[i[0]].replace(
                         "<selah>", '<lg><l type="selah">'
                     )
-                    selahfix[i] = selahfix[i].replace("</selah>", "</l></lg>")
+                    selahfix[i[0]] = selahfix[i[0]].replace(
+                        "</selah>", "</l></lg>"
+                    )
             text = " ".join(selahfix)
 
         return text
@@ -1880,67 +1889,71 @@ def convert_to_osis(text, bookid="TEST"):
         lines.append("")
 
         # process b tags...
-        for i in range(len(lines)):
-            if "<!-- b -->" in lines[i]:
-                if lines[i][:2] in ["<l", "<p"]:
-                    lines[i] = lines[i].replace(
+        for i in enumerate(lines):
+            if "<!-- b -->" in lines[i[0]]:
+                if lines[i[0]][:2] in ["<l", "<p"]:
+                    lines[i[0]] = lines[i[0]].replace(
                         "<!-- b -->", '<lb type="x-p" />'
                     )
                 else:
-                    lines[i] = lines[i].replace("<!-- b -->", "")
+                    lines[i[0]] = lines[i[0]].replace("<!-- b -->", "")
 
         # add breaks before chapter and verse tags
-        for i in range(len(lines)):
-            lines[i] = lines[i].replace(r"\c ", "\ufdd0\\c ")
-            lines[i] = lines[i].replace(r"\v ", "\ufdd0\\v ")
+        for i in enumerate(lines):
+            lines[i[0]] = lines[i[0]].replace(r"\c ", "\ufdd0\\c ")
+            lines[i[0]] = lines[i[0]].replace(r"\v ", "\ufdd0\\v ")
 
         # add missing lg tags
         inlg = False
-        for i in range(len(lines)):
-            if lines[i].startswith("<l "):
+        for i in enumerate(lines):
+            if lines[i[0]].startswith("<l "):
                 if not inlg:
-                    lines[i] = "<lg>\ufdd0{}".format(lines[i])
+                    lines[i[0]] = "<lg>\ufdd0{}".format(lines[i[0]])
                     inlg = True
             else:
                 if inlg:
-                    lines[i - 1] = "{}\ufdd0</lg>\ufdd0".format(lines[i - 1])
+                    lines[i[0] - 1] = "{}\ufdd0</lg>\ufdd0".format(
+                        lines[i[0] - 1]
+                    )
                     inlg = False
 
         # add missing list tags
         inlist = False
-        for i in range(len(lines)):
-            if lines[i].startswith("<item "):
+        for i in enumerate(lines):
+            if lines[i[0]].startswith("<item "):
                 if not inlist:
-                    lines[i] = "<list>\ufdd0{}".format(lines[i])
+                    lines[i[0]] = "<list>\ufdd0{}".format(lines[i[0]])
                     inlist = True
             else:
                 if inlist:
-                    lines[i - 1] = "{}\ufdd0</list>\ufdd0".format(lines[i - 1])
+                    lines[i[0] - 1] = "{}\ufdd0</list>\ufdd0".format(
+                        lines[i[0] - 1]
+                    )
                     inlist = False
 
         # add missing table tags
         intable = False
-        for i in range(len(lines)):
-            if lines[i].startswith("<row"):
+        for i in enumerate(lines):
+            if lines[i[0]].startswith("<row"):
                 if not intable:
-                    lines[i] = "\ufdd0<table>\ufdd0{}".format(lines[i])
+                    lines[i[0]] = "\ufdd0<table>\ufdd0{}".format(lines[i[0]])
                     intable = True
             else:
                 if intable:
-                    lines[i - 1] = "{}\ufdd0</table>\ufdd0".format(
-                        lines[i - 1]
+                    lines[i[0] - 1] = "{}\ufdd0</table>\ufdd0".format(
+                        lines[i[0] - 1]
                     )
                     intable = False
 
         # encapsulate introductions inside div's
-        for i in range(len(lines)):
-            if lines[i] == "\ufde0":
-                lines[i] = '<div type="introduction">\ufdd0'
-            elif lines[i] == "\ufde1":
-                lines[i] = "</div>\ufdd0"
-            elif lines[i].endswith("\ufde1"):
-                lines[i] = "{}</div>\ufdd0".format(
-                    lines[i].replace("\ufde1", "")
+        for i in enumerate(lines):
+            if lines[i[0]] == "\ufde0":
+                lines[i[0]] = '<div type="introduction">\ufdd0'
+            elif lines[i[0]] == "\ufde1":
+                lines[i[0]] = "</div>\ufdd0"
+            elif lines[i[0]].endswith("\ufde1"):
+                lines[i[0]] = "{}</div>\ufdd0".format(
+                    lines[i[0]].replace("\ufde1", "")
                 )
 
         return lines
@@ -2145,12 +2158,12 @@ def convert_to_osis(text, bookid="TEST"):
             text = text.replace(r"\fig ", "\n\\fig ")
             text = text.replace(r"\fig*", "\\fig*\n")
             tlines = text.split("\n")
-            for i in range(len(tlines)):
-                if tlines[i].startswith(r"\fig "):
+            for i in enumerate(tlines):
+                if tlines[i[0]].startswith(r"\fig "):
                     # old style \fig handling
                     # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
-                    if len(tlines[i][5:-5].split("|")) > 2:
-                        fig = tlines[i][5:-5].split("|")
+                    if len(tlines[i[0]][5:-5].split("|")) > 2:
+                        fig = tlines[i[0]][5:-5].split("|")
                         figref = ""
                         if fig[0]:
                             fig[0] = "<!-- fig DESC - {} -->\n".format(fig[0])
@@ -2174,7 +2187,7 @@ def convert_to_osis(text, bookid="TEST"):
 
                     # new style \fig handling
                     else:
-                        figattr = parseattributes(r"\fig", tlines[i][5:-5])
+                        figattr = parseattributes(r"\fig", tlines[i[0]][5:-5])
                         fig = []
                         figparts = {
                             "alt": "<!-- fig ALT - {} -->\n",
@@ -2207,7 +2220,7 @@ def convert_to_osis(text, bookid="TEST"):
                                 figref = ""
                                 fig.append("")
                     # build our osis figure tag
-                    tlines[i] = "".join(
+                    tlines[i[0]] = "".join(
                         [
                             fig[0],
                             fig[3],
@@ -2241,21 +2254,23 @@ def convert_to_osis(text, bookid="TEST"):
                 text = text.replace(r"\*", "\\*\n")
                 tlines = text.split("\n")
 
-                for j in range(len(tlines)):
+                for j in enumerate(tlines):
                     # make sure we're processing milestone \qt tags
-                    if tlines[j].endswith(r"\*"):
+                    if tlines[j[0]].endswith(r"\*"):
                         if (
-                            tlines[i].startswith(r"\qt-")
-                            or tlines[i].startswith(r"\qt1-")
-                            or tlines[i].startswith(r"\qt2-")
-                            or tlines[i].startswith(r"\qt3-")
-                            or tlines[i].startswith(r"\qt4-")
-                            or tlines[i].startswith(r"\qt5-")
+                            tlines[j[0]].startswith(r"\qt-")
+                            or tlines[j[0]].startswith(r"\qt1-")
+                            or tlines[j[0]].startswith(r"\qt2-")
+                            or tlines[j[0]].startswith(r"\qt3-")
+                            or tlines[j[0]].startswith(r"\qt4-")
+                            or tlines[j[0]].startswith(r"\qt5-")
                         ):
                             # replace with milestone osis tags
                             newline = ""
-                            tlines[j] = tlines[j].strip().replace(r"\*", "")
-                            tag, _, qttext = tlines[j].partition(" ")
+                            tlines[j[0]] = (
+                                tlines[j[0]].strip().replace(r"\*", "")
+                            )
+                            tag, _, qttext = tlines[j[0]].partition(" ")
                             # milestone start tag
                             if tag.endswith(r"-s"):
                                 _, attributetext, attributes, isvalid = parseattributes(
@@ -2306,7 +2321,7 @@ def convert_to_osis(text, bookid="TEST"):
                                 )
                             # replace line with osis milestone tag
                             if newline != "":
-                                tlines[i] = newline
+                                tlines[j[0]] = newline
                 # rejoin lines
                 text = "".join(tlines)
                 break
@@ -2339,10 +2354,10 @@ def convert_to_osis(text, bookid="TEST"):
         def verserange(text):
             """Generate list for verse ranges."""
             low, high = text.split("-")
-            if low.isdigit() and high.isdigit():
-                return [str(i) for i in range(int(low), int(high) + 1)]
-            else:
-                return -1
+            return {
+                True: [str(i) for i in range(int(low), int(high) + 1)],
+                False: -1,
+            }[low.isdigit() and high.isdigit()]
 
         # chapter and verse numbers
         chap = ""
@@ -2462,9 +2477,9 @@ def convert_to_osis(text, bookid="TEST"):
                 if "-" in vnum:
                     try:
                         vlist = verserange(vnum)
-                        for j in range(len(vlist)):
-                            vlist[j] = "{}.{}.{}".format(
-                                bookid, chap, vlist[j]
+                        for j in enumerate(vlist):
+                            vlist[j[0]] = "{}.{}.{}".format(
+                                bookid, chap, vlist[j[0]]
                             )
                         osisid = 'osisID="{}{}"'.format(" ".join(vlist), vaid)
                     except TypeError:
@@ -2588,21 +2603,21 @@ def convert_to_osis(text, bookid="TEST"):
         lines = text.split("\n")
 
         # process words of Jesus.
-        for i in range(len(lines)):
-            if lines[i].startswith(r"\wj "):
+        for i in enumerate(lines):
+            if lines[i[0]].startswith(r"\wj "):
                 # Add initial start and end q tags
-                lines[i] = lines[i].replace(
+                lines[i[0]] = lines[i[0]].replace(
                     r"\wj ", '<q who="Jesus" marker="">'
                 )
-                lines[i] = lines[i].replace(r"\wj*", "</q>")
+                lines[i[0]] = lines[i[0]].replace(r"\wj*", "</q>")
 
                 # add additional closing and opening q tags
                 for j in wjstarttags:
-                    lines[i] = lines[i].replace(
+                    lines[i[0]] = lines[i[0]].replace(
                         j, '{}<q who="Jesus" marker="">'.format(j)
                     )
                 for j in wjendtags:
-                    lines[i] = lines[i].replace(j, "</q>{}".format(j))
+                    lines[i[0]] = lines[i[0]].replace(j, "</q>{}".format(j))
 
         # rejoin lines, then resplit and return processed lines...
         text = "".join(lines)
@@ -2619,20 +2634,20 @@ def convert_to_osis(text, bookid="TEST"):
         ]
 
         # fix SIDEBAR
-        for i in range(len(lines)):
-            if "SIDEBAR" in lines[i]:
-                lines[i] = lines[i].replace(
+        for i in enumerate(lines):
+            if "SIDEBAR" in lines[i[0]]:
+                lines[i] = lines[i[0]].replace(
                     "<SIDEBAR>", '<div type="x-sidebar">'
                 )
-                lines[i] = lines[i].replace("</SIDEBAR>", "</div>")
+                lines[i[0]] = lines[i[0]].replace("</SIDEBAR>", "</div>")
 
         # Convert unhandled vp tags, to milestones...
-        for i in range(len(lines)):
-            while r"\vp " in lines[i]:
-                vpnum = VPRE.search(lines[i]).group("num")
-                lines[i] = VPRE.sub(
+        for i in enumerate(lines):
+            while r"\vp " in lines[i[0]]:
+                vpnum = VPRE.search(lines[i[0]]).group("num")
+                lines[i[0]] = VPRE.sub(
                     '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
-                    lines[i],
+                    lines[i[0]],
                     1,
                 )
 
@@ -2890,36 +2905,36 @@ def convert_to_osis(text, bookid="TEST"):
             lines = markintroend(lines)
             break
 
-    for i in range(len(lines)):
+    for i in enumerate(lines):
 
         # preprocessing and special spacing... if necessary
         for j in ["&", "<", ">", "~", r"//", r"\pb"]:
-            if j in lines[i]:
-                lines[i] = preprocess(lines[i])
+            if j in lines[i[0]]:
+                lines[i[0]] = preprocess(lines[i[0]])
                 break
 
         # identification
-        lines[i] = identification(lines[i])
+        lines[i[0]] = identification(lines[i[0]])
 
         # character style formatting
-        lines[i] = footnotecrossrefmarkers(lines[i])
-        lines[i] = specialtext(lines[i])
+        lines[i[0]] = footnotecrossrefmarkers(lines[i[0]])
+        lines[i[0]] = specialtext(lines[i[0]])
 
         # special features if present
         for j in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig"]:
-            if j in lines[i]:
-                lines[i] = specialfeatures(lines[i])
+            if j in lines[i[0]]:
+                lines[i[0]] = specialfeatures(lines[i[0]])
                 break
         for j in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
-            if j in lines[i]:
-                lines[i] = specialfeatures(lines[i])
+            if j in lines[i[0]]:
+                lines[i[0]] = specialfeatures(lines[i[0]])
 
         # z tags if present
-        if r"\z" in lines[i]:
-            lines[i] = ztags(lines[i])
+        if r"\z" in lines[i[0]]:
+            lines[i[0]] = ztags(lines[i[0]])
 
         # paragraph style formatting.
-        lines[i] = titlepar(lines[i])
+        lines[i[0]] = titlepar(lines[i[0]])
 
     # process words of Jesus
     if r"\wj" in text:
