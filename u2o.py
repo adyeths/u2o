@@ -78,6 +78,7 @@ import re
 import codecs
 import datetime
 import unicodedata
+import logging
 from collections import OrderedDict
 from contextlib import closing
 
@@ -1363,6 +1364,13 @@ KikYoFKBJCCwGKxVCAAUqGTBBsg+XphIDaJJgA6BtGLXI2+hneE0Pz82nzN1n5ONYbMaWvDTere8
 4PwgQFAkCEipABCK1VGMY1tVlbVNmrfF83z5BGGh8B7jl9P4hR9qva4frAHInE9QfMgxU93zF3JF
 OFCQJyEEPw==
 """
+
+# -------------------------------------------------------------------------- #
+
+# logging.basicConfig(format="%(levelname)s: %(message)s")
+logging.basicConfig(format="%(message)s")
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.WARNING)
 
 # -------------------------------------------------------------------------- #
 
@@ -2979,13 +2987,14 @@ def doconvert(args):
     bookid = getbookid(newtext)
     if bookid is not None:
         if bookid.startswith("* "):
-            print("Book id naming issue - {}".format(bookid.replace("* ", "")))
+            LOG.error(
+                "Book id naming issue - {}".format(bookid.replace("* ", ""))
+            )
     else:
         bookid = "TEST"
 
     # convert file to osis
-    if verbose:
-        print("... Processing {} ...".format(bookid))
+    LOG.info("... Processing {} ...".format(bookid))
     newtext, descriptiontext = convert_to_osis(newtext, bookid)
     return (bookid, descriptiontext, newtext)
 
@@ -3004,8 +3013,7 @@ def processfiles(args):
     ]
 
     # read all files
-    if args.v:
-        print("Reading files... ")
+    LOG.info("Reading files... ")
     for fname in args.file:
         # read our text files
         with open(fname, "rb") as ifile:
@@ -3033,11 +3041,9 @@ def processfiles(args):
             if bookencoding == "utf-8":
                 bookencoding = "utf-8-sig"
         except LookupError:
-            print("ERROR: Unknown encoding... aborting conversion.")
-            print(
-                r"       \ide line for {} says --> {}".format(
-                    fname, bookencoding
-                )
+            LOG.error("ERROR: Unknown encoding... aborting conversion.")
+            LOG.error(
+                r"    \ide line for {} says --> {}".format(fname, bookencoding)
             )
             sys.exit()
         # convert file to unicode and add contents to list for processing...
@@ -3054,8 +3060,7 @@ def processfiles(args):
     # process file contents
     filelist = [(_, args.v) for _ in files]
     results = []
-    if args.v:
-        print("Processing files...")
+    LOG.info("Processing files...")
     if numprocesses == 1:
         results = [doconvert(_) for _ in filelist]
     else:
@@ -3138,8 +3143,7 @@ def processfiles(args):
     )
 
     # Print note about references not being processed.
-    print("NOTE: References have not been processed.")
-    # print('      Use orefs to add osisRef attributes to references.')
+    LOG.warning("NOTE: References have not been processed.")
 
     # apply NFC normalization to text unless explicitly disabled.
     if not args.n:
@@ -3155,7 +3159,7 @@ def processfiles(args):
 
         # validation is requested...
         if not args.x:
-            print("Validating osis xml... ")
+            LOG.warning("Validating osis xml...")
             osisschema = codecs.decode(
                 codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
             )
@@ -3165,7 +3169,7 @@ def processfiles(args):
                     remove_blank_text=True,
                 )
                 _ = et.fromstring(testosis.encode("utf-8"), vparser)
-                print("Validation passed!")
+                LOG.warning("Validation passed!")
                 osisdoc = et.tostring(
                     _,
                     pretty_print=True,
@@ -3173,7 +3177,7 @@ def processfiles(args):
                     encoding="utf-8",
                 )
             except et.XMLSyntaxError as err:
-                print("Validation failed: {}".format(str(err)))
+                LOG.error("Validation failed: {}".format(str(err)))
         # no validation, just pretty printing...
         else:
             # ... but only if we're not debugging.
@@ -3188,13 +3192,15 @@ def processfiles(args):
                 )
     else:
         if not args.x:
-            print("LXML needs to be installed for validation.")
+            LOG.error("LXML needs to be installed for validation.")
 
     # find unhandled usfm tags that are leftover after processing
     usfmtagset = set()
     usfmtagset.update(USFMRE.findall(osisdoc.decode("utf-8")))
     if len(usfmtagset) > 0:
-        print("Unhandled USFM Tags: {}".format(", ".join(sorted(usfmtagset))))
+        LOG.warning(
+            "Unhandled USFM Tags: {}".format(", ".join(sorted(usfmtagset)))
+        )
 
     # simple whitespace cleanups before writing to file...
     osisdoc = osisdoc.decode("utf-8")
@@ -3278,7 +3284,7 @@ def main():
     # make sure we skip OSIS validation if we don't have lxml
     if not args.x and not HAVELXML:
         args.x = True
-        print("Note:  lxml is not installed. Skipping OSIS validation.")
+        LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
     filenames = []
     for _ in args.file:
@@ -3296,18 +3302,14 @@ def main():
 
     for _ in args.file:
         if not os.path.isfile(_):
-            print(
-                "*** input file not present or not a normal file. ***",
-                file=sys.stderr,
-            )
+            LOG.error("*** input file not present or not a normal file. ***")
             sys.exit()
 
+    if args.v:
+        LOG.setLevel(logging.INFO)
     if args.d:
-        args.v = True
-        processfiles(args)
-    else:
-        # normal mode
-        processfiles(args)
+        LOG.setLevel(logging.DEBUG)
+    processfiles(args)
 
 
 # -------------------------------------------------------------------------- #
