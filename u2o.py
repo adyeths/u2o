@@ -1772,13 +1772,9 @@ def convert_to_osis(text, bookid="TEST"):
                     osis, attributetext, attributes, isvalid = parseattributes(
                         r"periph", line[2]
                     )
+                    del isvalid  # make pylint happy
                 else:
-                    osis, attributetext, attributes, isvalid = (
-                        line[2],
-                        None,
-                        dict(),
-                        True,
-                    )
+                    osis, attributetext, attributes = (line[2], None, dict())
                 if attributetext is not None:
                     attributetext = "{}{}{}".format(
                         "<!-- USFM Attributes - ", attributetext, " -->"
@@ -2095,13 +2091,9 @@ def convert_to_osis(text, bookid="TEST"):
                 osis, attributetext, attributes, isvalid = parseattributes(
                     matchtag, rawosis
                 )
+                del isvalid  # make pylint happy
             else:
-                osis, attributetext, attributes, isvalid = (
-                    rawosis,
-                    None,
-                    dict(),
-                    True,
-                )
+                osis, attributetext, attributes = (rawosis, None, dict())
             osis2 = osis
 
             # handle w tag attributes
@@ -2152,9 +2144,8 @@ def convert_to_osis(text, bookid="TEST"):
 
             return outtext
 
-        text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
-
-        if r"\fig" in text:
+        def figtags(text):
+            """Process fig tags."""
             text = text.replace(r"\fig ", "\n\\fig ")
             text = text.replace(r"\fig*", "\\fig*\n")
             tlines = text.split("\n")
@@ -2236,60 +2227,66 @@ def convert_to_osis(text, bookid="TEST"):
                         ]
                     )
 
-            text = "".join(tlines)
+            return "".join(tlines)
 
-        # Process usfm milestone quotation tags... up to 5 levels.
-        for i in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
-            if i in text:
-                for j in [
-                    r"\qt-",
-                    r"\qt1-",
-                    r"\qt2-",
-                    r"\qt3-",
-                    r"\qt4-",
-                    r"\qt5-",
-                ]:
-                    if j in text:
-                        text = text.replace(j, "\n{}".format(j))
-                text = text.replace(r"\*", "\\*\n")
-                tlines = text.split("\n")
+        def milestonequotes(text):
+            """Handle usfm milestone quotations."""
+            for _ in [
+                r"\qt-",
+                r"\qt1-",
+                r"\qt2-",
+                r"\qt3-",
+                r"\qt4-",
+                r"\qt5-",
+            ]:
+                if _ in text:
+                    text = text.replace(_, "\n{}".format(_))
+            text = text.replace(r"\*", "\\*\n")
+            tlines = text.split("\n")
 
-                for j in enumerate(tlines):
-                    # make sure we're processing milestone \qt tags
-                    if tlines[j[0]].endswith(r"\*"):
-                        if (
-                            tlines[j[0]].startswith(r"\qt-")
-                            or tlines[j[0]].startswith(r"\qt1-")
-                            or tlines[j[0]].startswith(r"\qt2-")
-                            or tlines[j[0]].startswith(r"\qt3-")
-                            or tlines[j[0]].startswith(r"\qt4-")
-                            or tlines[j[0]].startswith(r"\qt5-")
-                        ):
+            for i in enumerate(tlines):
+                # make sure we're processing milestone \qt tags
+                if tlines[i[0]].endswith(r"\*"):
+                    for j in (
+                        r"\qt-",
+                        r"\qt1-",
+                        r"\qt2-",
+                        r"\qt3-",
+                        r"\qt4-",
+                        r"\qt5-",
+                    ):
+                        if tlines[i[0]].startswith(j):
                             # replace with milestone osis tags
                             newline = ""
-                            tlines[j[0]] = (
-                                tlines[j[0]].strip().replace(r"\*", "")
+                            tlines[i[0]] = (
+                                tlines[i[0]].strip().replace(r"\*", "")
                             )
-                            tag, _, qttext = tlines[j[0]].partition(" ")
+                            tag, _, qttext = tlines[i[0]].partition(" ")
                             # milestone start tag
                             if tag.endswith(r"-s"):
                                 _, attributetext, attributes, isvalid = parseattributes(
                                     r"\qt-s", qttext
                                 )
+                                del isvalid, attributetext  # make pylint happy
                                 newline = r"<q"
-                                if "id" in attributes:
-                                    newline = "{}{}".format(
+                                newline = {
+                                    True: "{}{}".format(
                                         newline,
                                         r' sID="{}"'.format(attributes["id"]),
-                                    )
-                                if "who" in attributes:
-                                    newline = "{}{}".format(
+                                    ),
+                                    False: newline,
+                                }["id" in attributes]
+                                newline = {
+                                    True: "{}{}".format(
                                         newline,
                                         r' who="{}"'.format(attributes["who"]),
-                                    )
-                                qlevel = "1"
-                                if tag[3] in ["2", "3", "4", "5"]:
-                                    qlevel = tag[3]
+                                    ),
+                                    False: newline,
+                                }["who" in attributes]
+                                qlevel = {True: tag[3], False: "1"}[
+                                    tag[3] in ["2", "3", "4", "5"]
+                                ]
+
                                 newline = "{}{}{}".format(
                                     newline,
                                     ' level="{}"'.format(qlevel),
@@ -2301,14 +2298,16 @@ def convert_to_osis(text, bookid="TEST"):
                                     r"\qt-e", qttext
                                 )
                                 newline = r"<q"
-                                if "id" in attributes:
-                                    newline = "{}{}".format(
+                                newline = {
+                                    True: "{}{}".format(
                                         newline,
                                         r' eID="{}"'.format(attributes["id"]),
-                                    )
-                                qlevel = "1"
-                                if tag[3] in ["2", "3", "4", "5"]:
-                                    qlevel = tag[3]
+                                    ),
+                                    False: newline,
+                                }["id" in attributes]
+                                qlevel = {True: tag[3], False: "1"}[
+                                    tag[3] in ["2", "3", "4", "5"]
+                                ]
 
                                 # I don't know if I need the level attribute
                                 # on the milestone end tag. I put it here
@@ -2321,10 +2320,20 @@ def convert_to_osis(text, bookid="TEST"):
                                 )
                             # replace line with osis milestone tag
                             if newline != "":
-                                tlines[j[0]] = newline
-                # rejoin lines
-                text = "".join(tlines)
-                break
+                                tlines[i[0]] = newline
+            # rejoin lines
+            return "".join(tlines)
+
+        text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
+
+        if r"\fig" in text:
+            text = figtags(text)
+
+        # Process usfm milestone quotation tags... up to 5 levels.
+        for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
+            if _ in text:
+                text = milestonequotes(text)
+
         return text
 
     def ztags(text):
