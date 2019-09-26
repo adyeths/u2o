@@ -108,7 +108,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2019-9-22",  # THIS SCRIPT revision date
+    "DATE": "2019-9-26",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1567,10 +1567,10 @@ def markintroend(lines):
     to aid in adding div's to introduction sections.
 
     """
-    x = len(lines)
     i = 0
+    j = len(lines)
     intro = False
-    while i < x:
+    while i < j:
         tmp = lines[i].partition(" ")
         if tmp[0:3] == r"\ie":
             intro = False
@@ -1592,7 +1592,7 @@ def markintroend(lines):
             if intro:
                 intro = False
                 lines.insert(i, "\ufde1")
-                x += 1
+                j += 1
         i += 1
 
     if intro:
@@ -1676,14 +1676,14 @@ def convert_to_osis(text, bookid="TEST"):
         """
         line = text.partition(" ")
         if line[0] in IDTAGS.keys():
-            if IDTAGS[line[0]][0] == "":
-                text = "{}\ufdd0".format(
+            text = {
+                True: "{}\ufdd0".format(
                     IDTAGS[line[0]][1].format(line[2].strip())
-                )
-            else:
-                text = "{}{}{}\ufdd0".format(
+                ),
+                False: "{}{}{}\ufdd0".format(
                     IDTAGS[line[0]][0], line[2].strip(), IDTAGS[line[0]][1]
-                )
+                ),
+            }[IDTAGS[line[0]][0] == ""]
         elif line[0] in IDTAGS2:
             description.append(
                 '<description {} subType="x-{}">{}</description>'.format(
@@ -1768,13 +1768,11 @@ def convert_to_osis(text, bookid="TEST"):
 
             if line[0] == r"\periph":
                 # handle usfm attributes if present
-                if "|" in line[2]:
-                    osis, attributetext, attributes, isvalid = parseattributes(
-                        r"periph", line[2]
-                    )
-                    del isvalid  # make pylint happy
-                else:
-                    osis, attributetext, attributes = (line[2], None, dict())
+                osis, attributetext, attributes, isvalid = {
+                    True: parseattributes(r"periph", line[2]),
+                    False: (line[2], None, dict(), True),
+                }["|" in line[2]]
+                del isvalid  # make pylint happy
                 if attributetext is not None:
                     attributetext = "{}{}{}".format(
                         "<!-- USFM Attributes - ", attributetext, " -->"
@@ -2087,13 +2085,11 @@ def convert_to_osis(text, bookid="TEST"):
             rawosis = match.group("osis")
             attributetext = None
 
-            if "|" in rawosis:
-                osis, attributetext, attributes, isvalid = parseattributes(
-                    matchtag, rawosis
-                )
-                del isvalid  # make pylint happy
-            else:
-                osis, attributetext, attributes = (rawosis, None, dict())
+            osis, attributetext, attributes, isvalid = {
+                True: parseattributes(matchtag, rawosis),
+                False: (rawosis, None, dict(), True),
+            }["|" in rawosis]
+            del isvalid  # make pylint happy
             osis2 = osis
 
             # handle w tag attributes
@@ -2156,18 +2152,30 @@ def convert_to_osis(text, bookid="TEST"):
                     if len(tlines[i[0]][5:-5].split("|")) > 2:
                         fig = tlines[i[0]][5:-5].split("|")
                         figref = ""
-                        if fig[0]:
-                            fig[0] = "<!-- fig DESC - {} -->\n".format(fig[0])
-                        if fig[1]:
-                            fig[1] = ' src="{}"'.format(fig[1])
-                        if fig[2]:
-                            fig[2] = ' size="{}"'.format(fig[2])
-                        if fig[3]:
-                            fig[3] = "<!-- fig LOC - {} -->\n".format(fig[3])
-                        if fig[4]:
-                            fig[4] = ' rights="{}"'.format(fig[4])
-                        if fig[5]:
-                            fig[5] = "<caption>{}</caption>\n".format(fig[5])
+                        fig[0] = {
+                            True: "<!-- fig DESC - {} -->\n".format(fig[0]),
+                            False: fig[0],
+                        }[fig[0]]
+                        fig[1] = {
+                            True: ' src="{}"'.format(fig[1]),
+                            False: fig[1],
+                        }[fig[1]]
+                        fig[2] = {
+                            True: ' size="{}"'.format(fig[2]),
+                            False: fig[2],
+                        }[fig[2]]
+                        fig[3] = {
+                            True: "<!-- fig LOC - {} -->\n".format(fig[3]),
+                            False: fig[3],
+                        }[fig[3]]
+                        fig[4] = {
+                            True: ' rights="{}"'.format(fig[4]),
+                            False: fig[4],
+                        }[fig[4]]
+                        fig[5] = {
+                            True: "<caption>{}</caption>\n".format(fig[5]),
+                            False: fig[5],
+                        }[fig[5]]
                         # this is likely going to be very broken without
                         # further processing of the references.
                         if fig[6]:
@@ -2188,10 +2196,12 @@ def convert_to_osis(text, bookid="TEST"):
                             "copy": ' rights="{}"',
                         }
                         for _ in ["alt", "src", "size", "loc", "copy"]:
-                            if _ in figattr[2]:
-                                fig.append(figparts[_].format(figattr[2][_]))
-                            else:
-                                fig.append("")
+                            fig.append(
+                                {
+                                    True: figparts[_].format(figattr[2][_]),
+                                    False: "",
+                                }[_ in figattr[2]]
+                            )
                             # caption absent in new style fig attributes
                             fig.append("")
                             # this is likely going to be very broken without
@@ -3064,6 +3074,7 @@ def processfiles(args):
                 pool.close()
                 pool.join()
         except AttributeError:
+            # pylint: disable=no-member
             with closing(multiprocessing.Pool(numprocesses)) as pool:
                 results = pool.imap(doconvert, filelist)
                 pool.close()
