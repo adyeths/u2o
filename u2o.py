@@ -108,7 +108,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2019-9-27",  # THIS SCRIPT revision date
+    "DATE": "2020-1-7",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -828,6 +828,9 @@ SPECIALTEXT = {
     # ca and va tags... because simpler handling was needed...
     r"\ca": ('<milestone type="x-usfm-ca" n="', '" />'),
     r"\va": ('<milestone type="x-usfm-va" n="', '" />'),
+    # cp and vp tags... because simpler handling was needed...
+    r"\cp": ('<milestone type="x-usfm-cp" n="', '" />'),
+    r"\vp": ('<milestone type="x-usfm-vp" n="', '" />'),
 }
 
 # special features
@@ -2463,7 +2466,7 @@ def convert_to_osis(text, bookid="TEST"):
                 tmp = list(lines[i].split(" ", 2))
                 if len(tmp) < 3:
                     tmp.append("")
-                cnum, cnum2 = tmp[1], tmp[1]
+                cnum = tmp[1]
 
                 # nb fix...
                 if "<!--" in cnum and "nb -->" in tmp[2]:
@@ -2471,9 +2474,9 @@ def convert_to_osis(text, bookid="TEST"):
                     tmp[2] = "<!-- {}".format(tmp[2])
 
                 # get printed chapter character with chapter from \cp tag
-                if r"\cp " in lines[i]:
-                    cnum2 = CPRE.search(tmp[2]).group("num")
-                    tmp[2] = CPRE.sub("", tmp[2])
+                # if r"\cp " in lines[i]:
+                #     cnum2 = CPRE.search(tmp[2]).group("num")
+                #     tmp[2] = CPRE.sub("", tmp[2])
                 # get alternate chapter number from \ca tags
                 # this will be added to the chapter osisID
                 caid = ""
@@ -2495,7 +2498,7 @@ def convert_to_osis(text, bookid="TEST"):
                     lines[i] = "<chapter {} {} {} />{}".format(
                         'sID="{}.{}"'.format(bookid, cnum),
                         'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum2),
+                        'n="{}"'.format(cnum),
                         tmp[2],
                     )
                     chap = cnum
@@ -2508,7 +2511,7 @@ def convert_to_osis(text, bookid="TEST"):
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum2),
+                            'n="{}"'.format(cnum),
                             tmp[2],
                         )
                     else:
@@ -2516,7 +2519,7 @@ def convert_to_osis(text, bookid="TEST"):
                             '<chapter eID="{}.{}" />'.format(bookid, chap),
                             'sID="{}.{}"'.format(bookid, cnum),
                             'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum2),
+                            'n="{}"'.format(cnum),
                             tmp[2],
                         )
 
@@ -2535,12 +2538,12 @@ def convert_to_osis(text, bookid="TEST"):
                 tmp = list(lines[i].split(" ", 2))
                 if len(tmp) < 3:
                     tmp.append("")
-                vnum, vnum2 = tmp[1], tmp[1]
+                vnum = tmp[1]
 
                 # replace verse num with verse from \vp tag
-                if r"\vp " in lines[i]:
-                    vnum2 = VPRE.search(tmp[2]).group("num")
-                    tmp[2] = VPRE.sub("", tmp[2])
+                # if r"\vp " in lines[i]:
+                #     vnum2 = VPRE.search(tmp[2]).group("num")
+                #     tmp[2] = VPRE.sub("", tmp[2])
                 # add va to osis id.
                 vaid = ""
                 # Commented out since The SWORD Project can't handle this...
@@ -2592,7 +2595,7 @@ def convert_to_osis(text, bookid="TEST"):
                         chapmark,
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
-                        'n="{}"'.format(vnum2),
+                        'n="{}"'.format(vnum),
                         tmp[2],
                     )
                     verse = vnum
@@ -2601,7 +2604,7 @@ def convert_to_osis(text, bookid="TEST"):
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
                         'sID="{}.{}.{}"'.format(bookid, chap, vnum),
                         osisid,
-                        'n="{}"'.format(vnum2),
+                        'n="{}"'.format(vnum),
                         tmp[2],
                     )
                     verse = vnum
