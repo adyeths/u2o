@@ -61,6 +61,7 @@ This script is public domain. You may do whatever you want with it.
 #    uFDD3     - used at end of footnotes to help process \fp markers
 #
 #    uFDD4     - mark end of cl and sp tags
+#    uFDD5     - mark end of cp tags
 #
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
@@ -108,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2020-1-7",  # THIS SCRIPT revision date
+    "DATE": "2020-1-13",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1431,6 +1432,8 @@ def reflow(text):
         for _ in enumerate(textlines):
             if textlines[_[0]][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
                 textlines[_[0]] = "{}\uFDD4".format(textlines[_[0]])
+            elif textlines[_[0]][0:4] == r"\cp ":
+                textlines[_[0]] = "{}\uFDD5".format(textlines[_[0]])
         return "\n".join(textlines)
 
     def reflowpar(text):
@@ -1554,6 +1557,10 @@ def reflow(text):
     # fix newline issue
     if "\uFDD4" in text:
         text = text.replace("\uFDD4", "\n")
+
+    # add custom end marker for cp tags for easier processing
+    if "\uFDD5" in text:
+        text = text.replace("\uFDD5", r"\cp*")
 
     # done
     return text
