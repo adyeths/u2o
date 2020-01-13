@@ -2227,29 +2227,29 @@ def convert_to_osis(text, bookid="TEST"):
                         fig = tlines[i[0]][5:-5].split("|")
                         figref = ""
                         fig[0] = {
-                            True: "<!-- fig DESC - {} -->\n".format(fig[0]),
-                            False: fig[0],
-                        }[fig[0]]
+                            False: "<!-- fig DESC - {} -->\n".format(fig[0]),
+                            True: fig[0],
+                        }[not fig[0]]
                         fig[1] = {
-                            True: ' src="{}"'.format(fig[1]),
-                            False: fig[1],
-                        }[fig[1]]
+                            False: ' src="{}"'.format(fig[1]),
+                            True: fig[1],
+                        }[not fig[1]]
                         fig[2] = {
-                            True: ' size="{}"'.format(fig[2]),
-                            False: fig[2],
-                        }[fig[2]]
+                            False: ' size="{}"'.format(fig[2]),
+                            True: fig[2],
+                        }[not fig[2]]
                         fig[3] = {
-                            True: "<!-- fig LOC - {} -->\n".format(fig[3]),
-                            False: fig[3],
-                        }[fig[3]]
+                            False: "<!-- fig LOC - {} -->\n".format(fig[3]),
+                            True: fig[3],
+                        }[not fig[3]]
                         fig[4] = {
-                            True: ' rights="{}"'.format(fig[4]),
-                            False: fig[4],
-                        }[fig[4]]
+                            False: ' rights="{}"'.format(fig[4]),
+                            True: fig[4],
+                        }[not fig[4]]
                         fig[5] = {
-                            True: "<caption>{}</caption>\n".format(fig[5]),
-                            False: fig[5],
-                        }[fig[5]]
+                            False: "<caption>{}</caption>\n".format(fig[5]),
+                            True: fig[5],
+                        }[not fig[5]]
                         # this is likely going to be very broken without
                         # further processing of the references.
                         if fig[6]:
