@@ -2765,8 +2765,11 @@ def convert_to_osis(text, bookid="TEST"):
         i = len(lines)
         while i > 0:
             i -= 1
-            if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
-                lines[i], lines[i + 1] = (lines[i + 1], lines[i])
+            try:
+                if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
+                    lines[i], lines[i + 1] = (lines[i + 1], lines[i])
+            except IndexError:
+                pass
 
         # adjust placement of some verse end tags...
         for j in [
