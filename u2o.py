@@ -2348,9 +2348,12 @@ def convert_to_osis(text, bookid="TEST"):
                             tag, _, qttext = tlines[i[0]].partition(" ")
                             # milestone start tag
                             if tag.endswith(r"-s"):
-                                _, attributetext, attributes, isvalid = parseattributes(
-                                    r"\qt-s", qttext
-                                )
+                                (
+                                    _,
+                                    attributetext,
+                                    attributes,
+                                    isvalid,
+                                ) = parseattributes(r"\qt-s", qttext)
                                 del isvalid, attributetext  # make pylint happy
                                 newline = r"<q"
                                 newline = {
@@ -2378,9 +2381,12 @@ def convert_to_osis(text, bookid="TEST"):
                                 )
                             # milestone end tag
                             elif tag.endswith(r"-e"):
-                                _, attributetext, attributes, isvalid = parseattributes(
-                                    r"\qt-e", qttext
-                                )
+                                (
+                                    _,
+                                    attributetext,
+                                    attributes,
+                                    isvalid,
+                                ) = parseattributes(r"\qt-e", qttext)
                                 newline = r"<q"
                                 newline = {
                                     True: "{}{}".format(
@@ -2447,10 +2453,24 @@ def convert_to_osis(text, bookid="TEST"):
         def verserange(text):
             """Generate list for verse ranges."""
             low, high = text.split("-")
-            return {
-                True: [str(_) for _ in range(int(low), int(high) + 1)],
-                False: -1,
-            }[low.isdigit() and high.isdigit()]
+            retval = ""
+            try:
+                retval = [str(_) for _ in range(int(low), int(high) + 1)]
+            except ValueError:
+                end1 = ""
+                end2 = ""
+                if low[-1] in ["a", "b", "A", "B"]:
+                    end1 = low[-1]
+                    low = "".join(low[:-1])
+                if high[-1] in ["a", "b", "A", "B"]:
+                    end2 = high[-1]
+                    high = "".join(high[:-1])
+                retval = [str(_) for _ in range(int(low), int(high) + 1)]
+                if end1 != "":
+                    retval[0] = "!".join([retval[0], end1])
+                if end2 != "":
+                    retval[-1] = "!".join([retval[-1], end2])
+            return retval
 
         # chapter and verse numbers
         chap = ""
