@@ -2473,18 +2473,25 @@ def convert_to_osis(text, bookid="TEST"):
             return retval
 
         # chapter and verse numbers
+        closerlist = [
+            _
+            for _ in range(len(lines))
+            if lines[_].startswith(r"<closer")
+        ]
+        for i in reversed(closerlist):
+            lines[i-1] = " ".join([lines[i-1], lines[i]])
+            del lines[i]
+
         chap = ""
         verse = ""
         caid = ""
         haschap = False
         hasverse = False
-        hascloser = False
         cvlist = [
             _
             for _ in range(len(lines))
             if lines[_].startswith(r"\c ")
             or lines[_].startswith(r"\v ")
-            or lines[_].startswith(r"<closer")
         ]
         for i in cvlist:
             # ## chapter numbers
@@ -2530,25 +2537,13 @@ def convert_to_osis(text, bookid="TEST"):
                     )
                     chap = cnum
                 else:
-                    if not hascloser:
-                        lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
-                            '<verse eID="{}.{}.{}" />'.format(
-                                bookid, chap, verse
-                            ),
-                            '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'sID="{}.{}"'.format(bookid, cnum),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
-                            tmp[2],
-                        )
-                    else:
-                        lines[i] = "{}\n<chapter {} {} {} />{}".format(
-                            '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'sID="{}.{}"'.format(bookid, cnum),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
-                            tmp[2],
-                        )
+                    lines[i] = "{}\n<chapter {} {} {} />{}".format(
+                        '<chapter eID="{}.{}" />'.format(bookid, chap),
+                        'sID="{}.{}"'.format(bookid, cnum),
+                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                        'n="{}"'.format(cnum),
+                        tmp[2],
+                    )
 
                     chap = cnum
                     verse = ""
@@ -2643,7 +2638,7 @@ def convert_to_osis(text, bookid="TEST"):
                 verse = vnum
                 hascloser = True
 
-        if hasverse and not hascloser:
+        if hasverse:
             lines.append(
                 '<verse eID="{}.{}.{}" />'.format(bookid, chap, verse)
             )
