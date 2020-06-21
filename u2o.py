@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2020-1-13",  # THIS SCRIPT revision date
+    "DATE": "2020-6-21",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2811,6 +2811,8 @@ def convert_to_osis(text, bookid="TEST"):
             "<list",
             "<lb",
             "</list>",
+            "<title",
+            "<title",
             "<title",
             "<div",
             "</div>",
