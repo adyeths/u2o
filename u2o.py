@@ -2814,6 +2814,8 @@ def convert_to_osis(text, bookid="TEST"):
             "<title",
             "<title",
             "<title",
+            "<title",
+            "<title",
             "<div",
             "</div>",
         ]:
@@ -2824,6 +2826,10 @@ def convert_to_osis(text, bookid="TEST"):
             ]:
                 if lines[j - 1].startswith(i):
                     lines.insert(j - 1, lines.pop(j))
+                elif i == "<title":
+                    if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
+                        lines.insert(j - 1, lines.pop(j))
+
 
         for i in [
             "<lb ",
