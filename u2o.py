@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2020-6-21",  # THIS SCRIPT revision date
+    "DATE": "2020-6-23",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2474,12 +2474,10 @@ def convert_to_osis(text, bookid="TEST"):
 
         # chapter and verse numbers
         closerlist = [
-            _
-            for _ in range(len(lines))
-            if lines[_].startswith(r"<closer")
+            _ for _ in range(len(lines)) if lines[_].startswith(r"<closer")
         ]
         for i in reversed(closerlist):
-            lines[i-1] = " ".join([lines[i-1], lines[i]])
+            lines[i - 1] = " ".join([lines[i - 1], lines[i]])
             del lines[i]
 
         chap = ""
@@ -2490,8 +2488,7 @@ def convert_to_osis(text, bookid="TEST"):
         cvlist = [
             _
             for _ in range(len(lines))
-            if lines[_].startswith(r"\c ")
-            or lines[_].startswith(r"\v ")
+            if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
         ]
         for i in cvlist:
             # ## chapter numbers
@@ -2537,13 +2534,26 @@ def convert_to_osis(text, bookid="TEST"):
                     )
                     chap = cnum
                 else:
-                    lines[i] = "{}\n<chapter {} {} {} />{}".format(
-                        '<chapter eID="{}.{}" />'.format(bookid, chap),
-                        'sID="{}.{}"'.format(bookid, cnum),
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum),
-                        tmp[2],
-                    )
+                    if hasverse:
+                        lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
+                            '<verse eID="{}.{}.{}" />'.format(
+                                bookid, chap, verse
+                            ),
+                            '<chapter eID="{}.{}" />'.format(bookid, chap),
+                            'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                            'n="{}"'.format(cnum),
+                            tmp[2],
+                        )
+                        hasverse = False
+                    else:
+                        lines[i] = "{}\n<chapter {} {} {} />{}".format(
+                            '<chapter eID="{}.{}" />'.format(bookid, chap),
+                            'sID="{}.{}"'.format(bookid, cnum),
+                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                            'n="{}"'.format(cnum),
+                            tmp[2],
+                        )
 
                     chap = cnum
                     verse = ""
@@ -2621,6 +2631,7 @@ def convert_to_osis(text, bookid="TEST"):
                         tmp[2],
                     )
                     verse = vnum
+                    hasverse = True
                 else:
                     lines[i] = "<verse {} />\n<verse {} {} {} />{}".format(
                         'eID="{}.{}.{}"'.format(bookid, chap, verse),
@@ -2630,12 +2641,14 @@ def convert_to_osis(text, bookid="TEST"):
                         tmp[2],
                     )
                     verse = vnum
+                    hasverse = True
 
             elif lines[i].startswith(r"<closer"):
                 lines[i] = "<verse {} />\n{}".format(
                     'eID="{}.{}.{}"'.format(bookid, chap, verse), tmp[2]
                 )
                 verse = vnum
+                hasverse = False
                 hascloser = True
 
         if hasverse:
@@ -2829,7 +2842,6 @@ def convert_to_osis(text, bookid="TEST"):
                 elif i == "<title":
                     if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
                         lines.insert(j - 1, lines.pop(j))
-
 
         for i in [
             "<lb ",
