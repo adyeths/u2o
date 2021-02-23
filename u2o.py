@@ -2182,7 +2182,7 @@ def convert_to_osis(text, bookid="TEST"):
                     strong1 = 'lemma="{}"'.format(tmp)
                     strong2 = ""
                 if "x-morph" in attributes.keys():
-                    if tag == STRONGSTAG:
+                    if tag2 is not None:
                         strong2 = ' morph="{}"'.format(attributes["x-morph"])
 
             # TODO: improve processing of tag attributes
