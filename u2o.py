@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2020-6-23",  # THIS SCRIPT revision date
+    "DATE": "2021-05-09",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1668,1362 +1668,1263 @@ def parseattributes(tag, tagtext):
 
 
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
+
+def c2o_preprocess(text):
+    """Preprocess text."""
+    # preprocessing...
+    for _ in (
+        # special xml characters
+        ("&", "&amp;"),
+        ("<", "&lt;"),
+        (">", "&gt;"),
+        # special spacing characters
+        ("~", "\u00a0"),
+        (r"//", '<lb type="x-optional" />'),
+        (r"\pb ", '<milestone type="pb" />'),
+        (r"\pb", '<milestone type="pb" />'),
+    ):
+        if _[0] in text:
+            text = text.replace(_[0], _[1])
+
+    return text.strip()
+
+
+def c2o_identification(text, description):
+    """
+    Process identification tags.
+
+    id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore.
+
+    """
+    line = text.partition(" ")
+    if line[0] in IDTAGS.keys():
+        text = {
+            True: "{}\ufdd0".format(
+                IDTAGS[line[0]][1].format(line[2].strip())
+            ),
+            False: "{}{}{}\ufdd0".format(
+                IDTAGS[line[0]][0], line[2].strip(), IDTAGS[line[0]][1]
+            ),
+        }[IDTAGS[line[0]][0] == ""]
+    elif line[0] in IDTAGS2:
+        description.append(
+            '<description {} subType="x-{}">{}</description>'.format(
+                'type="usfm"', line[0][1:], line[2].strip()
+            )
+        )
+        text = ""
+        # fix problems with url's in rem lines resulting from processing
+        # of special spacing in preprocessing section.
+        if '<lb type="x-optional" />' in description[-1]:
+            description[-1] = description[-1].replace(
+                '<lb type="x-optional" />', "//"
+            )
+    return text, description
+
+
+def c2o_titlepar(text, bookid):
+    """Process title and paragraph tags."""
+    # local copies of global variables.
+    partags = PARTAGS
+    othertags = OTHERTAGS
+    celltags = CELLTAGS
+    titletags = TITLETAGS
+
+    def titles_and_sections(line):
+        """Process titles and sections."""
+        # make sure titles don't end with a \b or an \ib tag
+        line[2] = line[2].strip()
+        if line[2].endswith(r"\b"):
+            line[2] = line[2][:-2]
+        elif line[2].endswith(r"\ib"):
+            line[2] = line[2][:-3]
+
+        # is there ever a reason for a \b tag to appear in a title?
+        # if there is, I will have to add \b processing here.
+
+        if line[0] == r"\periph":
+            # handle usfm attributes if present
+            osis, attributetext, attributes, isvalid = {
+                True: parseattributes(r"periph", line[2]),
+                False: (line[2], None, dict(), True),
+            }["|" in line[2]]
+            del isvalid  # make pylint happy
+            if attributetext is not None:
+                attributetext = "{}{}{}".format(
+                    "<!-- USFM Attributes - ", attributetext, " -->"
+                )
+            starttag = titletags[line[0]][0]
+            endtag = titletags[line[0]][1]
+
+            # process id attribute
+            if "id" in attributes:
+                idattribute = ' n="{}">'.format(attributes["id"])
+                starttag = starttag.replace(">", idattribute)
+
+            # finished processing periph now...
+            text = "\ufdd0<!-- {} -->{}{}{}{}\ufdd0".format(
+                line[0].replace("\\", ""),
+                starttag,
+                osis.strip(),
+                endtag,
+                attributetext,
+            )
+        else:
+            text = "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
+                line[0].replace("\\", ""),
+                titletags[line[0]][0],
+                line[2].strip(),
+                titletags[line[0]][1],
+            )
+        return text
+
+    def paragraphs(line):
+        """Process paragraph tags."""
+        pstart, pend = partags[line[0]]
+        btag = ""
+        if pstart.startswith("<p"):
+            pstart = "{}\ufdd0".format(pstart)
+            pend = "\ufdd0{}\ufdd0".format(pend)
+
+        text = "{}{}".format(pstart, line[2].strip())
+        # handle b  and ib tags in paragraphs and poetry...
+        if text.endswith("\\b") or text.endswith("\\ib"):
+            text = text.rstrip("\\b")
+            text = text.rstrip("\\ib")
+            btag = "<!-- b -->"
+        elif r"\b " in text or r"\ib" in text:
+            text = text.replace("\\b ", "<!-- b -->")
+            text = text.replace("\\ib ", "<!-- b -->")
+
+        # finish paragraphs.
+        return "{}{}{}\ufdd0".format(text, pend, btag)
+
+    def tables(line):
+        """Process tables."""
+        # make sure table rows don't end with b tags...
+        line[2] = line[2].strip().rstrip("\\b").strip()
+
+        line[2] = line[2].replace(r"\th", "\n\\th")
+        line[2] = line[2].replace(r"\tc", "\n\\tc")
+        cells = line[2].split("\n")
+        for i in enumerate(cells):
+            tmp = list(cells[i[0]].partition(" "))
+            if tmp[0] in celltags.keys():
+                cells[i[0]] = "{}{}{}".format(
+                    celltags[tmp[0]][0],
+                    tmp[2].strip(),
+                    celltags[tmp[0]][1],
+                )
+        return "<row>{}</row>\ufdd0".format("".join(cells))
+
+    def selah(text):
+        """Handle selah."""
+        tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
+        selahfix = [_ for _ in tmp.split("\n") if _ != ""]
+        for _ in enumerate(selahfix):
+            if (
+                selahfix[_[0]].startswith(r"<l")
+                and "<selah>" in selahfix[_[0]]
+            ):
+                selahfix[_[0]] = selahfix[_[0]].replace(
+                    "<selah>", '</l><l type="selah">'
+                )
+                selahfix[_[0]] = selahfix[_[0]].replace("</selah>", "</l><l>")
+                if "<l> </l>" in selahfix[_[0]]:
+                    selahfix[_[0]] = selahfix[_[0]].replace("<l> </l>", "")
+                if "<l>  </l>" in selahfix[_[0]]:
+                    selahfix[_[0]] = selahfix[_[0]].replace("<l>  </l>", "")
+        for _ in enumerate(selahfix):
+            if "<selah>" in selahfix[_[0]] or "</selah>" in selahfix[_[0]]:
+                selahfix[_[0]] = selahfix[_[0]].replace(
+                    "<selah>", '<lg><l type="selah">'
+                )
+                selahfix[_[0]] = selahfix[_[0]].replace(
+                    "</selah>", "</l></lg>"
+                )
+        return " ".join(selahfix)
+
+    # add periph tag to titletags if book being processed
+    # is a  peripheral or private use book.
+    if bookid in [
+        "FRONT",
+        "INTRODUCTION",
+        "BACK",
+        "X-OTHER",
+        "XXA",
+        "XXB",
+        "XXC",
+        "XXD",
+        "XXE",
+        "XXF",
+        "XXG",
+    ]:
+        titletags[r"\periph"] = ('<title type="main">', "</title>")
+
+    # ################################################################### #
+    # NOTE: I've not seen any kind of documentation to suggest that usage
+    #       of the usfm \d tag outside of psalms is valid.
+    #
+    #       Additionally every other converter that I've looked at does not
+    #       make a special exception for \d tags outside of psalms.
+    #       Neither the deprecated perl script nor the currently preferred
+    #       python script hosted by crosswire.org do this. Haiola does not
+    #       do this. Bibledit does not do this.
+    #
+    #       Anyway, it takes 2 lines. It was trivial. So, against my better
+    #       judgment I've provided an implementation of this change as was
+    #       requested.
+    #
+    #       Uncomment the next 2 lines of code to enable handling of
+    #       incorrect use of this tag.
+    #
+    # if bookid != "Ps":
+    #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
+    # ################################################################### #
+
+    line = list(text.partition(" "))
+
+    # process titles and sections
+    if line[0] in titletags:
+        text = titles_and_sections(line)
+
+    # process paragraphs
+    elif line[0] in partags:
+        text = paragraphs(line)
+
+    # process tables
+    elif line[0] == r"\tr":
+        text = tables(line)
+
+    # other title, paragraph, intro tags
+    for _ in othertags.keys():
+        text = text.replace(_, othertags[_])
+
+    # fix selah
+    if "<selah>" in text:
+        text = selah(text)
+
+    return text
+
+
+def c2o_fixgroupings(lines):
+    """Fix linegroups in poetry, lists, etc."""
+    # append a blank line. (needed in some cases)
+    lines.append("")
+
+    def btags(lines):
+        """Handle b tags."""
+        for _ in enumerate(lines):
+            if "<!-- b -->" in lines[_[0]]:
+                if lines[_[0]][:2] in ["<l", "<p"]:
+                    lines[_[0]] = lines[_[0]].replace(
+                        "<!-- b -->", '<lb type="x-p" />'
+                    )
+                else:
+                    lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
+        return lines
+
+    def lgtags(lines):
+        """Handle lg tag groupings."""
+        inlg = False
+        for _ in enumerate(lines):
+            if lines[_[0]].startswith("<l "):
+                if not inlg:
+                    lines[_[0]] = "<lg>\ufdd0{}".format(lines[_[0]])
+                    inlg = True
+            else:
+                if inlg:
+                    lines[_[0] - 1] = "{}\ufdd0</lg>\ufdd0".format(
+                        lines[_[0] - 1]
+                    )
+                    inlg = False
+        return lines
+
+    def listtags(lines):
+        """Handle list tag groupings."""
+        inlist = False
+        for _ in enumerate(lines):
+            if lines[_[0]].startswith("<item "):
+                if not inlist:
+                    lines[_[0]] = "<list>\ufdd0{}".format(lines[_[0]])
+                    inlist = True
+            else:
+                if inlist:
+                    lines[_[0] - 1] = "{}\ufdd0</list>\ufdd0".format(
+                        lines[_[0] - 1]
+                    )
+                    inlist = False
+        return lines
+
+    def tabletags(lines):
+        """Handle table tag groupings."""
+        intable = False
+        for _ in enumerate(lines):
+            if lines[_[0]].startswith("<row"):
+                if not intable:
+                    lines[_[0]] = "\ufdd0<table>\ufdd0{}".format(lines[_[0]])
+                    intable = True
+            else:
+                if intable:
+                    lines[_[0] - 1] = "{}\ufdd0</table>\ufdd0".format(
+                        lines[_[0] - 1]
+                    )
+                    intable = False
+        return lines
+
+    def introductions(lines):
+        """Encapsulate introductions in divs."""
+        for _ in enumerate(lines):
+            if lines[_[0]] == "\ufde0":
+                lines[_[0]] = '<div type="introduction">\ufdd0'
+            elif lines[_[0]] == "\ufde1":
+                lines[_[0]] = "</div>\ufdd0"
+            elif lines[_[0]].endswith("\ufde1"):
+                lines[_[0]] = "{}</div>\ufdd0".format(
+                    lines[_[0]].replace("\ufde1", "")
+                )
+        return lines
+
+    # process b tags...
+    lines = btags(lines)
+
+    # add breaks before chapter and verse tags
+    for _ in enumerate(lines):
+        lines[_[0]] = lines[_[0]].replace(r"\c ", "\ufdd0\\c ")
+        lines[_[0]] = lines[_[0]].replace(r"\v ", "\ufdd0\\v ")
+
+    # add missing lg tags
+    lines = lgtags(lines)
+
+    # add missing list tags
+    lines = listtags(lines)
+
+    # add missing table tags
+    lines = tabletags(lines)
+
+    # encapsulate introductions inside div's
+    lines = introductions(lines)
+
+    return lines
+
+
+def c2o_specialtext(text):
+    """
+    Process special text and character styles.
+
+    add, add*, bk, bk*, dc, dc*, k, k*, lit, nd, nd*, ord, ord*, pn, pn*,
+    qt, qt*, sig, sig*, sls, sls*, tl, tl*, wj, wj*
+
+    em, em*, bd, bd*, it, it*, bdit, bdit*, no, no*, sc, sc*
+
+
+    * lit tags are handled in the titlepar function
+
+    """
+
+    def simplerepl(match):
+        """Simple regex replacement helper function."""
+        tag = SPECIALTEXT[match.group("tag")]
+        return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
+
+    text = SPECIALTEXTRE.sub(simplerepl, text, 0)
+    # Make sure all nested tags are processed.
+    # In order to avoid getting stuck here we abort
+    # after a maximum of 5 attempts. (5 was chosen arbitrarily)
+    nestcount = 0
+    while "\\" in text:
+        nestcount += 1
+        text = SPECIALTEXTRE.sub(simplerepl, text, 0)
+        if nestcount > 5:
+            break
+
+    return text
+
+
+def c2o_noterefmarkers(text):
+    """Process footnote and cross reference markers."""
+
+    def notefix(notetext):
+        """Additional footnote and cross reference tag processing."""
+
+        def notefixsub(fnmatch):
+            """Simple regex replacement helper function."""
+            tag = NOTETAGS2[fnmatch.groups()[0]]
+            txt = fnmatch.groups()[1]
+            return "".join([tag[0], txt, tag[1]])
+
+        notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
+        for _ in [
+            r"\fm*",
+            r"\fdc*",
+            r"\fr*",
+            r"\fk*",
+            r"\fq*",
+            r"\fqa*",
+            r"\fl*",
+            r"\fv*",
+            r"\ft*",
+            r"\xo*",
+            r"\xk*",
+            r"\xq*",
+            r"\xt*",
+            r"\xot*",
+            r"\xnt*",
+            r"\xdc*",
+            r"\+fm*",
+            r"\+fdc*",
+            r"\+fr*",
+            r"\+fk*",
+            r"\+fq*",
+            r"\+fqa*",
+            r"\+fl*",
+            r"\+fv*",
+            r"\+ft*",
+            r"\+xo*",
+            r"\+xk*",
+            r"\+xq*",
+            r"\+xt*",
+            r"\+xot*",
+            r"\+xnt*",
+            r"\+xdc*",
+        ]:
+            if _ in notetext:
+                notetext = notetext.replace(_, "")
+        return notetext
+
+    def simplerepl(match):
+        """Simple regex replacement helper function."""
+        tag = NOTETAGS[match.group("tag")]
+        notetext = match.group("osis").replace("\n", " ")
+        if "<transChange" in notetext:
+            notetext = notetext.replace(
+                '<transChange type="added">',
+                '<seg><transChange type="added">',
+            )
+            notetext = notetext.replace(
+                "</transChange>", "</transChange></seg>"
+            )
+        return "{}{}{}".format(tag[0], notetext, tag[1])
+
+    text = NOTERE.sub(simplerepl, text, 0)
+
+    # process additional footnote tags if present
+    for _ in [r"\f", r"\x", r"\+f", r"\+x"]:
+        if _ in text:
+            text = notefix(text)
+
+    # handle fp tags
+    if r"\fp " in text:
+        # xmllint says this works and validates.
+        text = text.replace("\uFDD2", "<p>")
+        text = text.replace("\uFDD3", "</p>")
+        text = text.replace(r"\fp ", r"</p><p>")
+    else:
+        text = text.replace("\uFDD2", "").replace("\uFDD3", "")
+
+    # study bible index categories
+    if r"\cat " in text:
+        text = text.replace(r"\cat ", r'<index index="category" level1="')
+        text = text.replace(r"\cat*", r'" />')
+
+    # return our processed text
+    return text
+
+
+def c2o_specialfeatures(text):
+    """Process special features."""
+
+    def simplerepl(match):
+        """Simple regex replacement helper function."""
+        matchtag = match.group("tag")
+        tag = FEATURETAGS[matchtag]
+        rawosis = match.group("osis")
+        attributetext = None
+
+        osis, attributetext, attributes, isvalid = {
+            True: parseattributes(matchtag, rawosis),
+            False: (rawosis, None, dict(), True),
+        }["|" in rawosis]
+        del isvalid  # make pylint happy
+        osis2 = osis
+
+        # handle w tag attributes
+        tag2 = None
+        if matchtag in [r"\w", r"\+w"]:
+            if "lemma" in attributes.keys():
+                osis2 = attributes["lemma"]
+            if "strong" in attributes.keys():
+                tag2 = STRONGSTAG
+                tmp = " ".join(
+                    [
+                        "strong:{}".format(_.strip())
+                        for _ in attributes["strong"].split(",")
+                    ]
+                )
+                strong1 = 'lemma="{}"'.format(tmp)
+                strong2 = ""
+            if "x-morph" in attributes.keys():
+                if tag2 is not None:
+                    strong2 = ' morph="{}"'.format(attributes["x-morph"])
+
+        # TODO: improve processing of tag attributes
+
+        if tag[0] == "" and tag2 is None:
+            # limited filtering of index entry contents...
+            if '<seg type="x-nested"><transChange type="added">' in osis2:
+                osis2 = osis2.replace(
+                    '<seg type="x-nested"><transChange type="added">', ""
+                )
+                osis2 = osis2.replace("</transChange></seg>", "")
+            outtext = "{}{}".format(osis, tag[1].format(osis2))
+        elif tag2 is not None:
+            # process strongs
+            outtext = "{}{}{}".format(
+                tag2[0].format(strong1, strong2), osis, tag2[1]
+            )
+        else:
+            outtext = "{}{}{}".format(tag[0], osis, tag[1])
+
+        if attributetext is not None:
+            # problems can occur when strongs numbers are present...
+            # this avoids those problems.
+            if matchtag not in [r"\w", r"\+w"]:
+                outtext = "{}{}".format(
+                    outtext,
+                    "<!-- USFM Attributes: {} -->".format(attributetext),
+                )
+
+        return outtext
+
+    def figtags(text):
+        """Process fig tags."""
+        text = text.replace(r"\fig ", "\n\\fig ")
+        text = text.replace(r"\fig*", "\\fig*\n")
+        tlines = text.split("\n")
+        for i in enumerate(tlines):
+            if tlines[i[0]].startswith(r"\fig "):
+                # old style \fig handling
+                # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
+                if len(tlines[i[0]][5:-5].split("|")) > 2:
+                    fig = tlines[i[0]][5:-5].split("|")
+                    figref = ""
+                    fig[0] = {
+                        False: "<!-- fig DESC - {} -->\n".format(fig[0]),
+                        True: fig[0],
+                    }[not fig[0]]
+                    fig[1] = {
+                        False: ' src="{}"'.format(fig[1]),
+                        True: fig[1],
+                    }[not fig[1]]
+                    fig[2] = {
+                        False: ' size="{}"'.format(fig[2]),
+                        True: fig[2],
+                    }[not fig[2]]
+                    fig[3] = {
+                        False: "<!-- fig LOC - {} -->\n".format(fig[3]),
+                        True: fig[3],
+                    }[not fig[3]]
+                    fig[4] = {
+                        False: ' rights="{}"'.format(fig[4]),
+                        True: fig[4],
+                    }[not fig[4]]
+                    fig[5] = {
+                        False: "<caption>{}</caption>\n".format(fig[5]),
+                        True: fig[5],
+                    }[not fig[5]]
+                    # this is likely going to be very broken without
+                    # further processing of the references.
+                    if fig[6]:
+                        figref = "<reference {}>{}</reference>\n".format(
+                            'type="annotateRef"', fig[6]
+                        )
+                        fig[6] = ' annotateRef="{}"'.format(fig[6])
+
+                # new style \fig handling
+                else:
+                    figattr = parseattributes(r"\fig", tlines[i[0]][5:-5])
+                    fig = []
+                    figparts = {
+                        "alt": "<!-- fig ALT - {} -->\n",
+                        "src": ' src="{}"',
+                        "size": ' size="{}"',
+                        "loc": "<!-- fig LOC - {} -->\n",
+                        "copy": ' rights="{}"',
+                    }
+                    for _ in ["alt", "src", "size", "loc", "copy"]:
+                        fig.append(
+                            {
+                                True: figparts[_].format(figattr[2][_]),
+                                False: "",
+                            }[_ in figattr[2]]
+                        )
+                        # caption absent in new style fig attributes
+                        fig.append("")
+                        # this is likely going to be very broken without
+                        # further processing of the references.
+                        if "ref" in figattr[2]:
+                            figref = "{}{}{}\n".format(
+                                '<reference type="annotateRef">',
+                                figattr[2]["ref"],
+                                "</reference>\n",
+                            )
+                            fig.append(
+                                ' annotateRef="{}"'.format(figattr[2]["ref"])
+                            )
+                        else:
+                            figref = ""
+                            fig.append("")
+                # build our osis figure tag
+                tlines[i[0]] = "".join(
+                    [
+                        fig[0],
+                        fig[3],
+                        "<figure",
+                        fig[1],
+                        fig[2],
+                        fig[4],
+                        fig[6],
+                        ">\n",
+                        figref,
+                        fig[5],
+                        "</figure>",
+                    ]
+                )
+
+        return "".join(tlines)
+
+    def milestonequotes(text):
+        """Handle usfm milestone quotations."""
+        for _ in [
+            r"\qt-",
+            r"\qt1-",
+            r"\qt2-",
+            r"\qt3-",
+            r"\qt4-",
+            r"\qt5-",
+        ]:
+            if _ in text:
+                text = text.replace(_, "\n{}".format(_))
+        text = text.replace(r"\*", "\\*\n")
+        tlines = text.split("\n")
+
+        for i in enumerate(tlines):
+            # make sure we're processing milestone \qt tags
+            if tlines[i[0]].endswith(r"\*"):
+                for j in (
+                    r"\qt-",
+                    r"\qt1-",
+                    r"\qt2-",
+                    r"\qt3-",
+                    r"\qt4-",
+                    r"\qt5-",
+                ):
+                    if tlines[i[0]].startswith(j):
+                        # replace with milestone osis tags
+                        newline = ""
+                        tlines[i[0]] = tlines[i[0]].strip().replace(r"\*", "")
+                        tag, _, qttext = tlines[i[0]].partition(" ")
+                        # milestone start tag
+                        if tag.endswith(r"-s"):
+                            (
+                                _,
+                                attributetext,
+                                attributes,
+                                isvalid,
+                            ) = parseattributes(r"\qt-s", qttext)
+                            del isvalid, attributetext  # make pylint happy
+                            newline = r"<q"
+                            newline = {
+                                True: "{}{}".format(
+                                    newline,
+                                    r' sID="{}"'.format(attributes["id"]),
+                                ),
+                                False: newline,
+                            }["id" in attributes]
+                            newline = {
+                                True: "{}{}".format(
+                                    newline,
+                                    r' who="{}"'.format(attributes["who"]),
+                                ),
+                                False: newline,
+                            }["who" in attributes]
+                            qlevel = {True: tag[3], False: "1"}[
+                                tag[3] in ["2", "3", "4", "5"]
+                            ]
+
+                            newline = "{}{}{}".format(
+                                newline,
+                                ' level="{}"'.format(qlevel),
+                                r" />",
+                            )
+                        # milestone end tag
+                        elif tag.endswith(r"-e"):
+                            (
+                                _,
+                                attributetext,
+                                attributes,
+                                isvalid,
+                            ) = parseattributes(r"\qt-e", qttext)
+                            newline = r"<q"
+                            newline = {
+                                True: "{}{}".format(
+                                    newline,
+                                    r' eID="{}"'.format(attributes["id"]),
+                                ),
+                                False: newline,
+                            }["id" in attributes]
+                            qlevel = {True: tag[3], False: "1"}[
+                                tag[3] in ["2", "3", "4", "5"]
+                            ]
+
+                            # I don't know if I need the level attribute
+                            # on the milestone end tag. I put it here
+                            # just to be sure though. I will remove it
+                            # later if it doesn't belong here.
+                            newline = "{}{}{}".format(
+                                newline,
+                                ' level="{}"'.format(qlevel),
+                                r" />",
+                            )
+                        # replace line with osis milestone tag
+                        if newline != "":
+                            tlines[i[0]] = newline
+        # rejoin lines
+        return "".join(tlines)
+
+    text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
+
+    if r"\fig" in text:
+        text = figtags(text)
+
+    # Process usfm milestone quotation tags... up to 5 levels.
+    for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
+        if _ in text:
+            text = milestonequotes(text)
+
+    return text
+
+
+def c2o_ztags(text):
+    """Process z tags that have both a start and end marker."""
+
+    def simplerepl(match):
+        """Simple regex replacement helper function."""
+        return '<seg type="x-usfm-z{}">{}</seg>'.format(
+            match.group("tag").replace(r"\z", ""), match.group("osis")
+        )
+
+    text = ZTAGSRE.sub(simplerepl, text, 0)
+    # milestone z tags… this may need more work…
+    if r"\z" in text:
+        words = text.split(" ")
+        for i in enumerate(words):
+            if i[1].startswith(r"\z"):
+                words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
+                    i[1].replace(r"\z", "")
+                )
+        text = " ".join(words)
+    return text
+
+
+def c2o_chapverse(lines, bookid):
+    """Process chapter and verse tags."""
+
+    def verserange(text):
+        """Generate list for verse ranges."""
+        low, high = text.split("-")
+        retval = ""
+        try:
+            retval = [str(_) for _ in range(int(low), int(high) + 1)]
+        except ValueError:
+            end1 = ""
+            end2 = ""
+            if low[-1] in ["a", "b", "A", "B"]:
+                end1 = low[-1]
+                low = "".join(low[:-1])
+            if high[-1] in ["a", "b", "A", "B"]:
+                end2 = high[-1]
+                high = "".join(high[:-1])
+            retval = [str(_) for _ in range(int(low), int(high) + 1)]
+            if end1 != "":
+                retval[0] = "!".join([retval[0], end1])
+            if end2 != "":
+                retval[-1] = "!".join([retval[-1], end2])
+        return retval
+
+    # chapter and verse numbers
+    closerlist = [
+        _ for _ in range(len(lines)) if lines[_].startswith(r"<closer")
+    ]
+    for i in reversed(closerlist):
+        lines[i - 1] = " ".join([lines[i - 1], lines[i]])
+        del lines[i]
+
+    chap = ""
+    verse = ""
+    caid = ""
+    haschap = False
+    hasverse = False
+    cvlist = [
+        _
+        for _ in range(len(lines))
+        if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
+    ]
+    for i in cvlist:
+        # ## chapter numbers
+        if lines[i].startswith(r"\c "):
+            haschap = True
+            tmp = list(lines[i].split(" ", 2))
+            if len(tmp) < 3:
+                tmp.append("")
+            cnum = tmp[1]
+
+            # nb fix...
+            if "<!--" in cnum and "nb -->" in tmp[2]:
+                cnum = cnum.replace("<!--", "").strip()
+                tmp[2] = "<!-- {}".format(tmp[2])
+
+            caid = ""
+
+            # generate chapter number
+            if chap == "":
+                lines[i] = "<chapter {} {} {} />{}".format(
+                    'sID="{}.{}"'.format(bookid, cnum),
+                    'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                    'n="{}"'.format(cnum),
+                    tmp[2],
+                )
+                chap = cnum
+            else:
+                if hasverse:
+                    lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
+                        '<verse eID="{}.{}.{}" />'.format(bookid, chap, verse),
+                        '<chapter eID="{}.{}" />'.format(bookid, chap),
+                        'sID="{}.{}"'.format(bookid, cnum),
+                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                        'n="{}"'.format(cnum),
+                        tmp[2],
+                    )
+                    hasverse = False
+                else:
+                    lines[i] = "{}\n<chapter {} {} {} />{}".format(
+                        '<chapter eID="{}.{}" />'.format(bookid, chap),
+                        'sID="{}.{}"'.format(bookid, cnum),
+                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
+                        'n="{}"'.format(cnum),
+                        tmp[2],
+                    )
+
+                chap = cnum
+                verse = ""
+
+        # ## verse numbers
+        # BUG?: \va tags won't be handled unless lines start with a \v tag
+        elif lines[i].startswith(r"\v "):
+
+            # test for books with only one chapter
+            if bookid in ONECHAP and haschap is False:
+                chap = "1"
+
+            hasverse = True
+            tmp = list(lines[i].split(" ", 2))
+            if len(tmp) < 3:
+                tmp.append("")
+            vnum = tmp[1]
+
+            vaid = ""
+
+            # handle verse ranges
+            if "-" in vnum:
+                try:
+                    vlist = verserange(vnum)
+                    for j in enumerate(vlist):
+                        vlist[j[0]] = "{}.{}.{}".format(
+                            bookid, chap, vlist[j[0]]
+                        )
+                    osisid = 'osisID="{}{}"'.format(" ".join(vlist), vaid)
+                except TypeError:
+                    vnum = vnum.strip("-")
+                    osisid = 'osisID="{}.{}.{}{}"'.format(
+                        bookid, chap, vnum, vaid
+                    )
+            else:
+                osisid = 'osisID="{}.{}.{}{}"'.format(bookid, chap, vnum, vaid)
+
+            # generate verse tag
+            if verse == "":
+                # handle single chapter books without chapter marker
+                if chap == "1" and haschap is False:
+                    chapmark = "<chapter {} {} {} />\n".format(
+                        'sID="{}.1"'.format(bookid),
+                        'osisID="{}.1{}"'.format(bookid, caid),
+                        'n="1"',
+                    )
+                    haschap = True
+                else:
+                    chapmark = ""
+
+                lines[i] = "{}<verse {} {} {} />{}".format(
+                    chapmark,
+                    'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                    osisid,
+                    'n="{}"'.format(vnum),
+                    tmp[2],
+                )
+                verse = vnum
+                hasverse = True
+            else:
+                lines[i] = "<verse {} />\n<verse {} {} {} />{}".format(
+                    'eID="{}.{}.{}"'.format(bookid, chap, verse),
+                    'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                    osisid,
+                    'n="{}"'.format(vnum),
+                    tmp[2],
+                )
+                verse = vnum
+                hasverse = True
+
+        elif lines[i].startswith(r"<closer"):
+            lines[i] = "<verse {} />\n{}".format(
+                'eID="{}.{}.{}"'.format(bookid, chap, verse), tmp[2]
+            )
+            verse = vnum
+            hasverse = False
+            hascloser = True
+
+    if hasverse:
+        lines.append('<verse eID="{}.{}.{}" />'.format(bookid, chap, verse))
+    if haschap:
+        lines.append('<chapter eID="{}.{}" />'.format(bookid, chap))
+
+    return lines
+
+
+def c2o_processwj2(lines):
+    """
+    Alternate processing of wj tags.
+
+    This attempts to insert q start and end tags in appropriate locations
+    in order to avoid crossing container boundaries.
+
+    """
+    # get lists of tags where lines need to be broken for processing
+    wjstarttags = set()
+    wjendtags = set()
+    for _ in TITLETAGS:
+        if TITLETAGS[_][0] != "" and TITLETAGS[_][1] != "":
+            wjstarttags.add(TITLETAGS[_][0].strip())
+            wjendtags.add(TITLETAGS[_][1].strip())
+    for _ in PARTAGS:
+        if PARTAGS[_][0] != "" and PARTAGS[_][1] != "":
+            wjstarttags.add(PARTAGS[_][0].strip())
+            wjendtags.add(PARTAGS[_][1].strip())
+
+    # prepare for processing by joining lines together
+    text = "\ufdd1".join(lines)
+
+    # split words of jesus from the rest of the text.
+    text = text.replace("\\wj ", "\n\\wj ")
+    text = text.replace("\\wj*", "\\wj*\n ")
+    lines = text.split("\n")
+
+    # process words of Jesus.
+    for i in enumerate(lines):
+        if lines[i[0]].startswith(r"\wj "):
+            # Add initial start and end q tags
+            lines[i[0]] = lines[i[0]].replace(
+                r"\wj ", '<q who="Jesus" marker="">'
+            )
+            lines[i[0]] = lines[i[0]].replace(r"\wj*", "</q>")
+
+            # add additional closing and opening q tags
+            for _ in wjstarttags:
+                lines[i[0]] = lines[i[0]].replace(
+                    _, '{}<q who="Jesus" marker="">'.format(_)
+                )
+            for _ in wjendtags:
+                lines[i[0]] = lines[i[0]].replace(_, "</q>{}".format(_))
+
+    # rejoin lines, then resplit and return processed lines...
+    text = "".join(lines)
+    return text.split("\ufdd1")
+
+
+def c2o_postprocess(lines):
+    """Attempt to fix some formatting issues."""
+    # resplit lines for post processing,
+    # removing leading and trailing whitespace, and b comments
+    lines = [
+        _.strip()
+        for _ in "\n".join(lines).split("\n")
+        if _.strip() != "" and _.strip() != "<!-- b -->"
+    ]
+
+    # fix SIDEBAR
+    for _ in enumerate(lines):
+        if "SIDEBAR" in lines[_[0]]:
+            lines[_[0]] = lines[_[0]].replace(
+                "<SIDEBAR>", '<div type="x-sidebar">'
+            )
+            lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
+
+    # Convert unhandled vp tags, to milestones...
+    for i in enumerate(lines):
+        while r"\vp " in lines[i[0]]:
+            vpnum = VPRE.search(lines[i[0]]).group("num")
+            lines[i[0]] = VPRE.sub(
+                '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
+                lines[i[0]],
+                1,
+            )
+
+    # adjust some tags for postprocessing purposes.
+    i = len(lines)
+    while i > 0:
+        i -= 1
+        # remove empty l tags if present.
+        if lines[i] == '<l level="1"> </l>':
+            del lines[i]
+            continue
+        # move lb to it's own line
+        if lines[i].endswith('<lb type="x-p" />'):
+            lines.insert(i + 1, '<lb type="x-p" />')
+            lines[i] = lines[i].rpartition('<lb type="x-p" />')[0].strip()
+        # move lg to it's own line
+        if lines[i].endswith("<lg>"):
+            lines.insert(i + 1, "<lg>")
+            lines[i] = lines[i].rpartition("<lg>")[0].strip()
+
+    # swap lb and lg end tag when lg end tag follows lb.
+    i = len(lines)
+    while i > 0:
+        i -= 1
+        try:
+            if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
+                lines[i], lines[i + 1] = (lines[i + 1], lines[i])
+        except IndexError:
+            pass
+
+    # adjust placement of some verse end tags...
+    for j in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ]:
+        if lines[j - 1].strip() in OSISL or lines[j - 1].strip() in OSISITEM:
+            lines.insert(j - 1, lines.pop(j))
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ]:
+        if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
+            lines.insert(i - 2, lines.pop(i))
+
+    for i in [
+        "<p",
+        "<lb ",
+        "</p>",
+        "<lg",
+        "<lb ",
+        "</lg>",
+        "<list",
+        "<lb",
+        "</list>",
+        "<title",
+        "<title",
+        "<title",
+        "<title",
+        "<title",
+        "<div",
+        "</div>",
+    ]:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].startswith(i):
+                lines.insert(j - 1, lines.pop(j))
+            elif i == "<title":
+                if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
+                    lines.insert(j - 1, lines.pop(j))
+
+    for i in [
+        "<lb ",
+        "</p>",
+        "</lg>",
+        "<lb",
+        "</list>",
+        "<lb",
+        "</p>",
+        "</div>",
+    ]:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].startswith(i):
+                lines.insert(j - 1, lines.pop(j))
+
+    for i in ["</l>", "</item>"]:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].endswith(i):
+                tmp = lines[j - 1].rpartition("<")
+                lines[j - 1] = "{}{}{}{}".format(
+                    tmp[0], lines[j], tmp[1], tmp[2]
+                )
+                lines[j] = ""
+    lines = [_ for _ in lines if _ != ""]
+
+    # special fix for verse end markers following "acrostic" titles...
+    # because I can't figure out why my other fixes aren't working.
+    for i in ['<title type="acrostic"', "</lg"]:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].startswith(i):
+                lines.insert(j - 1, lines.pop(j))
+    for j in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ]:
+        if lines[j - 1].endswith("</l>"):
+            lines[j - 1] = "{}{}</l>".format(
+                lines[j - 1].rpartition("<")[0], lines[j]
+            )
+            lines[j] = ""
+
+    # handling of verse end tags in relation to titles...
+    for i in ["<!-- ", "</p>"]:
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]:
+            if lines[j - 1].startswith(i):
+                lines.insert(j - 1, lines.pop(j))
+
+    # adjust placement of verse tags in relation
+    # to d titles that contain verses.
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")
+    ]:
+        if (
+            lines[i + 1].startswith("<verse sID")
+            and lines[i + 1].endswith("</title>")
+            and lines[i + 2].startswith("<verse eID")
+        ):
+            tmp1 = lines[i + 1].rpartition("<")
+            lines[i] = "{}{}{}</title>".format(lines[i], tmp1[0], lines[i + 2])
+            lines[i + 1] = ""
+            lines[i + 2] = ""
+    lines = [_ for _ in lines if _ != ""]
+
+    # -- # -- # -- #
+
+    # adjust placement of some chapter end tags
+    for i in range(3):
+        for j in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<chapter eID")
+        ]:
+            try:
+                if "<title" in lines[j - 1]:
+                    lines.insert(j - 1, lines.pop(j))
+                elif "chapterLabel" in lines[j - 1]:
+                    lines.insert(j - 1, lines.pop(j))
+                elif lines[j - 1] == "</p>":
+                    lines.insert(j - 1, lines.pop(j))
+            except IndexError:
+                pass
+    # adjust placement of some chapter start tags
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+    ]:
+        try:
+            if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
+                lines.insert(i + 2, lines.pop(i))
+            elif (
+                lines[i + 1] == "</p>"
+                and "chapterLabel" in lines[i + 2]
+                and lines[i + 3].startswith("<p")
+            ):
+                lines.insert(i + 3, lines.pop(i))
+        except IndexError:
+            pass
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+    ]:
+        try:
+            if (
+                lines[i + 1] == "</p>"
+                and lines[i + 2] == "</div>"
+                and lines[i + 3].startswith("<div")
+            ):
+                lines.insert(i + 3, lines.pop(i))
+        except IndexError:
+            pass
+
+    # some chapter start tags have had div's or p's appended to the end...
+    # fix that.
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+    ]:
+        try:
+            if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
+                i + 1
+            ].startswith("<div"):
+                lines.insert(i + 2, lines[i].replace("</div>", ""))
+                lines[i] = "</div>"
+            elif re.match("<chapter sID[^>]+> ?<div", lines[i]):
+                tmp = lines[i].replace("<div", "\n<div").split("\n", 1)
+                lines[i] = tmp[0]
+                lines.insert(i + 1, tmp[1])
+            elif re.match("<chapter sID[^>]+> ?<p>", lines[i]):
+                lines.insert(i + 1, lines[i].replace("<p>", ""))
+                lines[i] = "<p>"
+        except IndexError:
+            pass
+    lines = [_ for _ in lines if _ != ""]
+
+    # -- # -- # -- #
+
+    # selah processing sometimes does weird things with l and lg tags
+    # that needs to be fixed.
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+    ]:
+        if (
+            lines[i].endswith("</l>")
+            and lines[i + 1] == "</lg>"
+            and lines[i - 1].startswith("<chapter eID")
+            and lines[i - 2].startswith("<verse eID")
+            and lines[i - 3].endswith("</l><l>")
+        ):
+            lines[i - 3] = lines[i - 3][:-3]
+            lines[i - 2] = "{}{}".format(lines[i - 2], "</lg>")
+            lines[i] = lines[i][:-4]
+            lines[i + 1] = ""
+
+    # additional postprocessing for l and lg tags
+    for i in [
+        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
+    ]:
+        if (
+            lines[i].endswith("</l>")
+            and lines[i - 1].startswith("<chapter eID")
+            and lines[i + 1] == "</lg>"
+        ):
+            lines[i - 2] = "{}</l></lg>".format(lines[i - 2])
+            lines[i] = lines[i][:-4]
+            lines[i + 1] = ""
+
+    # done postprocessing of lines
+    return lines
 
 
 def convert_to_osis(text, bookid="TEST"):
     """
     Convert usfm file to osis.
 
-    This is where most of the processing is handled.
-
     """
     # ---------------------------------------------------------------------- #
 
     description = []
-
-    # ---------------------------------------------------------------------- #
-
-    def preprocess(text):
-        """Preprocess text."""
-        # preprocessing...
-        for _ in (
-            # special xml characters
-            ("&", "&amp;"),
-            ("<", "&lt;"),
-            (">", "&gt;"),
-            # special spacing characters
-            ("~", "\u00a0"),
-            (r"//", '<lb type="x-optional" />'),
-            (r"\pb ", '<milestone type="pb" />'),
-            (r"\pb", '<milestone type="pb" />'),
-        ):
-            if _[0] in text:
-                text = text.replace(_[0], _[1])
-
-        return text.strip()
-
-    def identification(text):
-        """
-        Process identification tags.
-
-        id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore.
-
-        """
-        line = text.partition(" ")
-        if line[0] in IDTAGS.keys():
-            text = {
-                True: "{}\ufdd0".format(
-                    IDTAGS[line[0]][1].format(line[2].strip())
-                ),
-                False: "{}{}{}\ufdd0".format(
-                    IDTAGS[line[0]][0], line[2].strip(), IDTAGS[line[0]][1]
-                ),
-            }[IDTAGS[line[0]][0] == ""]
-        elif line[0] in IDTAGS2:
-            description.append(
-                '<description {} subType="x-{}">{}</description>'.format(
-                    'type="usfm"', line[0][1:], line[2].strip()
-                )
-            )
-            text = ""
-            # fix problems with url's in rem lines resulting from processing
-            # of special spacing in preprocessing section.
-            if '<lb type="x-optional" />' in description[-1]:
-                description[-1] = description[-1].replace(
-                    '<lb type="x-optional" />', "//"
-                )
-        return text
-
-    # ---------------------------------------------------------------------- #
-
-    def titlepar(text):
-        """Process title and paragraph tags."""
-        # local copies of global variables.
-        partags = PARTAGS
-        othertags = OTHERTAGS
-        celltags = CELLTAGS
-        titletags = TITLETAGS
-
-        def titles_and_sections(line):
-            """Process titles and sections."""
-            # make sure titles don't end with a \b or an \ib tag
-            line[2] = line[2].strip()
-            if line[2].endswith(r"\b"):
-                line[2] = line[2][:-2]
-            elif line[2].endswith(r"\ib"):
-                line[2] = line[2][:-3]
-
-            # is there ever a reason for a \b tag to appear in a title?
-            # if there is, I will have to add \b processing here.
-
-            if line[0] == r"\periph":
-                # handle usfm attributes if present
-                osis, attributetext, attributes, isvalid = {
-                    True: parseattributes(r"periph", line[2]),
-                    False: (line[2], None, dict(), True),
-                }["|" in line[2]]
-                del isvalid  # make pylint happy
-                if attributetext is not None:
-                    attributetext = "{}{}{}".format(
-                        "<!-- USFM Attributes - ", attributetext, " -->"
-                    )
-                starttag = titletags[line[0]][0]
-                endtag = titletags[line[0]][1]
-
-                # process id attribute
-                if "id" in attributes:
-                    idattribute = ' n="{}">'.format(attributes["id"])
-                    starttag = starttag.replace(">", idattribute)
-
-                # finished processing periph now...
-                text = "\ufdd0<!-- {} -->{}{}{}{}\ufdd0".format(
-                    line[0].replace("\\", ""),
-                    starttag,
-                    osis.strip(),
-                    endtag,
-                    attributetext,
-                )
-            else:
-                text = "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
-                    line[0].replace("\\", ""),
-                    titletags[line[0]][0],
-                    line[2].strip(),
-                    titletags[line[0]][1],
-                )
-            return text
-
-        def paragraphs(line):
-            """Process paragraph tags."""
-            pstart, pend = partags[line[0]]
-            btag = ""
-            if pstart.startswith("<p"):
-                pstart = "{}\ufdd0".format(pstart)
-                pend = "\ufdd0{}\ufdd0".format(pend)
-
-            text = "{}{}".format(pstart, line[2].strip())
-            # handle b  and ib tags in paragraphs and poetry...
-            if text.endswith("\\b") or text.endswith("\\ib"):
-                text = text.rstrip("\\b")
-                text = text.rstrip("\\ib")
-                btag = "<!-- b -->"
-            elif r"\b " in text or r"\ib" in text:
-                text = text.replace("\\b ", "<!-- b -->")
-                text = text.replace("\\ib ", "<!-- b -->")
-
-            # finish paragraphs.
-            return "{}{}{}\ufdd0".format(text, pend, btag)
-
-        def tables(line):
-            """Process tables."""
-            # make sure table rows don't end with b tags...
-            line[2] = line[2].strip().rstrip("\\b").strip()
-
-            line[2] = line[2].replace(r"\th", "\n\\th")
-            line[2] = line[2].replace(r"\tc", "\n\\tc")
-            cells = line[2].split("\n")
-            for i in enumerate(cells):
-                tmp = list(cells[i[0]].partition(" "))
-                if tmp[0] in celltags.keys():
-                    cells[i[0]] = "{}{}{}".format(
-                        celltags[tmp[0]][0],
-                        tmp[2].strip(),
-                        celltags[tmp[0]][1],
-                    )
-            return "<row>{}</row>\ufdd0".format("".join(cells))
-
-        def selah(text):
-            """Handle selah."""
-            tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
-            selahfix = [_ for _ in tmp.split("\n") if _ != ""]
-            for _ in enumerate(selahfix):
-                if (
-                    selahfix[_[0]].startswith(r"<l")
-                    and "<selah>" in selahfix[_[0]]
-                ):
-                    selahfix[_[0]] = selahfix[_[0]].replace(
-                        "<selah>", '</l><l type="selah">'
-                    )
-                    selahfix[_[0]] = selahfix[_[0]].replace(
-                        "</selah>", "</l><l>"
-                    )
-                    if "<l> </l>" in selahfix[_[0]]:
-                        selahfix[_[0]] = selahfix[_[0]].replace("<l> </l>", "")
-                    if "<l>  </l>" in selahfix[_[0]]:
-                        selahfix[_[0]] = selahfix[_[0]].replace(
-                            "<l>  </l>", ""
-                        )
-            for _ in enumerate(selahfix):
-                if "<selah>" in selahfix[_[0]] or "</selah>" in selahfix[_[0]]:
-                    selahfix[_[0]] = selahfix[_[0]].replace(
-                        "<selah>", '<lg><l type="selah">'
-                    )
-                    selahfix[_[0]] = selahfix[_[0]].replace(
-                        "</selah>", "</l></lg>"
-                    )
-            return " ".join(selahfix)
-
-        # add periph tag to titletags if book being processed
-        # is a  peripheral or private use book.
-        if bookid in [
-            "FRONT",
-            "INTRODUCTION",
-            "BACK",
-            "X-OTHER",
-            "XXA",
-            "XXB",
-            "XXC",
-            "XXD",
-            "XXE",
-            "XXF",
-            "XXG",
-        ]:
-            titletags[r"\periph"] = ('<title type="main">', "</title>")
-
-        # ################################################################### #
-        # NOTE: I've not seen any kind of documentation to suggest that usage
-        #       of the usfm \d tag outside of psalms is valid.
-        #
-        #       Additionally every other converter that I've looked at does not
-        #       make a special exception for \d tags outside of psalms.
-        #       Neither the deprecated perl script nor the currently preferred
-        #       python script hosted by crosswire.org do this. Haiola does not
-        #       do this. Bibledit does not do this.
-        #
-        #       Anyway, it takes 2 lines. It was trivial. So, against my better
-        #       judgment I've provided an implementation of this change as was
-        #       requested.
-        #
-        #       Uncomment the next 2 lines of code to enable handling of
-        #       incorrect use of this tag.
-        #
-        # if bookid != "Ps":
-        #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
-        # ################################################################### #
-
-        line = list(text.partition(" "))
-
-        # process titles and sections
-        if line[0] in titletags:
-            text = titles_and_sections(line)
-
-        # process paragraphs
-        elif line[0] in partags:
-            text = paragraphs(line)
-
-        # process tables
-        elif line[0] == r"\tr":
-            text = tables(line)
-
-        # other title, paragraph, intro tags
-        for _ in othertags.keys():
-            text = text.replace(_, othertags[_])
-
-        # fix selah
-        if "<selah>" in text:
-            text = selah(text)
-
-        return text
-
-    def fixgroupings(lines):
-        """Fix linegroups in poetry, lists, etc."""
-        # append a blank line. (needed in some cases)
-        lines.append("")
-
-        def btags(lines):
-            """Handle b tags."""
-            for _ in enumerate(lines):
-                if "<!-- b -->" in lines[_[0]]:
-                    if lines[_[0]][:2] in ["<l", "<p"]:
-                        lines[_[0]] = lines[_[0]].replace(
-                            "<!-- b -->", '<lb type="x-p" />'
-                        )
-                    else:
-                        lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
-            return lines
-
-        def lgtags(lines):
-            """Handle lg tag groupings."""
-            inlg = False
-            for _ in enumerate(lines):
-                if lines[_[0]].startswith("<l "):
-                    if not inlg:
-                        lines[_[0]] = "<lg>\ufdd0{}".format(lines[_[0]])
-                        inlg = True
-                else:
-                    if inlg:
-                        lines[_[0] - 1] = "{}\ufdd0</lg>\ufdd0".format(
-                            lines[_[0] - 1]
-                        )
-                        inlg = False
-            return lines
-
-        def listtags(lines):
-            """Handle list tag groupings."""
-            inlist = False
-            for _ in enumerate(lines):
-                if lines[_[0]].startswith("<item "):
-                    if not inlist:
-                        lines[_[0]] = "<list>\ufdd0{}".format(lines[_[0]])
-                        inlist = True
-                else:
-                    if inlist:
-                        lines[_[0] - 1] = "{}\ufdd0</list>\ufdd0".format(
-                            lines[_[0] - 1]
-                        )
-                        inlist = False
-            return lines
-
-        def tabletags(lines):
-            """Handle table tag groupings."""
-            intable = False
-            for _ in enumerate(lines):
-                if lines[_[0]].startswith("<row"):
-                    if not intable:
-                        lines[_[0]] = "\ufdd0<table>\ufdd0{}".format(
-                            lines[_[0]]
-                        )
-                        intable = True
-                else:
-                    if intable:
-                        lines[_[0] - 1] = "{}\ufdd0</table>\ufdd0".format(
-                            lines[_[0] - 1]
-                        )
-                        intable = False
-            return lines
-
-        def introductions(lines):
-            """Encapsulate introductions in divs."""
-            for _ in enumerate(lines):
-                if lines[_[0]] == "\ufde0":
-                    lines[_[0]] = '<div type="introduction">\ufdd0'
-                elif lines[_[0]] == "\ufde1":
-                    lines[_[0]] = "</div>\ufdd0"
-                elif lines[_[0]].endswith("\ufde1"):
-                    lines[_[0]] = "{}</div>\ufdd0".format(
-                        lines[_[0]].replace("\ufde1", "")
-                    )
-            return lines
-
-        # process b tags...
-        lines = btags(lines)
-
-        # add breaks before chapter and verse tags
-        for _ in enumerate(lines):
-            lines[_[0]] = lines[_[0]].replace(r"\c ", "\ufdd0\\c ")
-            lines[_[0]] = lines[_[0]].replace(r"\v ", "\ufdd0\\v ")
-
-        # add missing lg tags
-        lines = lgtags(lines)
-
-        # add missing list tags
-        lines = listtags(lines)
-
-        # add missing table tags
-        lines = tabletags(lines)
-
-        # encapsulate introductions inside div's
-        lines = introductions(lines)
-
-        return lines
-
-    # ---------------------------------------------------------------------- #
-
-    def specialtext(text):
-        """
-        Process special text and character styles.
-
-        add, add*, bk, bk*, dc, dc*, k, k*, lit, nd, nd*, ord, ord*, pn, pn*,
-        qt, qt*, sig, sig*, sls, sls*, tl, tl*, wj, wj*
-
-        em, em*, bd, bd*, it, it*, bdit, bdit*, no, no*, sc, sc*
-
-
-        * lit tags are handled in the titlepar function
-
-        """
-
-        def simplerepl(match):
-            """Simple regex replacement helper function."""
-            tag = SPECIALTEXT[match.group("tag")]
-            return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
-
-        text = SPECIALTEXTRE.sub(simplerepl, text, 0)
-        # Make sure all nested tags are processed.
-        # In order to avoid getting stuck here we abort
-        # after a maximum of 5 attempts. (5 was chosen arbitrarily)
-        nestcount = 0
-        while "\\" in text:
-            nestcount += 1
-            text = SPECIALTEXTRE.sub(simplerepl, text, 0)
-            if nestcount > 5:
-                break
-
-        return text
-
-    def footnotecrossrefmarkers(text):
-        """Process footnote and cross reference markers."""
-
-        def notefix(notetext):
-            """Additional footnote and cross reference tag processing."""
-
-            def notefixsub(fnmatch):
-                """Simple regex replacement helper function."""
-                tag = NOTETAGS2[fnmatch.groups()[0]]
-                txt = fnmatch.groups()[1]
-                return "".join([tag[0], txt, tag[1]])
-
-            notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
-            for _ in [
-                r"\fm*",
-                r"\fdc*",
-                r"\fr*",
-                r"\fk*",
-                r"\fq*",
-                r"\fqa*",
-                r"\fl*",
-                r"\fv*",
-                r"\ft*",
-                r"\xo*",
-                r"\xk*",
-                r"\xq*",
-                r"\xt*",
-                r"\xot*",
-                r"\xnt*",
-                r"\xdc*",
-                r"\+fm*",
-                r"\+fdc*",
-                r"\+fr*",
-                r"\+fk*",
-                r"\+fq*",
-                r"\+fqa*",
-                r"\+fl*",
-                r"\+fv*",
-                r"\+ft*",
-                r"\+xo*",
-                r"\+xk*",
-                r"\+xq*",
-                r"\+xt*",
-                r"\+xot*",
-                r"\+xnt*",
-                r"\+xdc*",
-            ]:
-                if _ in notetext:
-                    notetext = notetext.replace(_, "")
-            return notetext
-
-        def simplerepl(match):
-            """Simple regex replacement helper function."""
-            tag = NOTETAGS[match.group("tag")]
-            notetext = match.group("osis").replace("\n", " ")
-            if "<transChange" in notetext:
-                notetext = notetext.replace(
-                    '<transChange type="added">',
-                    '<seg><transChange type="added">',
-                )
-                notetext = notetext.replace(
-                    "</transChange>", "</transChange></seg>"
-                )
-            return "{}{}{}".format(tag[0], notetext, tag[1])
-
-        text = NOTERE.sub(simplerepl, text, 0)
-
-        # process additional footnote tags if present
-        for _ in [r"\f", r"\x", r"\+f", r"\+x"]:
-            if _ in text:
-                text = notefix(text)
-
-        # handle fp tags
-        if r"\fp " in text:
-            # xmllint says this works and validates.
-            text = text.replace("\uFDD2", "<p>")
-            text = text.replace("\uFDD3", "</p>")
-            text = text.replace(r"\fp ", r"</p><p>")
-        else:
-            text = text.replace("\uFDD2", "").replace("\uFDD3", "")
-
-        # study bible index categories
-        if r"\cat " in text:
-            text = text.replace(r"\cat ", r'<index index="category" level1="')
-            text = text.replace(r"\cat*", r'" />')
-
-        # return our processed text
-        return text
-
-    def specialfeatures(text):
-        """Process special features."""
-
-        def simplerepl(match):
-            """Simple regex replacement helper function."""
-            matchtag = match.group("tag")
-            tag = FEATURETAGS[matchtag]
-            rawosis = match.group("osis")
-            attributetext = None
-
-            osis, attributetext, attributes, isvalid = {
-                True: parseattributes(matchtag, rawosis),
-                False: (rawosis, None, dict(), True),
-            }["|" in rawosis]
-            del isvalid  # make pylint happy
-            osis2 = osis
-
-            # handle w tag attributes
-            tag2 = None
-            if matchtag in [r"\w", r"\+w"]:
-                if "lemma" in attributes.keys():
-                    osis2 = attributes["lemma"]
-                if "strong" in attributes.keys():
-                    tag2 = STRONGSTAG
-                    tmp = " ".join(
-                        [
-                            "strong:{}".format(_.strip())
-                            for _ in attributes["strong"].split(",")
-                        ]
-                    )
-                    strong1 = 'lemma="{}"'.format(tmp)
-                    strong2 = ""
-                if "x-morph" in attributes.keys():
-                    if tag2 is not None:
-                        strong2 = ' morph="{}"'.format(attributes["x-morph"])
-
-            # TODO: improve processing of tag attributes
-
-            if tag[0] == "" and tag2 is None:
-                # limited filtering of index entry contents...
-                if '<seg type="x-nested"><transChange type="added">' in osis2:
-                    osis2 = osis2.replace(
-                        '<seg type="x-nested"><transChange type="added">', ""
-                    )
-                    osis2 = osis2.replace("</transChange></seg>", "")
-                outtext = "{}{}".format(osis, tag[1].format(osis2))
-            elif tag2 is not None:
-                # process strongs
-                outtext = "{}{}{}".format(
-                    tag2[0].format(strong1, strong2), osis, tag2[1]
-                )
-            else:
-                outtext = "{}{}{}".format(tag[0], osis, tag[1])
-
-            if attributetext is not None:
-                # problems can occur when strongs numbers are present...
-                # this avoids those problems.
-                if matchtag not in [r"\w", r"\+w"]:
-                    outtext = "{}{}".format(
-                        outtext,
-                        "<!-- USFM Attributes: {} -->".format(attributetext),
-                    )
-
-            return outtext
-
-        def figtags(text):
-            """Process fig tags."""
-            text = text.replace(r"\fig ", "\n\\fig ")
-            text = text.replace(r"\fig*", "\\fig*\n")
-            tlines = text.split("\n")
-            for i in enumerate(tlines):
-                if tlines[i[0]].startswith(r"\fig "):
-                    # old style \fig handling
-                    # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
-                    if len(tlines[i[0]][5:-5].split("|")) > 2:
-                        fig = tlines[i[0]][5:-5].split("|")
-                        figref = ""
-                        fig[0] = {
-                            False: "<!-- fig DESC - {} -->\n".format(fig[0]),
-                            True: fig[0],
-                        }[not fig[0]]
-                        fig[1] = {
-                            False: ' src="{}"'.format(fig[1]),
-                            True: fig[1],
-                        }[not fig[1]]
-                        fig[2] = {
-                            False: ' size="{}"'.format(fig[2]),
-                            True: fig[2],
-                        }[not fig[2]]
-                        fig[3] = {
-                            False: "<!-- fig LOC - {} -->\n".format(fig[3]),
-                            True: fig[3],
-                        }[not fig[3]]
-                        fig[4] = {
-                            False: ' rights="{}"'.format(fig[4]),
-                            True: fig[4],
-                        }[not fig[4]]
-                        fig[5] = {
-                            False: "<caption>{}</caption>\n".format(fig[5]),
-                            True: fig[5],
-                        }[not fig[5]]
-                        # this is likely going to be very broken without
-                        # further processing of the references.
-                        if fig[6]:
-                            figref = "<reference {}>{}</reference>\n".format(
-                                'type="annotateRef"', fig[6]
-                            )
-                            fig[6] = ' annotateRef="{}"'.format(fig[6])
-
-                    # new style \fig handling
-                    else:
-                        figattr = parseattributes(r"\fig", tlines[i[0]][5:-5])
-                        fig = []
-                        figparts = {
-                            "alt": "<!-- fig ALT - {} -->\n",
-                            "src": ' src="{}"',
-                            "size": ' size="{}"',
-                            "loc": "<!-- fig LOC - {} -->\n",
-                            "copy": ' rights="{}"',
-                        }
-                        for _ in ["alt", "src", "size", "loc", "copy"]:
-                            fig.append(
-                                {
-                                    True: figparts[_].format(figattr[2][_]),
-                                    False: "",
-                                }[_ in figattr[2]]
-                            )
-                            # caption absent in new style fig attributes
-                            fig.append("")
-                            # this is likely going to be very broken without
-                            # further processing of the references.
-                            if "ref" in figattr[2]:
-                                figref = "{}{}{}\n".format(
-                                    '<reference type="annotateRef">',
-                                    figattr[2]["ref"],
-                                    "</reference>\n",
-                                )
-                                fig.append(
-                                    ' annotateRef="{}"'.format(
-                                        figattr[2]["ref"]
-                                    )
-                                )
-                            else:
-                                figref = ""
-                                fig.append("")
-                    # build our osis figure tag
-                    tlines[i[0]] = "".join(
-                        [
-                            fig[0],
-                            fig[3],
-                            "<figure",
-                            fig[1],
-                            fig[2],
-                            fig[4],
-                            fig[6],
-                            ">\n",
-                            figref,
-                            fig[5],
-                            "</figure>",
-                        ]
-                    )
-
-            return "".join(tlines)
-
-        def milestonequotes(text):
-            """Handle usfm milestone quotations."""
-            for _ in [
-                r"\qt-",
-                r"\qt1-",
-                r"\qt2-",
-                r"\qt3-",
-                r"\qt4-",
-                r"\qt5-",
-            ]:
-                if _ in text:
-                    text = text.replace(_, "\n{}".format(_))
-            text = text.replace(r"\*", "\\*\n")
-            tlines = text.split("\n")
-
-            for i in enumerate(tlines):
-                # make sure we're processing milestone \qt tags
-                if tlines[i[0]].endswith(r"\*"):
-                    for j in (
-                        r"\qt-",
-                        r"\qt1-",
-                        r"\qt2-",
-                        r"\qt3-",
-                        r"\qt4-",
-                        r"\qt5-",
-                    ):
-                        if tlines[i[0]].startswith(j):
-                            # replace with milestone osis tags
-                            newline = ""
-                            tlines[i[0]] = (
-                                tlines[i[0]].strip().replace(r"\*", "")
-                            )
-                            tag, _, qttext = tlines[i[0]].partition(" ")
-                            # milestone start tag
-                            if tag.endswith(r"-s"):
-                                (
-                                    _,
-                                    attributetext,
-                                    attributes,
-                                    isvalid,
-                                ) = parseattributes(r"\qt-s", qttext)
-                                del isvalid, attributetext  # make pylint happy
-                                newline = r"<q"
-                                newline = {
-                                    True: "{}{}".format(
-                                        newline,
-                                        r' sID="{}"'.format(attributes["id"]),
-                                    ),
-                                    False: newline,
-                                }["id" in attributes]
-                                newline = {
-                                    True: "{}{}".format(
-                                        newline,
-                                        r' who="{}"'.format(attributes["who"]),
-                                    ),
-                                    False: newline,
-                                }["who" in attributes]
-                                qlevel = {True: tag[3], False: "1"}[
-                                    tag[3] in ["2", "3", "4", "5"]
-                                ]
-
-                                newline = "{}{}{}".format(
-                                    newline,
-                                    ' level="{}"'.format(qlevel),
-                                    r" />",
-                                )
-                            # milestone end tag
-                            elif tag.endswith(r"-e"):
-                                (
-                                    _,
-                                    attributetext,
-                                    attributes,
-                                    isvalid,
-                                ) = parseattributes(r"\qt-e", qttext)
-                                newline = r"<q"
-                                newline = {
-                                    True: "{}{}".format(
-                                        newline,
-                                        r' eID="{}"'.format(attributes["id"]),
-                                    ),
-                                    False: newline,
-                                }["id" in attributes]
-                                qlevel = {True: tag[3], False: "1"}[
-                                    tag[3] in ["2", "3", "4", "5"]
-                                ]
-
-                                # I don't know if I need the level attribute
-                                # on the milestone end tag. I put it here
-                                # just to be sure though. I will remove it
-                                # later if it doesn't belong here.
-                                newline = "{}{}{}".format(
-                                    newline,
-                                    ' level="{}"'.format(qlevel),
-                                    r" />",
-                                )
-                            # replace line with osis milestone tag
-                            if newline != "":
-                                tlines[i[0]] = newline
-            # rejoin lines
-            return "".join(tlines)
-
-        text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
-
-        if r"\fig" in text:
-            text = figtags(text)
-
-        # Process usfm milestone quotation tags... up to 5 levels.
-        for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
-            if _ in text:
-                text = milestonequotes(text)
-
-        return text
-
-    def ztags(text):
-        """Process z tags that have both a start and end marker."""
-
-        def simplerepl(match):
-            """Simple regex replacement helper function."""
-            return '<seg type="x-usfm-z{}">{}</seg>'.format(
-                match.group("tag").replace(r"\z", ""), match.group("osis")
-            )
-
-        text = ZTAGSRE.sub(simplerepl, text, 0)
-        # milestone z tags… this may need more work…
-        if r"\z" in text:
-            words = text.split(" ")
-            for i in enumerate(words):
-                if i[1].startswith(r"\z"):
-                    words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
-                        i[1].replace(r"\z", "")
-                    )
-            text = " ".join(words)
-        return text
-
-    def chapverse(lines):
-        """Process chapter and verse tags."""
-
-        def verserange(text):
-            """Generate list for verse ranges."""
-            low, high = text.split("-")
-            retval = ""
-            try:
-                retval = [str(_) for _ in range(int(low), int(high) + 1)]
-            except ValueError:
-                end1 = ""
-                end2 = ""
-                if low[-1] in ["a", "b", "A", "B"]:
-                    end1 = low[-1]
-                    low = "".join(low[:-1])
-                if high[-1] in ["a", "b", "A", "B"]:
-                    end2 = high[-1]
-                    high = "".join(high[:-1])
-                retval = [str(_) for _ in range(int(low), int(high) + 1)]
-                if end1 != "":
-                    retval[0] = "!".join([retval[0], end1])
-                if end2 != "":
-                    retval[-1] = "!".join([retval[-1], end2])
-            return retval
-
-        # chapter and verse numbers
-        closerlist = [
-            _ for _ in range(len(lines)) if lines[_].startswith(r"<closer")
-        ]
-        for i in reversed(closerlist):
-            lines[i - 1] = " ".join([lines[i - 1], lines[i]])
-            del lines[i]
-
-        chap = ""
-        verse = ""
-        caid = ""
-        haschap = False
-        hasverse = False
-        cvlist = [
-            _
-            for _ in range(len(lines))
-            if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
-        ]
-        for i in cvlist:
-            # ## chapter numbers
-            if lines[i].startswith(r"\c "):
-                haschap = True
-                tmp = list(lines[i].split(" ", 2))
-                if len(tmp) < 3:
-                    tmp.append("")
-                cnum = tmp[1]
-
-                # nb fix...
-                if "<!--" in cnum and "nb -->" in tmp[2]:
-                    cnum = cnum.replace("<!--", "").strip()
-                    tmp[2] = "<!-- {}".format(tmp[2])
-
-                # get printed chapter character with chapter from \cp tag
-                # if r"\cp " in lines[i]:
-                #     cnum2 = CPRE.search(tmp[2]).group("num")
-                #     tmp[2] = CPRE.sub("", tmp[2])
-                # get alternate chapter number from \ca tags
-                # this will be added to the chapter osisID
-                caid = ""
-                # Commented out since The SWORD Project can't handle this...
-                # Handled with specialtext now.
-                # if r'\ca ' in lines[i]:
-                #     cvatag = CVARE.search(tmp[2]).group('tag')
-                #     if cvatag == r'\ca':
-                #         caid = CVARE.search(tmp[2]).group('num')
-                #         tmp[2] = CVARE.sub('', tmp[2])
-                #         caid = ' {}.{}'.format(bookid, caid)
-                #     else:
-                #         caid = ''
-                # else:
-                #     caid = ''
-
-                # generate chapter number
-                if chap == "":
-                    lines[i] = "<chapter {} {} {} />{}".format(
-                        'sID="{}.{}"'.format(bookid, cnum),
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum),
-                        tmp[2],
-                    )
-                    chap = cnum
-                else:
-                    if hasverse:
-                        lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
-                            '<verse eID="{}.{}.{}" />'.format(
-                                bookid, chap, verse
-                            ),
-                            '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'sID="{}.{}"'.format(bookid, cnum),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
-                            tmp[2],
-                        )
-                        hasverse = False
-                    else:
-                        lines[i] = "{}\n<chapter {} {} {} />{}".format(
-                            '<chapter eID="{}.{}" />'.format(bookid, chap),
-                            'sID="{}.{}"'.format(bookid, cnum),
-                            'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                            'n="{}"'.format(cnum),
-                            tmp[2],
-                        )
-
-                    chap = cnum
-                    verse = ""
-
-            # ## verse numbers
-            # BUG?: \va tags won't be handled unless lines start with a \v tag
-            elif lines[i].startswith(r"\v "):
-
-                # test for books with only one chapter
-                if bookid in ONECHAP and haschap is False:
-                    chap = "1"
-
-                hasverse = True
-                tmp = list(lines[i].split(" ", 2))
-                if len(tmp) < 3:
-                    tmp.append("")
-                vnum = tmp[1]
-
-                # replace verse num with verse from \vp tag
-                # if r"\vp " in lines[i]:
-                #     vnum2 = VPRE.search(tmp[2]).group("num")
-                #     tmp[2] = VPRE.sub("", tmp[2])
-                # add va to osis id.
-                vaid = ""
-                # Commented out since The SWORD Project can't handle this...
-                # Handled with specialtext now.
-                # if r'\va ' in lines[i]:
-                #     vatag = CVARE.search(tmp[2]).group('tag')
-                #     if vatag == r'\va':
-                #         vaid = CVARE.search(tmp[2]).group('num')
-                #         tmp[2] = CVARE.sub('', tmp[2])
-                #         vaid = ' {}.{}.{}'.format(bookid, chap, vaid)
-                #     else:
-                #         vaid = ''
-                # else:
-                #     vaid = ''
-
-                # handle verse ranges
-                if "-" in vnum:
-                    try:
-                        vlist = verserange(vnum)
-                        for j in enumerate(vlist):
-                            vlist[j[0]] = "{}.{}.{}".format(
-                                bookid, chap, vlist[j[0]]
-                            )
-                        osisid = 'osisID="{}{}"'.format(" ".join(vlist), vaid)
-                    except TypeError:
-                        vnum = vnum.strip("-")
-                        osisid = 'osisID="{}.{}.{}{}"'.format(
-                            bookid, chap, vnum, vaid
-                        )
-                else:
-                    osisid = 'osisID="{}.{}.{}{}"'.format(
-                        bookid, chap, vnum, vaid
-                    )
-
-                # generate verse tag
-                if verse == "":
-                    # handle single chapter books without chapter marker
-                    if chap == "1" and haschap is False:
-                        chapmark = "<chapter {} {} {} />\n".format(
-                            'sID="{}.1"'.format(bookid),
-                            'osisID="{}.1{}"'.format(bookid, caid),
-                            'n="1"',
-                        )
-                        haschap = True
-                    else:
-                        chapmark = ""
-
-                    lines[i] = "{}<verse {} {} {} />{}".format(
-                        chapmark,
-                        'sID="{}.{}.{}"'.format(bookid, chap, vnum),
-                        osisid,
-                        'n="{}"'.format(vnum),
-                        tmp[2],
-                    )
-                    verse = vnum
-                    hasverse = True
-                else:
-                    lines[i] = "<verse {} />\n<verse {} {} {} />{}".format(
-                        'eID="{}.{}.{}"'.format(bookid, chap, verse),
-                        'sID="{}.{}.{}"'.format(bookid, chap, vnum),
-                        osisid,
-                        'n="{}"'.format(vnum),
-                        tmp[2],
-                    )
-                    verse = vnum
-                    hasverse = True
-
-            elif lines[i].startswith(r"<closer"):
-                lines[i] = "<verse {} />\n{}".format(
-                    'eID="{}.{}.{}"'.format(bookid, chap, verse), tmp[2]
-                )
-                verse = vnum
-                hasverse = False
-                hascloser = True
-
-        if hasverse:
-            lines.append(
-                '<verse eID="{}.{}.{}" />'.format(bookid, chap, verse)
-            )
-        if haschap:
-            lines.append('<chapter eID="{}.{}" />'.format(bookid, chap))
-
-        return lines
-
-    # def processwj(lines):
-    #     """
-    #     Create milestone form of q tags for words of Jesus.
-    #
-    #     NOTE: Not currently used as this seems to be problematic for the
-    #           sword lib to handle.
-    #
-    #     """
-    #     # prepare for processing by joining lines together
-    #     text = "\ufdd1".join(lines)
-    #
-    #     # split words of jesus from the rest of the text.
-    #     text = text.replace("\\wj ", "\n\\wj ")
-    #     text = text.replace("\\wj*", "\\wj*\n ")
-    #     lines = text.split("\n")
-    #
-    #     # process words of Jesus.
-    #     wjcount = 1
-    #     for i in range(len(lines)):
-    #         if lines[i].startswith(r"\wj "):
-    #             wjmarker = '"{}.wj{}"'.format(bookid, wjcount)
-    #             lines[i] = lines[i].replace(r"\wj ", "")
-    #             lines[i] = lines[i].replace(r"\wj*", "")
-    #
-    #             lines[i] = "{}{}{}".format(
-    #                 '<q who="Jesus" marker="" sID={} />'.format(wjmarker),
-    #                 lines[i],
-    #                 "<q eID={} />".format(wjmarker),
-    #             )
-    #             wjcount += 1
-    #
-    #     # rejoin lines, then resplit and return processed lines...
-    #     text = "".join(lines)
-    #     return text.split("\ufdd1")
-
-    def processwj2(lines):
-        """
-        Alternate processing of wj tags.
-
-        This attempts to insert q start and end tags in appropriate locations
-        in order to avoid crossing container boundaries.
-
-        """
-        # get lists of tags where lines need to be broken for processing
-        wjstarttags = set()
-        wjendtags = set()
-        for _ in TITLETAGS:
-            if TITLETAGS[_][0] != "" and TITLETAGS[_][1] != "":
-                wjstarttags.add(TITLETAGS[_][0].strip())
-                wjendtags.add(TITLETAGS[_][1].strip())
-        for _ in PARTAGS:
-            if PARTAGS[_][0] != "" and PARTAGS[_][1] != "":
-                wjstarttags.add(PARTAGS[_][0].strip())
-                wjendtags.add(PARTAGS[_][1].strip())
-
-        # prepare for processing by joining lines together
-        text = "\ufdd1".join(lines)
-
-        # split words of jesus from the rest of the text.
-        text = text.replace("\\wj ", "\n\\wj ")
-        text = text.replace("\\wj*", "\\wj*\n ")
-        lines = text.split("\n")
-
-        # process words of Jesus.
-        for i in enumerate(lines):
-            if lines[i[0]].startswith(r"\wj "):
-                # Add initial start and end q tags
-                lines[i[0]] = lines[i[0]].replace(
-                    r"\wj ", '<q who="Jesus" marker="">'
-                )
-                lines[i[0]] = lines[i[0]].replace(r"\wj*", "</q>")
-
-                # add additional closing and opening q tags
-                for _ in wjstarttags:
-                    lines[i[0]] = lines[i[0]].replace(
-                        _, '{}<q who="Jesus" marker="">'.format(_)
-                    )
-                for _ in wjendtags:
-                    lines[i[0]] = lines[i[0]].replace(_, "</q>{}".format(_))
-
-        # rejoin lines, then resplit and return processed lines...
-        text = "".join(lines)
-        return text.split("\ufdd1")
-
-    def postprocess(lines):
-        """Attempt to fix some formatting issues."""
-        # resplit lines for post processing,
-        # removing leading and trailing whitespace, and b comments
-        lines = [
-            _.strip()
-            for _ in "\n".join(lines).split("\n")
-            if _.strip() != "" and _.strip() != "<!-- b -->"
-        ]
-
-        # fix SIDEBAR
-        for _ in enumerate(lines):
-            if "SIDEBAR" in lines[_[0]]:
-                lines[_[0]] = lines[_[0]].replace(
-                    "<SIDEBAR>", '<div type="x-sidebar">'
-                )
-                lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
-
-        # Convert unhandled vp tags, to milestones...
-        for i in enumerate(lines):
-            while r"\vp " in lines[i[0]]:
-                vpnum = VPRE.search(lines[i[0]]).group("num")
-                lines[i[0]] = VPRE.sub(
-                    '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
-                    lines[i[0]],
-                    1,
-                )
-
-        # adjust some tags for postprocessing purposes.
-        i = len(lines)
-        while i > 0:
-            i -= 1
-            # remove empty l tags if present.
-            if lines[i] == '<l level="1"> </l>':
-                del lines[i]
-                continue
-            # move lb to it's own line
-            if lines[i].endswith('<lb type="x-p" />'):
-                lines.insert(i + 1, '<lb type="x-p" />')
-                lines[i] = lines[i].rpartition('<lb type="x-p" />')[0].strip()
-            # move lg to it's own line
-            if lines[i].endswith("<lg>"):
-                lines.insert(i + 1, "<lg>")
-                lines[i] = lines[i].rpartition("<lg>")[0].strip()
-
-        # swap lb and lg end tag when lg end tag follows lb.
-        i = len(lines)
-        while i > 0:
-            i -= 1
-            try:
-                if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
-                    lines[i], lines[i + 1] = (lines[i + 1], lines[i])
-            except IndexError:
-                pass
-
-        # adjust placement of some verse end tags...
-        for j in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if (
-                lines[j - 1].strip() in OSISL
-                or lines[j - 1].strip() in OSISITEM
-            ):
-                lines.insert(j - 1, lines.pop(j))
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
-                lines.insert(i - 2, lines.pop(i))
-
-        for i in [
-            "<p",
-            "<lb ",
-            "</p>",
-            "<lg",
-            "<lb ",
-            "</lg>",
-            "<list",
-            "<lb",
-            "</list>",
-            "<title",
-            "<title",
-            "<title",
-            "<title",
-            "<title",
-            "<div",
-            "</div>",
-        ]:
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<verse eID")
-            ]:
-                if lines[j - 1].startswith(i):
-                    lines.insert(j - 1, lines.pop(j))
-                elif i == "<title":
-                    if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
-                        lines.insert(j - 1, lines.pop(j))
-
-        for i in [
-            "<lb ",
-            "</p>",
-            "</lg>",
-            "<lb",
-            "</list>",
-            "<lb",
-            "</p>",
-            "</div>",
-        ]:
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<verse eID")
-            ]:
-                if lines[j - 1].startswith(i):
-                    lines.insert(j - 1, lines.pop(j))
-
-        for i in ["</l>", "</item>"]:
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<verse eID")
-            ]:
-                if lines[j - 1].endswith(i):
-                    tmp = lines[j - 1].rpartition("<")
-                    lines[j - 1] = "{}{}{}{}".format(
-                        tmp[0], lines[j], tmp[1], tmp[2]
-                    )
-                    lines[j] = ""
-        lines = [_ for _ in lines if _ != ""]
-
-        # special fix for verse end markers following "acrostic" titles...
-        # because I can't figure out why my other fixes aren't working.
-        for i in ['<title type="acrostic"', "</lg"]:
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<verse eID")
-            ]:
-                if lines[j - 1].startswith(i):
-                    lines.insert(j - 1, lines.pop(j))
-        for j in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].endswith("</l>"):
-                lines[j - 1] = "{}{}</l>".format(
-                    lines[j - 1].rpartition("<")[0], lines[j]
-                )
-                lines[j] = ""
-
-        # handling of verse end tags in relation to titles...
-        for i in ["<!-- ", "</p>"]:
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<verse eID")
-            ]:
-                if lines[j - 1].startswith(i):
-                    lines.insert(j - 1, lines.pop(j))
-
-        # adjust placement of verse tags in relation
-        # to d titles that contain verses.
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")
-        ]:
-            if (
-                lines[i + 1].startswith("<verse sID")
-                and lines[i + 1].endswith("</title>")
-                and lines[i + 2].startswith("<verse eID")
-            ):
-                tmp1 = lines[i + 1].rpartition("<")
-                lines[i] = "{}{}{}</title>".format(
-                    lines[i], tmp1[0], lines[i + 2]
-                )
-                lines[i + 1] = ""
-                lines[i + 2] = ""
-        lines = [_ for _ in lines if _ != ""]
-
-        # -- # -- # -- #
-
-        # adjust placement of some chapter end tags
-        for i in range(3):
-            for j in [
-                _
-                for _ in range(len(lines))
-                if lines[_].startswith("<chapter eID")
-            ]:
-                try:
-                    if "<title" in lines[j - 1]:
-                        lines.insert(j - 1, lines.pop(j))
-                    elif "chapterLabel" in lines[j - 1]:
-                        lines.insert(j - 1, lines.pop(j))
-                    elif lines[j - 1] == "</p>":
-                        lines.insert(j - 1, lines.pop(j))
-                except IndexError:
-                    pass
-        # adjust placement of some chapter start tags
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-        ]:
-            try:
-                if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
-                    lines.insert(i + 2, lines.pop(i))
-                elif (
-                    lines[i + 1] == "</p>"
-                    and "chapterLabel" in lines[i + 2]
-                    and lines[i + 3].startswith("<p")
-                ):
-                    lines.insert(i + 3, lines.pop(i))
-            except IndexError:
-                pass
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-        ]:
-            try:
-                if (
-                    lines[i + 1] == "</p>"
-                    and lines[i + 2] == "</div>"
-                    and lines[i + 3].startswith("<div")
-                ):
-                    lines.insert(i + 3, lines.pop(i))
-            except IndexError:
-                pass
-
-        # some chapter start tags have had div's or p's appended to the end...
-        # fix that.
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-        ]:
-            try:
-                if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
-                    i + 1
-                ].startswith("<div"):
-                    lines.insert(i + 2, lines[i].replace("</div>", ""))
-                    lines[i] = "</div>"
-                elif re.match("<chapter sID[^>]+> ?<div", lines[i]):
-                    tmp = lines[i].replace("<div", "\n<div").split("\n", 1)
-                    lines[i] = tmp[0]
-                    lines.insert(i + 1, tmp[1])
-                elif re.match("<chapter sID[^>]+> ?<p>", lines[i]):
-                    lines.insert(i + 1, lines[i].replace("<p>", ""))
-                    lines[i] = "<p>"
-            except IndexError:
-                pass
-        lines = [_ for _ in lines if _ != ""]
-
-        # -- # -- # -- #
-
-        # selah processing sometimes does weird things with l and lg tags
-        # that needs to be fixed.
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-        ]:
-            if (
-                lines[i].endswith("</l>")
-                and lines[i + 1] == "</lg>"
-                and lines[i - 1].startswith("<chapter eID")
-                and lines[i - 2].startswith("<verse eID")
-                and lines[i - 3].endswith("</l><l>")
-            ):
-                lines[i - 3] = lines[i - 3][:-3]
-                lines[i - 2] = "{}{}".format(lines[i - 2], "</lg>")
-                lines[i] = lines[i][:-4]
-                lines[i + 1] = ""
-
-        # additional postprocessing for l and lg tags
-        for i in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-        ]:
-            if (
-                lines[i].endswith("</l>")
-                and lines[i - 1].startswith("<chapter eID")
-                and lines[i + 1] == "</lg>"
-            ):
-                lines[i - 2] = "{}</l></lg>".format(lines[i - 2])
-                lines[i] = lines[i][:-4]
-                lines[i + 1] = ""
-
-        # done postprocessing of lines
-        return lines
 
     # ---------------------------------------------------------------------- #
 
@@ -3041,46 +2942,46 @@ def convert_to_osis(text, bookid="TEST"):
         # preprocessing and special spacing... if necessary
         for _ in ["&", "<", ">", "~", r"//", r"\pb"]:
             if _ in lines[i[0]]:
-                lines[i[0]] = preprocess(lines[i[0]])
+                lines[i[0]] = c2o_preprocess(lines[i[0]])
                 break
 
         # identification
-        lines[i[0]] = identification(lines[i[0]])
+        lines[i[0]], description = c2o_identification(lines[i[0]], description)
 
         # character style formatting
-        lines[i[0]] = footnotecrossrefmarkers(lines[i[0]])
-        lines[i[0]] = specialtext(lines[i[0]])
+        lines[i[0]] = c2o_noterefmarkers(lines[i[0]])
+        lines[i[0]] = c2o_specialtext(lines[i[0]])
 
         # special features if present
         for _ in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig"]:
             if _ in lines[i[0]]:
-                lines[i[0]] = specialfeatures(lines[i[0]])
+                lines[i[0]] = c2o_specialfeatures(lines[i[0]])
                 break
         for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
             if _ in lines[i[0]]:
-                lines[i[0]] = specialfeatures(lines[i[0]])
+                lines[i[0]] = c2o_specialfeatures(lines[i[0]])
 
         # z tags if present
         if r"\z" in lines[i[0]]:
-            lines[i[0]] = ztags(lines[i[0]])
+            lines[i[0]] = c2o_ztags(lines[i[0]])
 
         # paragraph style formatting.
-        lines[i[0]] = titlepar(lines[i[0]])
+        lines[i[0]] = c2o_titlepar(lines[i[0]], bookid)
 
     # process words of Jesus
     if r"\wj" in text:
-        lines = processwj2(lines)
+        lines = c2o_processwj2(lines)
 
     # postprocessing of poetry, lists, tables, and sections
     # to add missing tags and div's.
-    lines = fixgroupings(lines)
+    lines = c2o_fixgroupings(lines)
 
     # process chapter/verse markers
     lines = [_.strip() for _ in " ".join(lines).split("\ufdd0")]
-    lines = chapverse(lines)
+    lines = c2o_chapverse(lines, bookid)
 
     # postprocessing to fix some issues that may be present
-    lines = postprocess(lines)
+    lines = c2o_postprocess(lines)
 
     descriptiontext = "\n".join(description)
 
@@ -3174,7 +3075,7 @@ def processfiles(args):
             numprocesses = 1
 
     # process file contents
-    filelist = [_ for _ in files]
+    filelist = files
     results = []
     LOG.info("Processing files...")
     if numprocesses == 1:
