@@ -1637,7 +1637,7 @@ def markintroend(lines):
 
 
 def parseattributes(tag, tagtext):
-    """Helper function to separate attributes from text in usfm."""
+    """Separate attributes from text in usfm."""
     # split attributes from text
     text, _, attributestring = tagtext.partition("|")
     attribs = {}
@@ -2023,7 +2023,6 @@ def c2o_specialtext(text):
     * lit tags are handled in the titlepar function
 
     """
-
     def simplerepl(match):
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
@@ -2045,10 +2044,8 @@ def c2o_specialtext(text):
 
 def c2o_noterefmarkers(text):
     """Process footnote and cross reference markers."""
-
     def notefix(notetext):
         """Additional footnote and cross reference tag processing."""
-
         def notefixsub(fnmatch):
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
@@ -2135,7 +2132,6 @@ def c2o_noterefmarkers(text):
 
 def c2o_specialfeatures(text):
     """Process special features."""
-
     def simplerepl(match):
         """Simple regex replacement helper function."""
         matchtag = match.group("tag")
@@ -2409,7 +2405,6 @@ def c2o_specialfeatures(text):
 
 def c2o_ztags(text):
     """Process z tags that have both a start and end marker."""
-
     def simplerepl(match):
         """Simple regex replacement helper function."""
         return '<seg type="x-usfm-z{}">{}</seg>'.format(
@@ -2431,7 +2426,6 @@ def c2o_ztags(text):
 
 def c2o_chapverse(lines, bookid):
     """Process chapter and verse tags."""
-
     def verserange(text):
         """Generate list for verse ranges."""
         low, high = text.split("-")
@@ -2918,10 +2912,7 @@ def c2o_postprocess(lines):
 
 
 def convert_to_osis(text, bookid="TEST"):
-    """
-    Convert usfm file to osis.
-
-    """
+    """Convert usfm file to osis."""
     # ---------------------------------------------------------------------- #
 
     description = []
@@ -3019,7 +3010,7 @@ def doconvert(args):
 
 
 def processfiles(args):
-    """Main routine to process usfm files."""
+    """Process usfm files specified on command line."""
     books = {}
     descriptions = {}
     booklist = []
@@ -3245,13 +3236,7 @@ def processfiles(args):
 
 
 def main():
-    """
-    Main routine.
-
-    Process command line arguments and pass options
-    to usfm processing routine.
-
-    """
+    """Process command line and pass options to usfm processing routine."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""
