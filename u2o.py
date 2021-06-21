@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2021-05-09",  # THIS SCRIPT revision date
+    "DATE": "2021-06-20",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -855,6 +855,9 @@ FEATURETAGS = {
     r"\+wa": ("", '<index index="Aramaic" level1="{}" />'),
     r"\+wg": ("", '<index index="Greek" level1="{}" />'),
     r"\+wh": ("", '<index index="Hebrew" level1="{}" />'),
+    # stray xt tags are handled here
+    r"\xt": ("<reference>", "</reference>"),
+    r"\+xt": ('<seg type="x-nested"><reference>', "</reference></seg>"),
     # This should be converted to an 'a' tag. More work needs
     # to be done before that can happen though.
     r"\jmp": ('<seg type="x-usfm-jmp">', "</seg>"),
@@ -935,6 +938,7 @@ NOTETAGS2 = {
 # defined attributes for tags
 DEFINEDATTRIBUTES = {
     r"\w": ["lemma", "strong", "srcloc"],
+    r"\xt": ["link-ref"],
     r"\fig": ["alt", "src", "size", "loc", "copy", "ref"],
     r"\jmp": ["link-href", "link-title", "link-name"],
     r"\qt-s": ["id", "who"],
@@ -944,7 +948,7 @@ DEFINEDATTRIBUTES = {
 
 # defaultattributes for tags
 # x-default will be used as the default for undefined default attributes
-DEFAULTATTRIBUTES = {r"\w": "lemma"}
+DEFAULTATTRIBUTES = {r"\w": "lemma", r"\xt": "link-ref"}
 
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
@@ -2023,6 +2027,7 @@ def c2o_specialtext(text):
     * lit tags are handled in the titlepar function
 
     """
+
     def simplerepl(match):
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
@@ -2044,12 +2049,20 @@ def c2o_specialtext(text):
 
 def c2o_noterefmarkers(text):
     """Process footnote and cross reference markers."""
+
     def notefix(notetext):
         """Additional footnote and cross reference tag processing."""
+
         def notefixsub(fnmatch):
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
-            txt = fnmatch.groups()[1]
+            if "<reference>" in tag:
+                txt, _, attrtxt = fnmatch.groups()[1].partition("|")
+            else:
+                txt = fnmatch.groups()[1]
+                attrtxt = None
+            if attrtxt is not None:
+                txt = "<!-- USFM Attributes: {} -->{}".format(attrtxt, txt)
             return "".join([tag[0], txt, tag[1]])
 
         notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
@@ -2132,6 +2145,7 @@ def c2o_noterefmarkers(text):
 
 def c2o_specialfeatures(text):
     """Process special features."""
+
     def simplerepl(match):
         """Simple regex replacement helper function."""
         matchtag = match.group("tag")
@@ -2405,6 +2419,7 @@ def c2o_specialfeatures(text):
 
 def c2o_ztags(text):
     """Process z tags that have both a start and end marker."""
+
     def simplerepl(match):
         """Simple regex replacement helper function."""
         return '<seg type="x-usfm-z{}">{}</seg>'.format(
@@ -2426,6 +2441,7 @@ def c2o_ztags(text):
 
 def c2o_chapverse(lines, bookid):
     """Process chapter and verse tags."""
+
     def verserange(text):
         """Generate list for verse ranges."""
         low, high = text.split("-")
@@ -2943,8 +2959,8 @@ def convert_to_osis(text, bookid="TEST"):
         lines[i[0]] = c2o_noterefmarkers(lines[i[0]])
         lines[i[0]] = c2o_specialtext(lines[i[0]])
 
-        # special features if present
-        for _ in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig"]:
+        # special features if present, and stray \xt tags that were missed.
+        for _ in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig", r"\xt", r"\+xt"]:
             if _ in lines[i[0]]:
                 lines[i[0]] = c2o_specialfeatures(lines[i[0]])
                 break
