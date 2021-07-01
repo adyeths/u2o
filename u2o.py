@@ -69,6 +69,13 @@ This script is public domain. You may do whatever you want with it.
 #    uFDE2     - used to separate attributes in usfm tags
 #
 
+# make pylint happier..
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-locals
+
+
 from __future__ import print_function, unicode_literals
 import sys
 import argparse
@@ -109,7 +116,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2021-06-20",  # THIS SCRIPT revision date
+    "DATE": "2021-06-30",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -408,13 +415,13 @@ BOOKNAMES = {
 NONCANONICAL = {
     "FRONT": "front",
     "INTRODUCTION": "introduction",
-    "XXA": "x-other",
-    "XXB": "x-other",
-    "XXC": "x-other",
-    "XXD": "x-other",
-    "XXE": "x-other",
-    "XXF": "x-other",
-    "XXG": "x-other",
+    "XXA": "x-other-a",
+    "XXB": "x-other-b",
+    "XXC": "x-other-c",
+    "XXD": "x-other-d",
+    "XXE": "x-other-e",
+    "XXF": "x-other-f",
+    "XXG": "x-other-g",
     "BACK": "back",
     "CONCORDANCE": "concordance",
     "GLOSSARY": "glossary",
@@ -2602,7 +2609,7 @@ def c2o_chapverse(lines, bookid):
             )
             verse = vnum
             hasverse = False
-            hascloser = True
+            # hascloser = True # apparently we're not using this?
 
     if hasverse:
         lines.append('<verse eID="{}.{}.{}" />'.format(bookid, chap, verse))
@@ -2672,21 +2679,19 @@ def c2o_postprocess(lines):
         if _.strip() != "" and _.strip() != "<!-- b -->"
     ]
 
-    # fix SIDEBAR
     for _ in enumerate(lines):
+        # fix SIDEBAR
         if "SIDEBAR" in lines[_[0]]:
             lines[_[0]] = lines[_[0]].replace(
                 "<SIDEBAR>", '<div type="x-sidebar">'
             )
             lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
-
-    # Convert unhandled vp tags, to milestones...
-    for i in enumerate(lines):
-        while r"\vp " in lines[i[0]]:
-            vpnum = VPRE.search(lines[i[0]]).group("num")
-            lines[i[0]] = VPRE.sub(
+        # Convert unhandled vp tags, to milestones...
+        while r"\vp " in lines[_[0]]:
+            vpnum = VPRE.search(lines[_[0]]).group("num")
+            lines[_[0]] = VPRE.sub(
                 '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
-                lines[i[0]],
+                lines[_[0]],
                 1,
             )
 
@@ -2718,96 +2723,110 @@ def c2o_postprocess(lines):
             pass
 
     # adjust placement of some verse end tags...
-    for j in [
+    for i in [
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
     ]:
-        if lines[j - 1].strip() in OSISL or lines[j - 1].strip() in OSISITEM:
-            lines.insert(j - 1, lines.pop(j))
+        if lines[i - 1].strip() in OSISL or lines[i - 1].strip() in OSISITEM:
+            lines.insert(i - 1, lines.pop(i))
     for i in [
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
     ]:
         if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
             lines.insert(i - 2, lines.pop(i))
 
-    for i in [
-        "<p",
-        "<lb ",
-        "</p>",
-        "<lg",
-        "<lb ",
-        "</lg>",
-        "<list",
-        "<lb",
-        "</list>",
-        "<title",
-        "<title",
-        "<title",
-        "<title",
-        "<title",
-        "<div",
-        "</div>",
-    ]:
-        for j in [
+    for i, j in [
+        (x, y)
+        for x in [
+            "<p",
+            "<lb ",
+            "</p>",
+            "<lg",
+            "<lb ",
+            "</lg>",
+            "<list",
+            "<lb",
+            "</list>",
+            "<title",
+            "<title",
+            "<title",
+            "<title",
+            "<title",
+            "<div",
+            "</div>",
+        ]
+        for y in [
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].startswith(i):
-                lines.insert(j - 1, lines.pop(j))
-            elif i == "<title":
-                if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
-                    lines.insert(j - 1, lines.pop(j))
-
-    for i in [
-        "<lb ",
-        "</p>",
-        "</lg>",
-        "<lb",
-        "</list>",
-        "<lb",
-        "</p>",
-        "</div>",
+        ]
     ]:
-        for j in [
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].startswith(i):
+        if lines[j - 1].startswith(i):
+            lines.insert(j - 1, lines.pop(j))
+        elif i == "<title":
+            if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
                 lines.insert(j - 1, lines.pop(j))
 
-    for i in ["</l>", "</item>"]:
-        for j in [
+    for i, j in [
+        (x, y)
+        for x in [
+            "<lb ",
+            "</p>",
+            "</lg>",
+            "<lb",
+            "</list>",
+            "<lb",
+            "</p>",
+            "</div>",
+        ]
+        for y in [
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].endswith(i):
-                tmp = lines[j - 1].rpartition("<")
-                lines[j - 1] = "{}{}{}{}".format(
-                    tmp[0], lines[j], tmp[1], tmp[2]
-                )
-                lines[j] = ""
+        ]
+    ]:
+        if lines[j - 1].startswith(i):
+            lines.insert(j - 1, lines.pop(j))
+
+    for i, j in [
+        (x, y)
+        for x in ["</l>", "</item>"]
+        for y in [
+            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+        ]
+    ]:
+        if lines[j - 1].endswith(i):
+            tmp = lines[j - 1].rpartition("<")
+            lines[j - 1] = "{}{}{}{}".format(tmp[0], lines[j], tmp[1], tmp[2])
+            lines[j] = ""
+
     lines = [_ for _ in lines if _ != ""]
 
     # special fix for verse end markers following "acrostic" titles...
     # because I can't figure out why my other fixes aren't working.
-    for i in ['<title type="acrostic"', "</lg"]:
-        for j in [
+    for i, j in [
+        (x, y)
+        for x in ['<title type="acrostic"', "</lg"]
+        for y in [
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].startswith(i):
-                lines.insert(j - 1, lines.pop(j))
-    for j in [
+        ]
+    ]:
+        if lines[j - 1].startswith(i):
+            lines.insert(j - 1, lines.pop(j))
+
+    for i in [
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
     ]:
-        if lines[j - 1].endswith("</l>"):
-            lines[j - 1] = "{}{}</l>".format(
-                lines[j - 1].rpartition("<")[0], lines[j]
+        if lines[i - 1].endswith("</l>"):
+            lines[i - 1] = "{}{}</l>".format(
+                lines[i - 1].rpartition("<")[0], lines[i]
             )
-            lines[j] = ""
+            lines[i] = ""
 
-    # handling of verse end tags in relation to titles...
-    for i in ["<!-- ", "</p>"]:
-        for j in [
+    for i, j in [
+        (x, y)
+        for x in ["<!-- ", "</p>"]
+        for y in [
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]:
-            if lines[j - 1].startswith(i):
-                lines.insert(j - 1, lines.pop(j))
+        ]
+    ]:
+        if lines[j - 1].startswith(i):
+            lines.insert(j - 1, lines.pop(j))
 
     # adjust placement of verse tags in relation
     # to d titles that contain verses.
@@ -2828,19 +2847,23 @@ def c2o_postprocess(lines):
     # -- # -- # -- #
 
     # adjust placement of some chapter end tags
-    for i in range(3):
-        for j in [
+    for i, j in [
+        (x, y)
+        for x in range(3)
+        for y in [
             _ for _ in range(len(lines)) if lines[_].startswith("<chapter eID")
-        ]:
-            try:
-                if "<title" in lines[j - 1]:
-                    lines.insert(j - 1, lines.pop(j))
-                elif "chapterLabel" in lines[j - 1]:
-                    lines.insert(j - 1, lines.pop(j))
-                elif lines[j - 1] == "</p>":
-                    lines.insert(j - 1, lines.pop(j))
-            except IndexError:
-                pass
+        ]
+    ]:
+        try:
+            if "<title" in lines[j - 1]:
+                lines.insert(j - 1, lines.pop(j))
+            elif "chapterLabel" in lines[j - 1]:
+                lines.insert(j - 1, lines.pop(j))
+            elif lines[j - 1] == "</p>":
+                lines.insert(j - 1, lines.pop(j))
+        except IndexError:
+            pass
+
     # adjust placement of some chapter start tags
     for i in [
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
@@ -2967,6 +2990,7 @@ def convert_to_osis(text, bookid="TEST"):
         for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
             if _ in lines[i[0]]:
                 lines[i[0]] = c2o_specialfeatures(lines[i[0]])
+                break
 
         # z tags if present
         if r"\z" in lines[i[0]]:
