@@ -1385,10 +1385,7 @@ def convertcl(text):
     lines = text.split("\n")
 
     # count number of cl tags in text
-    clcount = 0
-    for _ in lines:
-        if _.startswith(r"\cl "):
-            clcount += 1
+    clcount = len([_ for _ in lines if _.startswith(r"\cl ")])
 
     # test for presence of only 1 cl marker.
     if clcount == 1:
@@ -1582,8 +1579,7 @@ def getbookid(text):
     bookid = None
     lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
     if lines:
-        tmp = lines[0].split()
-        bookid = tmp[1].strip()
+        bookid = lines[0].split()[1].strip()
 
     return {
         True: {True: BOOKNAMES[bookid], False: "* {}".format(bookid)}[
@@ -1595,13 +1591,13 @@ def getbookid(text):
 
 def getencoding(text):
     """Get encoding from file text."""
-    encoding = None
     lines = [
         _.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")
     ]
-    for _ in lines:
-        encoding = _.partition(" ")[2].lower().strip()
-        break
+    if lines:
+        encoding = lines[0].partition(" ")[2].lower().strip()
+    else:
+        encoding = None
     return encoding
 
 
