@@ -115,8 +115,8 @@ except ImportError:
 META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
-    "VERSION": "0.6",  # THIS SCRIPT version
-    "DATE": "2021-06-30",  # THIS SCRIPT revision date
+    "VERSION": "0.7",  # THIS SCRIPT version
+    "DATE": "2021-07-26",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
