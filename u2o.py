@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 r"""
@@ -43,12 +43,6 @@ Alternative Book Ordering:
     NOTE: I should probably change this so that there's a more central
           location for these alternative book orderings.
 
-This script has been tested and is known to work with CPython 3.4.0,
-CPython 2.7.6, jython 2.7.0, pypy 2.5.0, and pypy3 2.4.0.
-
-Neither jython nor pypy are recomended as they are quite a bit slower at
-running this script than CPython.
-
 This script is public domain. You may do whatever you want with it.
 
 """
@@ -76,7 +70,6 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-locals
 
 
-from __future__ import print_function, unicode_literals
 import sys
 import argparse
 import os
@@ -88,27 +81,23 @@ import datetime
 import unicodedata
 import logging
 from collections import OrderedDict
-from contextlib import closing
 
-# try to import multiprocessing
-# (jython 2.7.0 doesn't have this module.)
-HAVEMULTIPROCESSING = False
+# try to import concurrent.futures
 try:
-    import multiprocessing
+    import concurrent.futures
 
-    HAVEMULTIPROCESSING = True
+    HAVEFUTURES = True
 except ImportError:
-    pass
+    HAVEFUTURES = False
 
 # try to import lxml so that we can validate
 # our output against the OSIS schema.
-HAVELXML = False
 try:
     import lxml.etree as et
 
     HAVELXML = True
 except ImportError:
-    pass
+    HAVELXML = False
 
 # -------------------------------------------------------------------------- #
 
@@ -116,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2021-07-26",  # THIS SCRIPT revision date
+    "DATE": "2021-07-28",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -3093,32 +3082,15 @@ def processfiles(args):
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
 
-    # set number of processes to use while processing file contents
-    numprocesses = 1
-    if not args.d and HAVEMULTIPROCESSING:
-        try:
-            numprocesses = multiprocessing.cpu_count()
-        except NotImplementedError:
-            numprocesses = 1
-
     # process file contents
     filelist = files
     results = []
     LOG.info("Processing files...")
-    if numprocesses == 1:
-        results = [doconvert(_) for _ in filelist]
+    if not args.d and HAVEFUTURES:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(executor.map(doconvert, filelist))
     else:
-        try:
-            with multiprocessing.Pool(numprocesses) as pool:
-                results = pool.imap(doconvert, filelist)
-                pool.close()
-                pool.join()
-        except AttributeError:
-            # pylint: disable=no-member
-            with closing(multiprocessing.Pool(numprocesses)) as pool:
-                results = pool.imap(doconvert, filelist)
-                pool.close()
-                pool.join()
+        results = [doconvert(_) for _ in filelist]
 
     # store results
     for bookid, descriptiontext, newtext in results:
@@ -3271,9 +3243,8 @@ def processfiles(args):
 # -------------------------------------------------------------------------- #
 
 
-def main():
-    """Process command line and pass options to usfm processing routine."""
-    parser = argparse.ArgumentParser(
+if __name__ == "__main__":
+    PARSER = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""
             convert USFM bibles to OSIS.
@@ -3284,73 +3255,66 @@ def main():
             META["VERSION"], META["DATE"]
         ),
     )
-    parser.add_argument("workid", help="work id to use for OSIS file")
-    parser.add_argument("-d", help="debug mode", action="store_true")
-    parser.add_argument(
+    PARSER.add_argument("workid", help="work id to use for OSIS file")
+    PARSER.add_argument("-d", help="debug mode", action="store_true")
+    PARSER.add_argument(
         "-e",
         help="set encoding to use for USFM files",
         default=None,
         metavar="encoding",
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "-o", help="specify output file", metavar="output_file"
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "-l", help="specify langauge code", metavar="LANG", default="und"
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "-s", help="sort order", choices=BOOKORDERS, default="canonical"
     )
-    parser.add_argument("-v", help="verbose output", action="store_true")
-    parser.add_argument(
+    PARSER.add_argument("-v", help="verbose output", action="store_true")
+    PARSER.add_argument(
         "-x",
         help="disable OSIS validation and reformatting",
         action="store_true",
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "-n", help="disable unicode NFC normalization", action="store_true"
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "file",
         help="file or files to process (wildcards allowed)",
         nargs="+",
         metavar="filename",
     )
-    args = parser.parse_args()
+    ARGS = PARSER.parse_args()
 
     # make sure we skip OSIS validation if we don't have lxml
-    if not args.x and not HAVELXML:
-        args.x = True
+    if not ARGS.x and not HAVELXML:
+        ARGS.x = True
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    filenames = []
-    for _ in args.file:
-        globfiles = glob.glob(_)
+    FILENAMES = []
+    for _ in ARGS.file:
+        GLOBFILES = glob.glob(_)
 
         if os.path.isfile(_):
-            filenames.append(_)
-        elif globfiles:
-            filenames.extend(globfiles)
+            FILENAMES.append(_)
+        elif GLOBFILES:
+            FILENAMES.extend(GLOBFILES)
         else:
-            filenames.append(_)
+            FILENAMES.append(_)
 
-    args.file = filenames
-    del filenames
+    ARGS.file = FILENAMES
+    del FILENAMES
 
-    for _ in args.file:
+    for _ in ARGS.file:
         if not os.path.isfile(_):
             LOG.error("*** input file not present or not a normal file. ***")
             sys.exit()
 
-    if args.v:
+    if ARGS.v:
         LOG.setLevel(logging.INFO)
-    if args.d:
+    if ARGS.d:
         LOG.setLevel(logging.DEBUG)
-    processfiles(args)
-
-
-# -------------------------------------------------------------------------- #
-
-
-if __name__ == "__main__":
-    main()
+    processfiles(ARGS)

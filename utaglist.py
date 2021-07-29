@@ -1,17 +1,16 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 List ufm tags.
 
 A simple script to generate a list of usfm tags that were used in one
-or more utf8 encoded usfm files. Compatible with python2 and python3.
+or more utf8 encoded usfm files. Requires python3.
 
 This script is public domain.
 
 """
 
-from __future__ import print_function, unicode_literals
 import argparse
 import re
 import collections
@@ -19,7 +18,7 @@ import glob
 
 # -------------------------------------------------------------------------- #
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 # -------------------------------------------------------------------------- #
 
@@ -452,9 +451,11 @@ def processtags(args):
         print("\nTotal number of usfm tags found:   {}\n".format(count))
 
 
-def main():
-    """Process command line arguments and then process files."""
-    parser = argparse.ArgumentParser(
+# -------------------------------------------------------------------------- #
+
+
+if __name__ == "__main__":
+    PARSER = argparse.ArgumentParser(
         description="""
             A simple script to generate a list of usfm tags that were used in
            one or more utf8 encoded usfm files.
@@ -465,19 +466,12 @@ def main():
             VERSION
         ),
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "-c", help="include usage counts for tags", action="store_true"
     )
-    parser.add_argument(
+    PARSER.add_argument(
         "file", help="name of file to process (wildcards allowed)", nargs="+"
     )
-    args = parser.parse_args()
+    ARGS = PARSER.parse_args()
 
-    processtags(args)
-
-
-# -------------------------------------------------------------------------- #
-
-
-if __name__ == "__main__":
-    main()
+    processtags(ARGS)

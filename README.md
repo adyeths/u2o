@@ -1,6 +1,6 @@
 # What is u2o?
 
-u2o is a fast python conversion program that is used to convert [usfm](http://paratext.org/about/usfm) formatted bibles to [osis xml](http://bibletechnologies.net/). Currently it targets the upcoming [3.0 version of the usfm](http://ubsicap.github.io/usfm/) specification that bible translators use when translating scripture into different languages.
+u2o is a fast python conversion program that is used to convert [usfm](http://paratext.org/about/usfm) formatted bibles to [osis xml](http://bibletechnologies.net/). Currently it targets [version 3.0 of the usfm specification](http://ubsicap.github.io/usfm/) that bible translators use when translating scripture into different languages.
 
 # Why did I write it?
 
@@ -10,7 +10,7 @@ u2o is a fast python conversion program that is used to convert [usfm](http://pa
 
 * The usfm2osis.py source is difficult for me to read, so I'm unable to work on improving it. I think my difficulty is with the huge amount of complicated regular expressions that it uses... about 200! Which reminds me of a Jamie Zawinski quote.... *“Some people, when confronted with a problem, think ‘I know, I'll use regular expressions.’ Now they have two problems.”* (Sometimes they make sense, though. The script I wrote uses some.)
 
-* I wanted a converter that worked with python3. (usfm2osis.py only works with python2.)
+* I wanted a converter that worked with python3.
 
 * I wanted a converter that would be easy to update when changes are made to the USFM standard.
 
@@ -22,7 +22,7 @@ u2o is quite fast. For example, it only takes about 10 seconds to process the Wo
 
 The output validates against the OSIS 2.1.1 schema. No markup errors are reported by osis2mod when generating modules for any of the bibles that I have access to at this time.
 
-I've tested it and it works fine with recent versions of both python2 and python3. It works but runs a lot slower with pypy and jython as well.
+I've tested it and it works fine with recent versions of python3. It works but runs a lot slower with pypy3. Will **NOT** work with python2.
 
 # The Alternatives
 
@@ -30,7 +30,7 @@ There are of course other programs that convert usfm to osis. Here are the ones 
 
 * [usfm2osis.py](https://github.com/chrislit/usfm2osis) - The version by it's original developer.
 
-* [usfm2osis.py](https://github.com/refdoc/Module-tools) - The version currently used by The SWORD Project.
+* [usfm2osis.py](https://github.com/refdoc/Module-tools) - The version currently used by The SWORD Project. (Seems to require Python2.)
 
 * [haiola](http://haiola.org/) - Converts to many different formats, not just osis.
 
