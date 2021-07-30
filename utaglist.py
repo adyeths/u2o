@@ -15,6 +15,7 @@ import argparse
 import re
 import collections
 import glob
+from typing import Dict
 
 # -------------------------------------------------------------------------- #
 
@@ -407,10 +408,10 @@ USFMRE = re.compile(
 # -------------------------------------------------------------------------- #
 
 
-def processtags(args):
+def processtags(args: argparse.Namespace) -> None:
     """Process usfm tags in all files."""
     count = 0
-    counttags = collections.Counter()
+    counttags: Dict[str, int] = collections.Counter()
     knownset = set()
 
     filenames = []

@@ -81,6 +81,7 @@ import datetime
 import unicodedata
 import logging
 from collections import OrderedDict
+from typing import Any, List, Tuple, Dict, Union, Pattern, Optional
 
 # try to import concurrent.futures
 try:
@@ -98,6 +99,8 @@ try:
     HAVELXML = True
 except ImportError:
     HAVELXML = False
+
+_: Any
 
 # -------------------------------------------------------------------------- #
 
@@ -1363,7 +1366,7 @@ LOG.setLevel(logging.WARNING)
 # -------------------------------------------------------------------------- #
 
 
-def convertcl(text):
+def convertcl(text: str) -> str:
     """
     CL tag format conversion.
 
@@ -1395,7 +1398,7 @@ def convertcl(text):
     return "\n".join(lines)
 
 
-def reflow(text):
+def reflow(text: str) -> str:
     """
     Reflow text for Processing.
 
@@ -1410,7 +1413,7 @@ def reflow(text):
     # titlepar function operates!                                             #
     # ####################################################################### #
 
-    def manglecheck(text):
+    def manglecheck(text: str) -> bool:
         """Check to see if we have paragraph markup."""
         retval = False
         for _ in PARCHECK:
@@ -1423,7 +1426,7 @@ def reflow(text):
                 break
         return retval
 
-    def endmark(text):
+    def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
         textlines = text.split("\n")
         for _ in enumerate(textlines):
@@ -1433,14 +1436,14 @@ def reflow(text):
                 textlines[_[0]] = "{}\uFDD5".format(textlines[_[0]])
         return "\n".join(textlines)
 
-    def reflowpar(text):
+    def reflowpar(text: str) -> str:
         """Put (almost) all paragraph tags on separate lines."""
         for _ in PARFLOW:
             if _ in text:
                 text = text.replace(r"{} ".format(_), "\n{} ".format(_))
         return text
 
-    def fixlines(text):
+    def fixlines(text: str) -> str:
         """Fix various potential issues with lines of text."""
         textlines = text.split("\n")
 
@@ -1563,22 +1566,21 @@ def reflow(text):
     return text
 
 
-def getbookid(text):
+def getbookid(text: str) -> Optional[str]:
     """Get book id from file text."""
-    bookid = None
     lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
-    if lines:
+    try:
         bookid = lines[0].split()[1].strip()
+    except IndexError:
+        bookid = None
 
     return {
-        True: {True: BOOKNAMES[bookid], False: "* {}".format(bookid)}[
-            bookid in BOOKNAMES
-        ],
+        True: BOOKNAMES.get(bookid, "* {}".format(bookid)),
         False: None,
     }[bookid is not None]
 
 
-def getencoding(text):
+def getencoding(text: bytes) -> str:
     """Get encoding from file text."""
     lines = [
         _.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")
@@ -1590,7 +1592,7 @@ def getencoding(text):
     return encoding
 
 
-def markintroend(lines):
+def markintroend(lines: List[str]) -> List[str]:
     """
     Mark end of introductions.
 
@@ -1632,11 +1634,11 @@ def markintroend(lines):
     return lines
 
 
-def parseattributes(tag, tagtext):
+def parseattributes(tag: str, tagtext: str) -> Tuple[str, str, Any, bool]:
     """Separate attributes from text in usfm."""
     # split attributes from text
     text, _, attributestring = tagtext.partition("|")
-    attribs = {}
+    attribs: Dict[str, str] = {}
 
     # extract attributes
     attribs = {}
@@ -1667,7 +1669,7 @@ def parseattributes(tag, tagtext):
 # -------------------------------------------------------------------------- #
 
 
-def c2o_preprocess(text):
+def c2o_preprocess(text: str) -> str:
     """Preprocess text."""
     # preprocessing...
     for _ in (
@@ -1687,7 +1689,9 @@ def c2o_preprocess(text):
     return text.strip()
 
 
-def c2o_identification(text, description):
+def c2o_identification(
+    text: str, description: List[str]
+) -> Tuple[str, List[str]]:
     """
     Process identification tags.
 
@@ -1720,7 +1724,7 @@ def c2o_identification(text, description):
     return text, description
 
 
-def c2o_titlepar(text, bookid):
+def c2o_titlepar(text: str, bookid: str) -> str:
     """Process title and paragraph tags."""
     # local copies of global variables.
     partags = PARTAGS
@@ -1728,7 +1732,7 @@ def c2o_titlepar(text, bookid):
     celltags = CELLTAGS
     titletags = TITLETAGS
 
-    def titles_and_sections(line):
+    def titles_and_sections(line: List[str]) -> str:
         """Process titles and sections."""
         # make sure titles don't end with a \b or an \ib tag
         line[2] = line[2].strip()
@@ -1776,7 +1780,7 @@ def c2o_titlepar(text, bookid):
             )
         return text
 
-    def paragraphs(line):
+    def paragraphs(line: List[str]) -> str:
         """Process paragraph tags."""
         pstart, pend = partags[line[0]]
         btag = ""
@@ -1797,7 +1801,7 @@ def c2o_titlepar(text, bookid):
         # finish paragraphs.
         return "{}{}{}\ufdd0".format(text, pend, btag)
 
-    def tables(line):
+    def tables(line: List[str]) -> str:
         """Process tables."""
         # make sure table rows don't end with b tags...
         line[2] = line[2].strip().rstrip("\\b").strip()
@@ -1815,7 +1819,7 @@ def c2o_titlepar(text, bookid):
                 )
         return "<row>{}</row>\ufdd0".format("".join(cells))
 
-    def selah(text):
+    def selah(text: str) -> str:
         """Handle selah."""
         tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
         selahfix = [_ for _ in tmp.split("\n") if _ != ""]
@@ -1905,12 +1909,12 @@ def c2o_titlepar(text, bookid):
     return text
 
 
-def c2o_fixgroupings(lines):
+def c2o_fixgroupings(lines: List[str]) -> List[str]:
     """Fix linegroups in poetry, lists, etc."""
     # append a blank line. (needed in some cases)
     lines.append("")
 
-    def btags(lines):
+    def btags(lines: List[str]) -> List[str]:
         """Handle b tags."""
         for _ in enumerate(lines):
             if "<!-- b -->" in lines[_[0]]:
@@ -1922,7 +1926,7 @@ def c2o_fixgroupings(lines):
                     lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
         return lines
 
-    def lgtags(lines):
+    def lgtags(lines: List[str]) -> List[str]:
         """Handle lg tag groupings."""
         inlg = False
         for _ in enumerate(lines):
@@ -1938,7 +1942,7 @@ def c2o_fixgroupings(lines):
                     inlg = False
         return lines
 
-    def listtags(lines):
+    def listtags(lines: List[str]) -> List[str]:
         """Handle list tag groupings."""
         inlist = False
         for _ in enumerate(lines):
@@ -1954,7 +1958,7 @@ def c2o_fixgroupings(lines):
                     inlist = False
         return lines
 
-    def tabletags(lines):
+    def tabletags(lines: List[str]) -> List[str]:
         """Handle table tag groupings."""
         intable = False
         for _ in enumerate(lines):
@@ -1970,7 +1974,7 @@ def c2o_fixgroupings(lines):
                     intable = False
         return lines
 
-    def introductions(lines):
+    def introductions(lines: List[str]) -> List[str]:
         """Encapsulate introductions in divs."""
         for _ in enumerate(lines):
             if lines[_[0]] == "\ufde0":
@@ -2006,7 +2010,7 @@ def c2o_fixgroupings(lines):
     return lines
 
 
-def c2o_specialtext(text):
+def c2o_specialtext(text: str) -> str:
     """
     Process special text and character styles.
 
@@ -2020,7 +2024,7 @@ def c2o_specialtext(text):
 
     """
 
-    def simplerepl(match):
+    def simplerepl(match) -> str:
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
         return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
@@ -2039,13 +2043,13 @@ def c2o_specialtext(text):
     return text
 
 
-def c2o_noterefmarkers(text):
+def c2o_noterefmarkers(text: str) -> str:
     """Process footnote and cross reference markers."""
 
-    def notefix(notetext):
+    def notefix(notetext: str) -> str:
         """Additional footnote and cross reference tag processing."""
 
-        def notefixsub(fnmatch):
+        def notefixsub(fnmatch) -> str:
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
             if "<reference>" in tag:
@@ -2096,7 +2100,7 @@ def c2o_noterefmarkers(text):
                 notetext = notetext.replace(_, "")
         return notetext
 
-    def simplerepl(match):
+    def simplerepl(match) -> str:
         """Simple regex replacement helper function."""
         tag = NOTETAGS[match.group("tag")]
         notetext = match.group("osis").replace("\n", " ")
@@ -2135,10 +2139,10 @@ def c2o_noterefmarkers(text):
     return text
 
 
-def c2o_specialfeatures(text):
+def c2o_specialfeatures(text: str) -> str:
     """Process special features."""
 
-    def simplerepl(match):
+    def simplerepl(match) -> str:
         """Simple regex replacement helper function."""
         matchtag = match.group("tag")
         tag = FEATURETAGS[matchtag]
@@ -2200,7 +2204,7 @@ def c2o_specialfeatures(text):
 
         return outtext
 
-    def figtags(text):
+    def figtags(text: str) -> str:
         """Process fig tags."""
         text = text.replace(r"\fig ", "\n\\fig ")
         text = text.replace(r"\fig*", "\\fig*\n")
@@ -2297,7 +2301,7 @@ def c2o_specialfeatures(text):
 
         return "".join(tlines)
 
-    def milestonequotes(text):
+    def milestonequotes(text: str) -> str:
         """Handle usfm milestone quotations."""
         for _ in [
             r"\qt-",
@@ -2409,10 +2413,10 @@ def c2o_specialfeatures(text):
     return text
 
 
-def c2o_ztags(text):
+def c2o_ztags(text: str) -> str:
     """Process z tags that have both a start and end marker."""
 
-    def simplerepl(match):
+    def simplerepl(match) -> str:
         """Simple regex replacement helper function."""
         return '<seg type="x-usfm-z{}">{}</seg>'.format(
             match.group("tag").replace(r"\z", ""), match.group("osis")
@@ -2431,13 +2435,13 @@ def c2o_ztags(text):
     return text
 
 
-def c2o_chapverse(lines, bookid):
+def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
     """Process chapter and verse tags."""
 
-    def verserange(text):
+    def verserange(text: str) -> List[str]:
         """Generate list for verse ranges."""
         low, high = text.split("-")
-        retval = ""
+        retval = []
         try:
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
         except ValueError:
@@ -2604,7 +2608,7 @@ def c2o_chapverse(lines, bookid):
     return lines
 
 
-def c2o_processwj2(lines):
+def c2o_processwj2(lines: List[str]) -> List[str]:
     """
     Alternate processing of wj tags.
 
@@ -2654,8 +2658,13 @@ def c2o_processwj2(lines):
     return text.split("\ufdd1")
 
 
+# for some reason, adding type hints to this function causes an error that I
+# can't seem to fix. So, for now, I am leaving out the function type hints.
 def c2o_postprocess(lines):
     """Attempt to fix some formatting issues."""
+    i: Any
+    j: Any
+
     # resplit lines for post processing,
     # removing leading and trailing whitespace, and b comments
     lines = [
@@ -2935,11 +2944,11 @@ def c2o_postprocess(lines):
     return lines
 
 
-def convert_to_osis(text, bookid="TEST"):
+def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
     """Convert usfm file to osis."""
     # ---------------------------------------------------------------------- #
 
-    description = []
+    description: List[str] = []
 
     # ---------------------------------------------------------------------- #
 
@@ -3008,10 +3017,8 @@ def convert_to_osis(text, bookid="TEST"):
 # -------------------------------------------------------------------------- #
 
 
-def doconvert(args):
+def doconvert(text: str) -> Tuple[str, ...]:
     """Convert our text and return our results."""
-    text = args
-
     # convert cl lines to form that follows each chapter marker instead of
     # form that precedes first chapter.
     if r"\cl " in text:
@@ -3034,13 +3041,15 @@ def doconvert(args):
     return (bookid, descriptiontext, newtext)
 
 
-def processfiles(args):
+def processfiles(args: argparse.Namespace) -> None:
     """Process usfm files specified on command line."""
     books = {}
     descriptions = {}
     booklist = []
 
     files = []
+
+    osisdoc: Union[str, bytes]
 
     # get username from operating system
     username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
@@ -3059,6 +3068,7 @@ def processfiles(args):
 
         # get encoding. Abort processing if we don't know the encoding.
         # default to utf-8-sig encoding if no encoding is specified.
+        bookencoding = "utf-8-sig"
         try:
             if args.e is not None:
                 bookencoding = codecs.lookup(args.e).name
@@ -3131,10 +3141,10 @@ def processfiles(args):
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
     else:
         with open("order-{}.txt".format(args.s), "r") as order:
-            bookorder = order.read()
+            bookorderstr = order.read()
             bookorder = [
                 _
-                for _ in bookorder.split("\n")
+                for _ in bookorderstr.split("\n")
                 if _ != "" and not _.startswith("#")
             ]
         tmp = "\n".join([books[_] for _ in bookorder if _ in books.keys()])
