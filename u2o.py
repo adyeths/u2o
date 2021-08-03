@@ -81,7 +81,7 @@ import datetime
 import unicodedata
 import logging
 from collections import OrderedDict
-from typing import Any, List, Tuple, Dict, Union, Pattern, Optional
+from typing import Any, List, Tuple, Dict, Union, Match, Optional
 
 # try to import concurrent.futures
 try:
@@ -94,7 +94,7 @@ except ImportError:
 # try to import lxml so that we can validate
 # our output against the OSIS schema.
 try:
-    import lxml.etree as et
+    import lxml.etree as et  # nosec
 
     HAVELXML = True
 except ImportError:
@@ -1580,14 +1580,15 @@ def getbookid(text: str) -> Optional[str]:
     }[bookid is not None]
 
 
-def getencoding(text: bytes) -> str:
+def getencoding(text: bytes) -> Optional[str]:
     """Get encoding from file text."""
     lines = [
         _.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")
     ]
-    if lines:
+    encoding: Optional[str]
+    try:
         encoding = lines[0].partition(" ")[2].lower().strip()
-    else:
+    except IndexError:
         encoding = None
     return encoding
 
@@ -1605,7 +1606,7 @@ def markintroend(lines: List[str]) -> List[str]:
     intro = False
     while i < j:
         tmp = lines[i].partition(" ")
-        if tmp[0:3] == r"\ie":
+        if tmp[0][0:3] == r"\ie":
             intro = False
             lines.insert(i, "\ufde0")
         elif tmp[0][:3] in [
@@ -2024,7 +2025,7 @@ def c2o_specialtext(text: str) -> str:
 
     """
 
-    def simplerepl(match) -> str:
+    def simplerepl(match: Match[str]) -> str:
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
         return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
@@ -2049,9 +2050,10 @@ def c2o_noterefmarkers(text: str) -> str:
     def notefix(notetext: str) -> str:
         """Additional footnote and cross reference tag processing."""
 
-        def notefixsub(fnmatch) -> str:
+        def notefixsub(fnmatch: Match[str]) -> str:
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
+            attrtxt: Optional[str]
             if "<reference>" in tag:
                 txt, _, attrtxt = fnmatch.groups()[1].partition("|")
             else:
@@ -2100,7 +2102,7 @@ def c2o_noterefmarkers(text: str) -> str:
                 notetext = notetext.replace(_, "")
         return notetext
 
-    def simplerepl(match) -> str:
+    def simplerepl(match: Match[str]) -> str:
         """Simple regex replacement helper function."""
         tag = NOTETAGS[match.group("tag")]
         notetext = match.group("osis").replace("\n", " ")
@@ -2142,7 +2144,7 @@ def c2o_noterefmarkers(text: str) -> str:
 def c2o_specialfeatures(text: str) -> str:
     """Process special features."""
 
-    def simplerepl(match) -> str:
+    def simplerepl(match: Match[str]) -> str:
         """Simple regex replacement helper function."""
         matchtag = match.group("tag")
         tag = FEATURETAGS[matchtag]
@@ -2416,7 +2418,7 @@ def c2o_specialfeatures(text: str) -> str:
 def c2o_ztags(text: str) -> str:
     """Process z tags that have both a start and end marker."""
 
-    def simplerepl(match) -> str:
+    def simplerepl(match: Match[str]) -> str:
         """Simple regex replacement helper function."""
         return '<seg type="x-usfm-z{}">{}</seg>'.format(
             match.group("tag").replace(r"\z", ""), match.group("osis")
@@ -2658,12 +2660,11 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
     return text.split("\ufdd1")
 
 
-# for some reason, adding type hints to this function causes an error that I
-# can't seem to fix. So, for now, I am leaving out the function type hints.
-def c2o_postprocess(lines):
+def c2o_postprocess(lines: List[str]) -> List[str]:
     """Attempt to fix some formatting issues."""
     i: Any
     j: Any
+    tmp: Any
 
     # resplit lines for post processing,
     # removing leading and trailing whitespace, and b comments
@@ -2682,12 +2683,14 @@ def c2o_postprocess(lines):
             lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
         # Convert unhandled vp tags, to milestones...
         while r"\vp " in lines[_[0]]:
-            vpnum = VPRE.search(lines[_[0]]).group("num")
-            lines[_[0]] = VPRE.sub(
-                '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
-                lines[_[0]],
-                1,
-            )
+            tmp = VPRE.search(lines[_[0]])
+            if tmp is not None:
+                vpnum = tmp.group("num")
+                lines[_[0]] = VPRE.sub(
+                    '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
+                    lines[_[0]],
+                    1,
+                )
 
     # adjust some tags for postprocessing purposes.
     i = len(lines)
@@ -3073,12 +3076,12 @@ def processfiles(args: argparse.Namespace) -> None:
             if args.e is not None:
                 bookencoding = codecs.lookup(args.e).name
             else:
-                bookencoding = getencoding(text)
-                if bookencoding is not None:
-                    if bookencoding == "65001 - Unicode (UTF-8)":
+                tmp = getencoding(text)
+                if tmp is not None:
+                    if tmp == "65001 - Unicode (UTF-8)":
                         bookencoding = "utf-8-sig"
                     else:
-                        bookencoding = codecs.lookup(bookencoding).name
+                        bookencoding = codecs.lookup(tmp).name
                 else:
                     bookencoding = "utf-8-sig"
             # use utf-8-sig in place of utf-8 encoding to eliminate errors that
@@ -3195,7 +3198,7 @@ def processfiles(args: argparse.Namespace) -> None:
                     schema=et.XMLSchema(et.XML(osisschema)),
                     remove_blank_text=True,
                 )
-                _ = et.fromstring(testosis.encode("utf-8"), vparser)
+                _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
                 LOG.warning("Validation passed!")
                 osisdoc = et.tostring(
                     _,
@@ -3210,7 +3213,7 @@ def processfiles(args: argparse.Namespace) -> None:
             # ... but only if we're not debugging.
             if not args.d:
                 vparser = et.XMLParser(remove_blank_text=True)
-                _ = et.fromstring(testosis.encode("utf-8"), vparser)
+                _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
                 osisdoc = et.tostring(
                     _,
                     pretty_print=True,

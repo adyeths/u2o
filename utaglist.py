@@ -411,7 +411,7 @@ USFMRE = re.compile(
 def processtags(args: argparse.Namespace) -> None:
     """Process usfm tags in all files."""
     count = 0
-    counttags: Counter = collections.Counter()
+    counttags: Counter[str] = collections.Counter()
     knownset = set()
 
     filenames = []
