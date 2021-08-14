@@ -68,7 +68,7 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
-
+# pylint: disable=too-many-arguments
 
 import sys
 import argparse
@@ -3044,7 +3044,17 @@ def doconvert(text: str) -> Tuple[str, ...]:
     return (bookid, descriptiontext, newtext)
 
 
-def processfiles(args: argparse.Namespace) -> None:
+def processfiles(
+    fnames: List[str],
+    fencoding: str,
+    dodebug: bool,
+    sortorder: str,
+    langcode: str,
+    nonormalize: bool,
+    novalidate: bool,
+    workid: str,
+    outputfile: str,
+) -> None:
     """Process usfm files specified on command line."""
     books = {}
     descriptions = {}
@@ -3061,7 +3071,7 @@ def processfiles(args: argparse.Namespace) -> None:
 
     # read all files
     LOG.info("Reading files... ")
-    for fname in args.file:
+    for fname in fnames:
         # read our text files
         with open(fname, "rb") as ifile:
             text = ifile.read()
@@ -3073,8 +3083,8 @@ def processfiles(args: argparse.Namespace) -> None:
         # default to utf-8-sig encoding if no encoding is specified.
         bookencoding = "utf-8-sig"
         try:
-            if args.e is not None:
-                bookencoding = codecs.lookup(args.e).name
+            if fencoding is not None:
+                bookencoding = codecs.lookup(fencoding).name
             else:
                 tmp = getencoding(text)
                 if tmp is not None:
@@ -3099,7 +3109,7 @@ def processfiles(args: argparse.Namespace) -> None:
     filelist = files
     results = []
     LOG.info("Processing files...")
-    if not args.d and HAVEFUTURES:
+    if not dodebug and HAVEFUTURES:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(doconvert, filelist))
     else:
@@ -3134,16 +3144,16 @@ def processfiles(args: argparse.Namespace) -> None:
                 booklist.append("TEST")
 
     # ## Get order for books...
-    if args.s == "none":
+    if sortorder == "none":
         tmp = "\n".join([books[_] for _ in booklist])
         tmp2 = [descriptions[_] for _ in booklist]
-    elif args.s == "canonical":
+    elif sortorder == "canonical":
         tmp = "\n".join(
             [books[_] for _ in CANONICALORDER if _ in books.keys()]
         )
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
     else:
-        with open("order-{}.txt".format(args.s), "r") as order:
+        with open("order-{}.txt".format(sortorder), "r") as order:
             bookorderstr = order.read()
             bookorder = [
                 _
@@ -3157,15 +3167,15 @@ def processfiles(args: argparse.Namespace) -> None:
     # assemble osis doc in desired order
     osisdoc = "{}{}{}\n".format(
         OSISHEADER.format(
-            args.workid,
-            args.l,
+            workid,
+            langcode,
             username,
             datetime.datetime.now().strftime("%Y.%m.%dT%H.%M.%S"),
-            args.workid,
-            args.workid,
+            workid,
+            workid,
             "\n".join(tmp2),
-            args.l,
-            args.workid,
+            langcode,
+            workid,
             strongsheader,
         ),
         tmp,
@@ -3176,7 +3186,7 @@ def processfiles(args: argparse.Namespace) -> None:
     LOG.warning("NOTE: References have not been processed.")
 
     # apply NFC normalization to text unless explicitly disabled.
-    if not args.n:
+    if not nonormalize:
         osisdoc = codecs.encode(unicodedata.normalize("NFC", osisdoc), "utf-8")
     else:
         osisdoc = codecs.encode(osisdoc, "utf-8")
@@ -3188,7 +3198,7 @@ def processfiles(args: argparse.Namespace) -> None:
         testosis = SQUEEZE.sub(" ", osisdoc.decode("utf-8"))
 
         # validation is requested...
-        if not args.x:
+        if not novalidate:
             LOG.warning("Validating osis xml...")
             osisschema = codecs.decode(
                 codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
@@ -3211,7 +3221,7 @@ def processfiles(args: argparse.Namespace) -> None:
         # no validation, just pretty printing...
         else:
             # ... but only if we're not debugging.
-            if not args.d:
+            if not dodebug:
                 vparser = et.XMLParser(remove_blank_text=True)
                 _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
                 osisdoc = et.tostring(
@@ -3221,7 +3231,7 @@ def processfiles(args: argparse.Namespace) -> None:
                     encoding="utf-8",
                 )
     else:
-        if not args.x:
+        if not novalidate:
             LOG.error("LXML needs to be installed for validation.")
 
     # find unhandled usfm tags that are leftover after processing
@@ -3243,9 +3253,9 @@ def processfiles(args: argparse.Namespace) -> None:
     osisdoc = osisdoc.encode("utf-8")
 
     # write doc to file
-    outfile = "{}.osis".format(args.workid)
-    if args.o is not None:
-        outfile = args.o
+    outfile = "{}.osis".format(workid)
+    if outputfile is not None:
+        outfile = outputfile
     with open(outfile, "wb") as ofile:
         ofile.write(osisdoc)
 
@@ -3330,4 +3340,14 @@ if __name__ == "__main__":
         LOG.setLevel(logging.INFO)
     if ARGS.d:
         LOG.setLevel(logging.DEBUG)
-    processfiles(ARGS)
+    processfiles(
+        ARGS.file,
+        ARGS.e,
+        ARGS.d,
+        ARGS.s,
+        ARGS.l,
+        ARGS.n,
+        ARGS.x,
+        ARGS.workid,
+        ARGS.o,
+    )

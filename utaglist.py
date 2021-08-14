@@ -15,7 +15,7 @@ import argparse
 import re
 import collections
 import glob
-from typing import Counter
+from typing import Counter, List
 
 # -------------------------------------------------------------------------- #
 
@@ -408,14 +408,14 @@ USFMRE = re.compile(
 # -------------------------------------------------------------------------- #
 
 
-def processtags(args: argparse.Namespace) -> None:
+def processtags(fnames: List[str], tcounts: bool) -> None:
     """Process usfm tags in all files."""
     count = 0
     counttags: Counter[str] = collections.Counter()
     knownset = set()
 
     filenames = []
-    for _ in args.file:
+    for _ in fnames:
         if "*" in _:
             filenames.extend(glob.glob(_))
         else:
@@ -445,7 +445,7 @@ def processtags(args: argparse.Namespace) -> None:
         print("Unknown USFM Tags: {}\n".format(", ".join(sorted(unknownset))))
 
     # print tag usage counts
-    if args.c:
+    if tcounts:
         print("\nTag usage count:\n")
         for i in sorted(counttags):
             print("{: 8} - {}".format(counttags[i], i))
@@ -475,4 +475,4 @@ if __name__ == "__main__":
     )
     ARGS = PARSER.parse_args()
 
-    processtags(ARGS)
+    processtags(ARGS.file, ARGS.c)
