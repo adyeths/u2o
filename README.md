@@ -35,3 +35,7 @@ There are of course other programs that convert usfm to osis. Here are the ones 
 * [haiola](http://haiola.org/) - Converts to many different formats, not just osis.
 
 * [bibledit](http://bibledit.org/) - A bible editor that appears to have the ability to export osis.
+
+# cu2o
+
+This is a simple wrapper for u2o.py that will allow processing of usfm files that are concatenated into a single file. Consider it experimental. Note that it *requires* u2o in order to work.
