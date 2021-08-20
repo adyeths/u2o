@@ -129,8 +129,7 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "file",
-        help="file or files to process (wildcards allowed)",
-        nargs="+",
+        help="file to process",
         metavar="filename",
     )
     ARGS = PARSER.parse_args()
