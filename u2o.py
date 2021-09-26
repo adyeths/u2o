@@ -1195,7 +1195,7 @@ ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 PARFLOW = set(IDTAGS.keys())
 PARFLOW.update(TITLETAGS.keys())
 PARFLOW.update(PARTAGS.keys())
-PARFLOW.update([r"\ide", r"\rem", r"\tr", r"\pb", r"\periph"])
+PARFLOW.update([r"\ide", r"\rem", r"\tr", r"\pb", r"\periph", r"\b"])
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
