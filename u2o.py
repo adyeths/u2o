@@ -69,6 +69,9 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-arguments
+# pylint: disable=consider-iterating-dictionary
+# pylint: disable=consider-using-dict-items
+# pylint: disable=consider-using-f-string
 
 import sys
 import argparse
@@ -80,6 +83,7 @@ import codecs
 import datetime
 import unicodedata
 import logging
+import tempfile
 from collections import OrderedDict
 from typing import Any, List, Tuple, Dict, Union, Match, Optional
 
@@ -1226,6 +1230,41 @@ OSISITEM.add("<item>")
 
 # -------------------------------------------------------------------------- #
 
+# xml 1.1 schema...
+XMLSCHEMA = b"""
+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
+FeTrUPnMMRdyRThQkELTDGM=
+"""
+
 # osis 2.1.1 schema...
 # compressed with bzip2 and base64 encoded.
 SCHEMA = b"""
@@ -1749,7 +1788,7 @@ def c2o_titlepar(text: str, bookid: str) -> str:
             # handle usfm attributes if present
             osis, attributetext, attributes, isvalid = {
                 True: parseattributes(r"periph", line[2]),
-                False: (line[2], None, dict(), True),
+                False: (line[2], None, {}, True),
             }["|" in line[2]]
             del isvalid  # make pylint happy
             if attributetext is not None:
@@ -2153,7 +2192,7 @@ def c2o_specialfeatures(text: str) -> str:
 
         osis, attributetext, attributes, isvalid = {
             True: parseattributes(matchtag, rawosis),
-            False: (rawosis, None, dict(), True),
+            False: (rawosis, None, {}, True),
         }["|" in rawosis]
         del isvalid  # make pylint happy
         osis2 = osis
@@ -3153,7 +3192,9 @@ def processfiles(
         )
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
     else:
-        with open("order-{}.txt".format(sortorder), "r") as order:
+        with open(
+            "order-{}.txt".format(sortorder), "r", encoding="utf-8"
+        ) as order:
             bookorderstr = order.read()
             bookorder = [
                 _
@@ -3203,21 +3244,34 @@ def processfiles(
             osisschema = codecs.decode(
                 codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
             )
-            try:
-                vparser = et.XMLParser(
-                    schema=et.XMLSchema(et.XML(osisschema)),
-                    remove_blank_text=True,
+            xmlschema = codecs.decode(
+                codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
+                "utf-8",
+            )
+            with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
+                osisschema = osisschema.replace(
+                    "http://www.w3.org/2001/03/xml.xsd",
+                    "file://{}".format(xmlxsd.name),
                 )
-                _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
-                LOG.warning("Validation passed!")
-                osisdoc = et.tostring(
-                    _,
-                    pretty_print=True,
-                    xml_declaration=True,
-                    encoding="utf-8",
-                )
-            except et.XMLSyntaxError as err:
-                LOG.error("Validation failed: %s", str(err))
+                xmlxsd.write(xmlschema.encode("utf-8"))
+
+                try:
+                    vparser = et.XMLParser(
+                        schema=et.XMLSchema(et.XML(osisschema)),
+                        remove_blank_text=True,
+                    )
+                    _ = et.fromstring(
+                        testosis.encode("utf-8"), vparser
+                    )  # nosec
+                    LOG.warning("Validation passed!")
+                    osisdoc = et.tostring(
+                        _,
+                        pretty_print=True,
+                        xml_declaration=True,
+                        encoding="utf-8",
+                    )
+                except et.XMLSyntaxError as err:
+                    LOG.error("Validation failed: %s", str(err))
         # no validation, just pretty printing...
         else:
             # ... but only if we're not debugging.
