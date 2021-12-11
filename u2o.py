@@ -69,8 +69,6 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-arguments
-# pylint: disable=consider-iterating-dictionary
-# pylint: disable=consider-using-dict-items
 # pylint: disable=consider-using-f-string
 
 import sys
@@ -1220,11 +1218,11 @@ TITLEFLOW = set(TITLETAGS.keys())
 OSISITEM = set()
 OSISL = set()
 
-for _ in PARTAGS:
-    if PARTAGS[_][0].startswith("<item "):
-        OSISITEM.add(PARTAGS[_][0])
-    elif PARTAGS[_][0].startswith("<l "):
-        OSISL.add(PARTAGS[_][0])
+for _ in PARTAGS.items():
+    if _[0].startswith("<item "):
+        OSISITEM.add(_[0])
+    elif _[0].startswith("<l "):
+        OSISL.add(_[0])
 OSISL.add("<l>")
 OSISITEM.add("<item>")
 
@@ -1739,7 +1737,7 @@ def c2o_identification(
 
     """
     line = text.partition(" ")
-    if line[0] in IDTAGS.keys():
+    if line[0] in IDTAGS:
         text = {
             True: "{}\ufdd0".format(
                 IDTAGS[line[0]][1].format(line[2].strip())
@@ -1851,7 +1849,7 @@ def c2o_titlepar(text: str, bookid: str) -> str:
         cells = line[2].split("\n")
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
-            if tmp[0] in celltags.keys():
+            if tmp[0] in celltags:
                 cells[i[0]] = "{}{}{}".format(
                     celltags[tmp[0]][0],
                     tmp[2].strip(),
@@ -1939,8 +1937,8 @@ def c2o_titlepar(text: str, bookid: str) -> str:
         text = tables(line)
 
     # other title, paragraph, intro tags
-    for _ in othertags.keys():
-        text = text.replace(_, othertags[_])
+    for _ in othertags.items():
+        text = text.replace(_[0], _[1])
 
     # fix selah
     if "<selah>" in text:
@@ -2660,14 +2658,14 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
     # get lists of tags where lines need to be broken for processing
     wjstarttags = set()
     wjendtags = set()
-    for _ in TITLETAGS:
-        if TITLETAGS[_][0] != "" and TITLETAGS[_][1] != "":
-            wjstarttags.add(TITLETAGS[_][0].strip())
-            wjendtags.add(TITLETAGS[_][1].strip())
-    for _ in PARTAGS:
-        if PARTAGS[_][0] != "" and PARTAGS[_][1] != "":
-            wjstarttags.add(PARTAGS[_][0].strip())
-            wjendtags.add(PARTAGS[_][1].strip())
+    for _ in TITLETAGS.items():
+        if _[1][0] != "" and _[1][1] != "":
+            wjstarttags.add(_[1][0].strip())
+            wjendtags.add(_[1][1].strip())
+    for _ in PARTAGS.items():
+        if _[1][0] != "" and _[1][1] != "":
+            wjstarttags.add(_[1][0].strip())
+            wjendtags.add(_[1][1].strip())
 
     # prepare for processing by joining lines together
     text = "\ufdd1".join(lines)
@@ -3171,7 +3169,7 @@ def processfiles(
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
-            if bookid in books.keys():
+            if bookid in books:
                 books[bookid] = "{}\n{}".format(books[bookid], newtext)
                 descriptions[bookid] = "{}\n{}".format(
                     books[bookid], descriptiontext
@@ -3188,9 +3186,9 @@ def processfiles(
         tmp2 = [descriptions[_] for _ in booklist]
     elif sortorder == "canonical":
         tmp = "\n".join(
-            [books[_] for _ in CANONICALORDER if _ in books.keys()]
+            [books[_] for _ in CANONICALORDER if _ in books]
         )
-        tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books.keys()]
+        tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books]
     else:
         with open(
             "order-{}.txt".format(sortorder), "r", encoding="utf-8"
@@ -3201,8 +3199,8 @@ def processfiles(
                 for _ in bookorderstr.split("\n")
                 if _ != "" and not _.startswith("#")
             ]
-        tmp = "\n".join([books[_] for _ in bookorder if _ in books.keys()])
-        tmp2 = [descriptions[_] for _ in bookorder if _ in books.keys()]
+        tmp = "\n".join([books[_] for _ in bookorder if _ in books])
+        tmp2 = [descriptions[_] for _ in bookorder if _ in books]
     # check for strongs presence in osis
     strongsheader = {True: STRONGSWORK, False: ""}["<w " in tmp]
     # assemble osis doc in desired order
@@ -3313,7 +3311,7 @@ def processfiles(
     with open(outfile, "wb") as ofile:
         ofile.write(osisdoc)
 
-    if "TEST" in books.keys():
+    if "TEST" in books:
         print(books["TEST"])
 
 
