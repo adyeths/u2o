@@ -6,7 +6,6 @@ import argparse
 import logging
 import tempfile
 import pathlib
-import glob
 import os
 from typing import List, Any
 
@@ -14,7 +13,7 @@ from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
-
+# pylint: disable=consider-using-f-string
 
 def processfiles2(
     fnames: List[str],
@@ -28,15 +27,11 @@ def processfiles2(
     outputfile: str,
 ) -> None:
     """Unsplit a single concatenated usfm file for processing."""
-    if len(fnames) != 1:
-        LOG.error("Please specify a single usfm file to process.")
-        sys.exit(1)
-
     i: Any
 
     # read file
     LOG.info("Reading filename and splitting into separate files... ")
-    with open(fnames[0], "rb") as ifile:
+    with open(fnames, "rb") as ifile:
         text = ifile.read()
         textlines = text.decode("utf-8-sig").strip().split("\n")
 
@@ -67,10 +62,10 @@ def processfiles2(
         with tempfile.TemporaryDirectory() as tmpdir:
             filenames = []
             pth = pathlib.Path(tmpdir)
-            for i in books:
-                ipth = pth / i
-                with open(ipth, "w+") as outfile:
-                    outfile.write(books[i])
+            for i in books.items():
+                ipth = pth / i[0]
+                with open(ipth, "w+", encoding="utf-8") as outfile:
+                    outfile.write(i[1])
                     filenames.append(str(ipth))
 
             processfiles(
@@ -139,24 +134,9 @@ if __name__ == "__main__":
         ARGS.x = True
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    FILENAMES = []
-    for _ in ARGS.file:
-        GLOBFILES = glob.glob(_)
-
-        if os.path.isfile(_):
-            FILENAMES.append(_)
-        elif GLOBFILES:
-            FILENAMES.extend(GLOBFILES)
-        else:
-            FILENAMES.append(_)
-
-    ARGS.file = FILENAMES
-    del FILENAMES
-
-    for _ in ARGS.file:
-        if not os.path.isfile(_):
-            LOG.error("*** input file not present or not a normal file. ***")
-            sys.exit()
+    if not os.path.isfile(ARGS.file):
+        LOG.error("*** input file not present or not a normal file. ***")
+        sys.exit()
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)
