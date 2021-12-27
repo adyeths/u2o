@@ -7,7 +7,7 @@ import logging
 import tempfile
 import pathlib
 import os
-from typing import List, Any
+from typing import Any
 
 from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 
@@ -16,7 +16,7 @@ from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 # pylint: disable=consider-using-f-string
 
 def processfiles2(
-    fnames: List[str],
+    fname: str,
     fencoding: str,
     dodebug: bool,
     sortorder: str,
@@ -31,7 +31,7 @@ def processfiles2(
 
     # read file
     LOG.info("Reading filename and splitting into separate files... ")
-    with open(fnames, "rb") as ifile:
+    with open(fname, "rb") as ifile:
         text = ifile.read()
         textlines = text.decode("utf-8-sig").strip().split("\n")
 
