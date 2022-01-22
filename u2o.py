@@ -862,6 +862,7 @@ FEATURETAGS = {
     # This should be converted to an 'a' tag. More work needs
     # to be done before that can happen though.
     r"\jmp": ('<seg type="x-usfm-jmp">', "</seg>"),
+    r"\+jmp": ('<seg type="x-usfm-jmp" subType="x-nested">', "</seg>"),
 }
 
 # special strongs feature tag...
@@ -942,6 +943,7 @@ DEFINEDATTRIBUTES = {
     r"\xt": ["link-ref"],
     r"\fig": ["alt", "src", "size", "loc", "copy", "ref"],
     r"\jmp": ["link-href", "link-title", "link-name"],
+    r"\+jmp": ["link-href", "link-title", "link-name"],
     r"\qt-s": ["id", "who"],
     r"\qt-e": ["id"],
     r"\periph": ["id"],
