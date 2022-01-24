@@ -110,7 +110,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2021-07-28",  # THIS SCRIPT revision date
+    "DATE": "2022-01-24",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -3019,7 +3019,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
         lines[i[0]] = c2o_specialtext(lines[i[0]])
 
         # special features if present, and stray \xt tags that were missed.
-        for _ in [r"\ndx", r"\pro", r"\w", r"\+w", r"\fig", r"\xt", r"\+xt"]:
+        for _ in FEATURETAGS:
             if _ in lines[i[0]]:
                 lines[i[0]] = c2o_specialfeatures(lines[i[0]])
                 break
@@ -3187,9 +3187,7 @@ def processfiles(
         tmp = "\n".join([books[_] for _ in booklist])
         tmp2 = [descriptions[_] for _ in booklist]
     elif sortorder == "canonical":
-        tmp = "\n".join(
-            [books[_] for _ in CANONICALORDER if _ in books]
-        )
+        tmp = "\n".join([books[_] for _ in CANONICALORDER if _ in books])
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books]
     else:
         with open(
