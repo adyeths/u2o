@@ -3023,7 +3023,15 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
             if _ in lines[i[0]]:
                 lines[i[0]] = c2o_specialfeatures(lines[i[0]])
                 break
-        for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
+        for _ in [
+            r"\fig",
+            r"\qt-",
+            r"\qt1-",
+            r"\qt2-",
+            r"\qt3-",
+            r"\qt4-",
+            r"\qt5-",
+        ]:
             if _ in lines[i[0]]:
                 lines[i[0]] = c2o_specialfeatures(lines[i[0]])
                 break
