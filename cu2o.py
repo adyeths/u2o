@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Program information goes here."""
 import sys
 import argparse
@@ -14,6 +13,7 @@ from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 # pylint: disable=consider-using-f-string
+
 
 def processfiles2(
     fname: str,
@@ -90,11 +90,9 @@ if __name__ == "__main__":
         description="""
             convert USFM bibles to OSIS.
         """,
-        epilog="""
-            * Version: {} * {} * This script is public domain. *
-        """.format(
-            META["VERSION"], META["DATE"]
-        ),
+        epilog=f"""
+            * Version: {META['VERSION']} * {META['DATE']} * This script is public domain. *
+        """,
     )
     PARSER.add_argument("workid", help="work id to use for OSIS file")
     PARSER.add_argument("-d", help="debug mode", action="store_true")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 r"""
 Convert usfm bibles to osis.
@@ -1470,16 +1469,16 @@ def reflow(text: str) -> str:
         textlines = text.split("\n")
         for _ in enumerate(textlines):
             if textlines[_[0]][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
-                textlines[_[0]] = "{}\uFDD4".format(textlines[_[0]])
+                textlines[_[0]] = f"{textlines[_[0]]}\uFDD4"
             elif textlines[_[0]][0:4] == r"\cp ":
-                textlines[_[0]] = "{}\uFDD5".format(textlines[_[0]])
+                textlines[_[0]] = f"{textlines[_[0]]}\uFDD5"
         return "\n".join(textlines)
 
     def reflowpar(text: str) -> str:
         """Put (almost) all paragraph tags on separate lines."""
         for _ in PARFLOW:
             if _ in text:
-                text = text.replace(r"{} ".format(_), "\n{} ".format(_))
+                text = text.replace(f"{_} ", f"\n{_} ")
         return text
 
     def fixlines(text: str) -> str:
@@ -1586,12 +1585,12 @@ def reflow(text: str) -> str:
         lines = text.split("\n")
         for _ in range(len(lines) - 1, 0, -1):
             if not lines[_].startswith("\\"):
-                lines[_ - 1] = "{} {}".format(lines[_ - 1], lines[1])
+                lines[_ - 1] = f"{lines[_ - 1]} {lines[1]}"
                 lines.pop(_)
         text = "\n".join(lines)
         # remove some newlines that we don't want...
         for _ in [r"\ca", r"\cp", r"\va", r"\vp"]:
-            text = text.replace("\n{}".format(_), " {}".format(_))
+            text = text.replace(f"\n{_}", f" {_}")
 
     # fix newline issue
     if "\uFDD4" in text:
@@ -1614,7 +1613,7 @@ def getbookid(text: str) -> Optional[str]:
         bookid = None
 
     return {
-        True: BOOKNAMES.get(bookid, "* {}".format(bookid)),
+        True: BOOKNAMES.get(bookid, f"* {bookid}"),
         False: None,
     }[bookid is not None]
 
@@ -1741,18 +1740,12 @@ def c2o_identification(
     line = text.partition(" ")
     if line[0] in IDTAGS:
         text = {
-            True: "{}\ufdd0".format(
-                IDTAGS[line[0]][1].format(line[2].strip())
-            ),
-            False: "{}{}{}\ufdd0".format(
-                IDTAGS[line[0]][0], line[2].strip(), IDTAGS[line[0]][1]
-            ),
+            True: f"{IDTAGS[line[0]][1].format(line[2].strip())}\ufdd0",
+            False: f"{IDTAGS[line[0]][0]}{line[2].strip()}{IDTAGS[line[0]][1]}\ufdd0",
         }[IDTAGS[line[0]][0] == ""]
     elif line[0] in IDTAGS2:
         description.append(
-            '<description {} subType="x-{}">{}</description>'.format(
-                'type="usfm"', line[0][1:], line[2].strip()
-            )
+            f'<description type="usfm" subType="x-{line[0][1:]}">{line[2].strip()}</description>'
         )
         text = ""
         # fix problems with url's in rem lines resulting from processing
@@ -1792,15 +1785,13 @@ def c2o_titlepar(text: str, bookid: str) -> str:
             }["|" in line[2]]
             del isvalid  # make pylint happy
             if attributetext is not None:
-                attributetext = "{}{}{}".format(
-                    "<!-- USFM Attributes - ", attributetext, " -->"
-                )
+                attributetext = f"<!-- USFM Attributes - {attributetext} -->"
             starttag = titletags[line[0]][0]
             endtag = titletags[line[0]][1]
 
             # process id attribute
             if "id" in attributes:
-                idattribute = ' n="{}">'.format(attributes["id"])
+                idattribute = f' n="{attributes["id"]}">'
                 starttag = starttag.replace(">", idattribute)
 
             # finished processing periph now...
@@ -1825,10 +1816,10 @@ def c2o_titlepar(text: str, bookid: str) -> str:
         pstart, pend = partags[line[0]]
         btag = ""
         if pstart.startswith("<p"):
-            pstart = "{}\ufdd0".format(pstart)
-            pend = "\ufdd0{}\ufdd0".format(pend)
+            pstart = f"{pstart}\ufdd0"
+            pend = f"\ufdd0{pend}\ufdd0"
 
-        text = "{}{}".format(pstart, line[2].strip())
+        text = f"{pstart}{line[2].strip()}"
         # handle b  and ib tags in paragraphs and poetry...
         if text.endswith("\\b") or text.endswith("\\ib"):
             text = text.rstrip("\\b")
@@ -1839,7 +1830,7 @@ def c2o_titlepar(text: str, bookid: str) -> str:
             text = text.replace("\\ib ", "<!-- b -->")
 
         # finish paragraphs.
-        return "{}{}{}\ufdd0".format(text, pend, btag)
+        return f"{text}{pend}{btag}\ufdd0"
 
     def tables(line: List[str]) -> str:
         """Process tables."""
@@ -1852,12 +1843,10 @@ def c2o_titlepar(text: str, bookid: str) -> str:
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
             if tmp[0] in celltags:
-                cells[i[0]] = "{}{}{}".format(
-                    celltags[tmp[0]][0],
-                    tmp[2].strip(),
-                    celltags[tmp[0]][1],
-                )
-        return "<row>{}</row>\ufdd0".format("".join(cells))
+                cells[
+                    i[0]
+                ] = f"{celltags[tmp[0]][0]}{tmp[2].strip()}{celltags[tmp[0]][1]}"
+        return f"<row>{''.join(cells)}</row>\ufdd0"
 
     def selah(text: str) -> str:
         """Handle selah."""
@@ -1972,13 +1961,11 @@ def c2o_fixgroupings(lines: List[str]) -> List[str]:
         for _ in enumerate(lines):
             if lines[_[0]].startswith("<l "):
                 if not inlg:
-                    lines[_[0]] = "<lg>\ufdd0{}".format(lines[_[0]])
+                    lines[_[0]] = f"<lg>\ufdd0{lines[_[0]]}"
                     inlg = True
             else:
                 if inlg:
-                    lines[_[0] - 1] = "{}\ufdd0</lg>\ufdd0".format(
-                        lines[_[0] - 1]
-                    )
+                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</lg>\ufdd0"
                     inlg = False
         return lines
 
@@ -1988,13 +1975,11 @@ def c2o_fixgroupings(lines: List[str]) -> List[str]:
         for _ in enumerate(lines):
             if lines[_[0]].startswith("<item "):
                 if not inlist:
-                    lines[_[0]] = "<list>\ufdd0{}".format(lines[_[0]])
+                    lines[_[0]] = f"<list>\ufdd0{lines[_[0]]}"
                     inlist = True
             else:
                 if inlist:
-                    lines[_[0] - 1] = "{}\ufdd0</list>\ufdd0".format(
-                        lines[_[0] - 1]
-                    )
+                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</list>\ufdd0"
                     inlist = False
         return lines
 
@@ -2004,13 +1989,11 @@ def c2o_fixgroupings(lines: List[str]) -> List[str]:
         for _ in enumerate(lines):
             if lines[_[0]].startswith("<row"):
                 if not intable:
-                    lines[_[0]] = "\ufdd0<table>\ufdd0{}".format(lines[_[0]])
+                    lines[_[0]] = f"\ufdd0<table>\ufdd0{lines[_[0]]}"
                     intable = True
             else:
                 if intable:
-                    lines[_[0] - 1] = "{}\ufdd0</table>\ufdd0".format(
-                        lines[_[0] - 1]
-                    )
+                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</table>\ufdd0"
                     intable = False
         return lines
 
@@ -2067,7 +2050,7 @@ def c2o_specialtext(text: str) -> str:
     def simplerepl(match: Match[str]) -> str:
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
-        return "{}{}{}".format(tag[0], match.group("osis"), tag[1])
+        return f'{tag[0]}{match.group("osis")}{tag[1]}'
 
     text = SPECIALTEXTRE.sub(simplerepl, text, 0)
     # Make sure all nested tags are processed.
@@ -2099,7 +2082,7 @@ def c2o_noterefmarkers(text: str) -> str:
                 txt = fnmatch.groups()[1]
                 attrtxt = None
             if attrtxt is not None:
-                txt = "<!-- USFM Attributes: {} -->{}".format(attrtxt, txt)
+                txt = f"<!-- USFM Attributes: {attrtxt} -->{txt}"
             return "".join([tag[0], txt, tag[1]])
 
         notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
@@ -2153,7 +2136,7 @@ def c2o_noterefmarkers(text: str) -> str:
             notetext = notetext.replace(
                 "</transChange>", "</transChange></seg>"
             )
-        return "{}{}{}".format(tag[0], notetext, tag[1])
+        return f"{tag[0]}{notetext}{tag[1]}"
 
     text = NOTERE.sub(simplerepl, text, 0)
 
@@ -2206,15 +2189,15 @@ def c2o_specialfeatures(text: str) -> str:
                 tag2 = STRONGSTAG
                 tmp = " ".join(
                     [
-                        "strong:{}".format(_.strip())
+                        f"strong:{_.strip()}"
                         for _ in attributes["strong"].split(",")
                     ]
                 )
-                strong1 = 'lemma="{}"'.format(tmp)
+                strong1 = f'lemma="{tmp}"'
                 strong2 = ""
             if "x-morph" in attributes.keys():
                 if tag2 is not None:
-                    strong2 = ' morph="{}"'.format(attributes["x-morph"])
+                    strong2 = f' morph="{attributes["x-morph"]}"'
 
         # TODO: improve processing of tag attributes
 
@@ -2232,16 +2215,13 @@ def c2o_specialfeatures(text: str) -> str:
                 tag2[0].format(strong1, strong2), osis, tag2[1]
             )
         else:
-            outtext = "{}{}{}".format(tag[0], osis, tag[1])
+            outtext = f"{tag[0]}{osis}{tag[1]}"
 
         if attributetext is not None:
             # problems can occur when strongs numbers are present...
             # this avoids those problems.
             if matchtag not in [r"\w", r"\+w"]:
-                outtext = "{}{}".format(
-                    outtext,
-                    "<!-- USFM Attributes: {} -->".format(attributetext),
-                )
+                outtext = f"{outtext}<!-- USFM Attributes: {attributetext} -->"
 
         return outtext
 
@@ -2258,36 +2238,34 @@ def c2o_specialfeatures(text: str) -> str:
                     fig = tlines[i[0]][5:-5].split("|")
                     figref = ""
                     fig[0] = {
-                        False: "<!-- fig DESC - {} -->\n".format(fig[0]),
+                        False: f"<!-- fig DESC - {fig[0]} -->\n",
                         True: fig[0],
                     }[not fig[0]]
                     fig[1] = {
-                        False: ' src="{}"'.format(fig[1]),
+                        False: f' src="{fig[1]}"',
                         True: fig[1],
                     }[not fig[1]]
                     fig[2] = {
-                        False: ' size="{}"'.format(fig[2]),
+                        False: f' size="{fig[2]}"',
                         True: fig[2],
                     }[not fig[2]]
                     fig[3] = {
-                        False: "<!-- fig LOC - {} -->\n".format(fig[3]),
+                        False: f"<!-- fig LOC - {fig[3]} -->\n",
                         True: fig[3],
                     }[not fig[3]]
                     fig[4] = {
-                        False: ' rights="{}"'.format(fig[4]),
+                        False: f' rights="{fig[4]}"',
                         True: fig[4],
                     }[not fig[4]]
                     fig[5] = {
-                        False: "<caption>{}</caption>\n".format(fig[5]),
+                        False: f"<caption>{fig[5]}</caption>\n",
                         True: fig[5],
                     }[not fig[5]]
                     # this is likely going to be very broken without
                     # further processing of the references.
                     if fig[6]:
-                        figref = "<reference {}>{}</reference>\n".format(
-                            'type="annotateRef"', fig[6]
-                        )
-                        fig[6] = ' annotateRef="{}"'.format(fig[6])
+                        figref = f'<reference type="annotateRef">{fig[6]}</reference>\n'
+                        fig[6] = f' annotateRef="{fig[6]}"'
 
                 # new style \fig handling
                 else:
@@ -2312,14 +2290,8 @@ def c2o_specialfeatures(text: str) -> str:
                         # this is likely going to be very broken without
                         # further processing of the references.
                         if "ref" in figattr[2]:
-                            figref = "{}{}{}\n".format(
-                                '<reference type="annotateRef">',
-                                figattr[2]["ref"],
-                                "</reference>\n",
-                            )
-                            fig.append(
-                                ' annotateRef="{}"'.format(figattr[2]["ref"])
-                            )
+                            figref = f'<reference type="annotateRef">{figattr[2]["ref"]}</reference>\n\n'
+                            fig.append(f' annotateRef="{figattr[2]["ref"]}"')
                         else:
                             figref = ""
                             fig.append("")
@@ -2353,7 +2325,7 @@ def c2o_specialfeatures(text: str) -> str:
             r"\qt5-",
         ]:
             if _ in text:
-                text = text.replace(_, "\n{}".format(_))
+                text = text.replace(_, f"\n{_}")
         text = text.replace(r"\*", "\\*\n")
         tlines = text.split("\n")
 
@@ -2384,28 +2356,18 @@ def c2o_specialfeatures(text: str) -> str:
                             del isvalid, attributetext  # make pylint happy
                             newline = r"<q"
                             newline = {
-                                True: "{}{}".format(
-                                    newline,
-                                    r' sID="{}"'.format(attributes["id"]),
-                                ),
+                                True: f'{newline} sID="{attributes["id"]}"',
                                 False: newline,
                             }["id" in attributes]
                             newline = {
-                                True: "{}{}".format(
-                                    newline,
-                                    r' who="{}"'.format(attributes["who"]),
-                                ),
+                                True: f'{newline} who="{attributes["who"]}"',
                                 False: newline,
                             }["who" in attributes]
                             qlevel = {True: tag[3], False: "1"}[
                                 tag[3] in ["2", "3", "4", "5"]
                             ]
 
-                            newline = "{}{}{}".format(
-                                newline,
-                                ' level="{}"'.format(qlevel),
-                                r" />",
-                            )
+                            newline = f'{newline} level="{qlevel}" />'
                         # milestone end tag
                         elif tag.endswith(r"-e"):
                             (
@@ -2416,10 +2378,7 @@ def c2o_specialfeatures(text: str) -> str:
                             ) = parseattributes(r"\qt-e", qttext)
                             newline = r"<q"
                             newline = {
-                                True: "{}{}".format(
-                                    newline,
-                                    r' eID="{}"'.format(attributes["id"]),
-                                ),
+                                True: f'{qlevel} eID="{attributes["id"]}"',
                                 False: newline,
                             }["id" in attributes]
                             qlevel = {True: tag[3], False: "1"}[
@@ -2430,11 +2389,7 @@ def c2o_specialfeatures(text: str) -> str:
                             # on the milestone end tag. I put it here
                             # just to be sure though. I will remove it
                             # later if it doesn't belong here.
-                            newline = "{}{}{}".format(
-                                newline,
-                                ' level="{}"'.format(qlevel),
-                                r" />",
-                            )
+                            newline = f'{newline} level="{qlevel}" />'
                         # replace line with osis milestone tag
                         if newline != "":
                             tlines[i[0]] = newline
@@ -2531,7 +2486,7 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
             # nb fix...
             if "<!--" in cnum and "nb -->" in tmp[2]:
                 cnum = cnum.replace("<!--", "").strip()
-                tmp[2] = "<!-- {}".format(tmp[2])
+                tmp[2] = f"<!-- {tmp[2]}"
 
             caid = ""
 
@@ -2588,17 +2543,13 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
                 try:
                     vlist = verserange(vnum)
                     for j in enumerate(vlist):
-                        vlist[j[0]] = "{}.{}.{}".format(
-                            bookid, chap, vlist[j[0]]
-                        )
-                    osisid = 'osisID="{}{}"'.format(" ".join(vlist), vaid)
+                        vlist[j[0]] = f"{bookid}.{chap}.{vlist[j[0]]}"
+                    osisid = f'osisID="{" ".join(vlist)}{vaid}"'
                 except TypeError:
                     vnum = vnum.strip("-")
-                    osisid = 'osisID="{}.{}.{}{}"'.format(
-                        bookid, chap, vnum, vaid
-                    )
+                    osisid = f'osisID="{bookid}.{chap}.{vnum}{vaid}"'
             else:
-                osisid = 'osisID="{}.{}.{}{}"'.format(bookid, chap, vnum, vaid)
+                osisid = f'osisID="{bookid}.{chap}.{vnum}{vaid}"'
 
             # generate verse tag
             if verse == "":
@@ -2634,17 +2585,15 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
                 hasverse = True
 
         elif lines[i].startswith(r"<closer"):
-            lines[i] = "<verse {} />\n{}".format(
-                'eID="{}.{}.{}"'.format(bookid, chap, verse), tmp[2]
-            )
+            lines[i] = f'<verse eID="{bookid}.{chap}.{verse}" />\n{tmp[2]}'
             verse = vnum
             hasverse = False
             # hascloser = True # apparently we're not using this?
 
     if hasverse:
-        lines.append('<verse eID="{}.{}.{}" />'.format(bookid, chap, verse))
+        lines.append(f'<verse eID="{bookid}.{chap}.{verse}" />')
     if haschap:
-        lines.append('<chapter eID="{}.{}" />'.format(bookid, chap))
+        lines.append(f'<chapter eID="{bookid}.{chap}" />')
 
     return lines
 
@@ -2689,10 +2638,10 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
             # add additional closing and opening q tags
             for _ in wjstarttags:
                 lines[i[0]] = lines[i[0]].replace(
-                    _, '{}<q who="Jesus" marker="">'.format(_)
+                    _, f'{_}<q who="Jesus" marker="">'
                 )
             for _ in wjendtags:
-                lines[i[0]] = lines[i[0]].replace(_, "</q>{}".format(_))
+                lines[i[0]] = lines[i[0]].replace(_, f"</q>{_}")
 
     # rejoin lines, then resplit and return processed lines...
     text = "".join(lines)
@@ -2726,7 +2675,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             if tmp is not None:
                 vpnum = tmp.group("num")
                 lines[_[0]] = VPRE.sub(
-                    '<milestone type="x-usfm-vp" n="{}" />'.format(vpnum),
+                    f'<milestone type="x-usfm-vp" n="{vpnum}" />',
                     lines[_[0]],
                     1,
                 )
@@ -2828,7 +2777,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     ]:
         if lines[j - 1].endswith(i):
             tmp = lines[j - 1].rpartition("<")
-            lines[j - 1] = "{}{}{}{}".format(tmp[0], lines[j], tmp[1], tmp[2])
+            lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
             lines[j] = ""
 
     lines = [_ for _ in lines if _ != ""]
@@ -2849,9 +2798,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
     ]:
         if lines[i - 1].endswith("</l>"):
-            lines[i - 1] = "{}{}</l>".format(
-                lines[i - 1].rpartition("<")[0], lines[i]
-            )
+            lines[i - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
             lines[i] = ""
 
     for i, j in [
@@ -2875,7 +2822,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             and lines[i + 2].startswith("<verse eID")
         ):
             tmp1 = lines[i + 1].rpartition("<")
-            lines[i] = "{}{}{}</title>".format(lines[i], tmp1[0], lines[i + 2])
+            lines[i] = f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>"
             lines[i + 1] = ""
             lines[i + 2] = ""
     lines = [_ for _ in lines if _ != ""]
@@ -2965,7 +2912,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             and lines[i - 3].endswith("</l><l>")
         ):
             lines[i - 3] = lines[i - 3][:-3]
-            lines[i - 2] = "{}{}".format(lines[i - 2], "</lg>")
+            lines[i - 2] = f"{lines[i - 2]}</lg>"
             lines[i] = lines[i][:-4]
             lines[i + 1] = ""
 
@@ -2978,7 +2925,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             and lines[i - 1].startswith("<chapter eID")
             and lines[i + 1] == "</lg>"
         ):
-            lines[i - 2] = "{}</l></lg>".format(lines[i - 2])
+            lines[i - 2] = f"{lines[i - 2]}</l></lg>"
             lines[i] = lines[i][:-4]
             lines[i + 1] = ""
 
@@ -3167,23 +3114,19 @@ def processfiles(
         # store our converted text for output
         if bookid != "TEST":
             if bookid in NONCANONICAL:
-                books[bookid] = '<div type="{}">\n{}\n</div>\n\n'.format(
-                    NONCANONICAL[bookid], newtext
-                )
+                books[
+                    bookid
+                ] = f'<div type="{NONCANONICAL[bookid]}">\n{newtext}\n</div>\n\n'
             else:
                 books[
                     bookid
-                ] = '<div type="book" osisID="{}" {}>\n{}\n</div>\n\n'.format(
-                    bookid, 'canonical="true"', newtext
-                )
+                ] = f'<div type="book" osisID="{bookid}" canonical="true">\n{newtext}\n</div>\n\n'
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
             if bookid in books:
-                books[bookid] = "{}\n{}".format(books[bookid], newtext)
-                descriptions[bookid] = "{}\n{}".format(
-                    books[bookid], descriptiontext
-                )
+                books[bookid] = f"{books[bookid]}\n{newtext}"
+                descriptions[bookid] = f"{books[bookid]}\n{descriptiontext}"
             else:
                 books[bookid] = newtext
                 descriptions[bookid] = descriptiontext
@@ -3198,9 +3141,7 @@ def processfiles(
         tmp = "\n".join([books[_] for _ in CANONICALORDER if _ in books])
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books]
     else:
-        with open(
-            "order-{}.txt".format(sortorder), "r", encoding="utf-8"
-        ) as order:
+        with open(f"order-{sortorder}.txt", "r", encoding="utf-8") as order:
             bookorderstr = order.read()
             bookorder = [
                 _
@@ -3257,7 +3198,7 @@ def processfiles(
             with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
                 osisschema = osisschema.replace(
                     "http://www.w3.org/2001/03/xml.xsd",
-                    "file://{}".format(xmlxsd.name),
+                    f"file://{xmlxsd.name}",
                 )
                 xmlxsd.write(xmlschema.encode("utf-8"))
 
@@ -3313,7 +3254,7 @@ def processfiles(
     osisdoc = osisdoc.encode("utf-8")
 
     # write doc to file
-    outfile = "{}.osis".format(workid)
+    outfile = f"{workid}.osis"
     if outputfile is not None:
         outfile = outputfile
     with open(outfile, "wb") as ofile:
@@ -3332,11 +3273,9 @@ if __name__ == "__main__":
         description="""
             convert USFM bibles to OSIS.
         """,
-        epilog="""
-            * Version: {} * {} * This script is public domain. *
-        """.format(
-            META["VERSION"], META["DATE"]
-        ),
+        epilog=f"""
+            * Version: {META["VERSION"]} * {META["DATE"]} * This script is public domain. *
+        """,
     )
     PARSER.add_argument("workid", help="work id to use for OSIS file")
     PARSER.add_argument("-d", help="debug mode", action="store_true")

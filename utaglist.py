@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 List ufm tags.
@@ -442,16 +441,16 @@ def processtags(fnames: List[str], tcounts: bool) -> None:
     # output results.
     print()
     if knownset:
-        print("Known USFM Tags: {}\n".format(", ".join(sorted(knownset))))
+        print(f"Known USFM Tags: {', '.join(sorted(knownset))}\n")
     if unknownset:
-        print("Unknown USFM Tags: {}\n".format(", ".join(sorted(unknownset))))
+        print(f"Unknown USFM Tags: {', '.join(sorted(unknownset))}\n")
 
     # print tag usage counts
     if tcounts:
         print("\nTag usage count:\n")
         for i in sorted(counttags):
-            print("{: 8} - {}".format(counttags[i], i))
-        print("\nTotal number of usfm tags found:   {}\n".format(count))
+            print(f"{counttags[i]: 8} - {i}")
+        print(f"\nTotal number of usfm tags found:   {count}\n")
 
 
 # -------------------------------------------------------------------------- #
@@ -463,11 +462,9 @@ if __name__ == "__main__":
             A simple script to generate a list of usfm tags that were used in
            one or more utf8 encoded usfm files.
         """,
-        epilog="""
-            * Version: {} * This script is public domain *
-        """.format(
-            VERSION
-        ),
+        epilog=f"""
+            * Version: {VERSION} * This script is public domain *
+        """,
     )
     PARSER.add_argument(
         "-c", help="include usage counts for tags", action="store_true"
