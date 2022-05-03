@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-01-24",  # THIS SCRIPT revision date
+    "DATE": "2022-05-03",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
