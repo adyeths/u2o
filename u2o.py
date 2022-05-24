@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-05-03",  # THIS SCRIPT revision date
+    "DATE": "2022-05-24",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2493,29 +2493,29 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
             # generate chapter number
             if chap == "":
                 lines[i] = "<chapter {} {} {} />{}".format(
-                    'sID="{}.{}"'.format(bookid, cnum),
-                    'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                    'n="{}"'.format(cnum),
+                    f'sID="{bookid}.{cnum}"',
+                    f'osisID="{bookid}.{cnum}{caid}"',
+                    f'n="{cnum}"',
                     tmp[2],
                 )
                 chap = cnum
             else:
                 if hasverse:
                     lines[i] = "{}\n{}\n<chapter {} {} {} />{}".format(
-                        '<verse eID="{}.{}.{}" />'.format(bookid, chap, verse),
-                        '<chapter eID="{}.{}" />'.format(bookid, chap),
-                        'sID="{}.{}"'.format(bookid, cnum),
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum),
+                        f'<verse eID="{bookid}.{chap}.{verse}" />',
+                        f'<chapter eID="{bookid}.{chap}" />',
+                        f'sID="{bookid}.{cnum}"',
+                        f'osisID="{bookid}.{cnum}{caid}"',
+                        f'n="{cnum}"',
                         tmp[2],
                     )
                     hasverse = False
                 else:
                     lines[i] = "{}\n<chapter {} {} {} />{}".format(
-                        '<chapter eID="{}.{}" />'.format(bookid, chap),
-                        'sID="{}.{}"'.format(bookid, cnum),
-                        'osisID="{}.{}{}"'.format(bookid, cnum, caid),
-                        'n="{}"'.format(cnum),
+                        f'<chapter eID="{bookid}.{chap}" />',
+                        f'sID="{bookid}.{cnum}"',
+                        f'osisID="{bookid}.{cnum}{caid}"',
+                        f'n="{cnum}"',
                         tmp[2],
                     )
 
@@ -2556,8 +2556,8 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
                 # handle single chapter books without chapter marker
                 if chap == "1" and haschap is False:
                     chapmark = "<chapter {} {} {} />\n".format(
-                        'sID="{}.1"'.format(bookid),
-                        'osisID="{}.1{}"'.format(bookid, caid),
+                        f'sID="{bookid}.1"',
+                        f'osisID="{bookid}.1{caid}"',
                         'n="1"',
                     )
                     haschap = True
@@ -2566,19 +2566,19 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
 
                 lines[i] = "{}<verse {} {} {} />{}".format(
                     chapmark,
-                    'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                    f'sID="{bookid}.{chap}.{vnum}"',
                     osisid,
-                    'n="{}"'.format(vnum),
+                    f'n="{vnum}"',
                     tmp[2],
                 )
                 verse = vnum
                 hasverse = True
             else:
                 lines[i] = "<verse {} />\n<verse {} {} {} />{}".format(
-                    'eID="{}.{}.{}"'.format(bookid, chap, verse),
-                    'sID="{}.{}.{}"'.format(bookid, chap, vnum),
+                    f'eID="{bookid}.{chap}.{verse}"',
+                    f'sID="{bookid}.{chap}.{vnum}"',
                     osisid,
-                    'n="{}"'.format(vnum),
+                    f'n="{vnum}"',
                     tmp[2],
                 )
                 verse = vnum

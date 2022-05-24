@@ -10,8 +10,6 @@ This script is public domain.
 
 """
 
-# pylint: disable=consider-using-f-string
-
 import argparse
 import re
 import collections

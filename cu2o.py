@@ -12,7 +12,6 @@ from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
-# pylint: disable=consider-using-f-string
 
 
 def processfiles2(
