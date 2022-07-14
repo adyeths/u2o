@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-05-24",  # THIS SCRIPT revision date
+    "DATE": "2022-07-11",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1112,7 +1112,7 @@ del NOTEFIXRE_S
 # match \cp and \vp tags
 CPRE = re.compile(
     r"""
-        \\(?:cp)
+        \\cp
         \s+
         (?P<num>\S+)\b
         \s*
@@ -1121,7 +1121,7 @@ CPRE = re.compile(
 )
 VPRE = re.compile(
     r"""
-        \\(?:vp)
+        \\vp
         \s+
         (?P<num>\S+)
         \s*
@@ -1173,7 +1173,7 @@ USFMRE = re.compile(
     [A-Za-z]+
 
     # tags may or may not be numbered
-    [0-9]?
+    \d?
 
     # a word boundary to mark the end of our tags.
     \b
@@ -1436,7 +1436,7 @@ def convertcl(text: str) -> str:
     return "\n".join(lines)
 
 
-def reflow(text: str) -> str:
+def reflow(flowtext: str) -> str:
     """
     Reflow text for Processing.
 
@@ -1541,16 +1541,16 @@ def reflow(text: str) -> str:
         return "\n".join(textlines)
 
     # test for paragraph markup before mangling the text
-    mangletext = manglecheck(text)
+    mangletext = manglecheck(flowtext)
 
     # mark end of cl, sp, and qa tags
-    text = endmark(text)
+    flowtext = endmark(flowtext)
 
     # process text with paragraph formatting
-    text = SQUEEZE.sub(" ", text)
+    flowtext = SQUEEZE.sub(" ", flowtext)
 
     # put (almost) all paragraph style tags on separate lines.
-    text = reflowpar(text)
+    flowtext = reflowpar(flowtext)
 
     for _ in (
         # always put \cl and \cd on newlines
@@ -1562,14 +1562,14 @@ def reflow(text: str) -> str:
         (r"\cp", r" \cp"),
         (r"\ca", r" \ca"),
     ):
-        if _[0] in text:
-            text = text.replace(_[0], _[1])
+        if _[0] in flowtext:
+            flowtext = flowtext.replace(_[0], _[1])
 
     # always make sure chapter 1 marker is on a new line.
-    text = text.replace(r"\c 1 ", "\n\\c 1")
+    flowtext = flowtext.replace(r"\c 1 ", "\n\\c 1")
 
     # fix various possible issues in text lines.
-    text = fixlines(text)
+    flowtext = fixlines(flowtext)
 
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
@@ -1579,29 +1579,29 @@ def reflow(text: str) -> str:
             (r"\v ", "\n\\v "),
             (r"\ide ", "\n\\ide "),
         ):
-            text = text.replace(_[0], _[1])
+            flowtext = flowtext.replace(_[0], _[1])
 
         # make sure all lines start with a usfm tag...
-        lines = text.split("\n")
+        lines = flowtext.split("\n")
         for _ in range(len(lines) - 1, 0, -1):
             if not lines[_].startswith("\\"):
                 lines[_ - 1] = f"{lines[_ - 1]} {lines[1]}"
                 lines.pop(_)
-        text = "\n".join(lines)
+        flowtext = "\n".join(lines)
         # remove some newlines that we don't want...
         for _ in [r"\ca", r"\cp", r"\va", r"\vp"]:
-            text = text.replace(f"\n{_}", f" {_}")
+            flowtext = flowtext.replace(f"\n{_}", f" {_}")
 
     # fix newline issue
-    if "\uFDD4" in text:
-        text = text.replace("\uFDD4", "\n")
+    if "\uFDD4" in flowtext:
+        flowtext = flowtext.replace("\uFDD4", "\n")
 
     # add custom end marker for cp tags for easier processing
-    if "\uFDD5" in text:
-        text = text.replace("\uFDD5", r"\cp*")
+    if "\uFDD5" in flowtext:
+        flowtext = flowtext.replace("\uFDD5", r"\cp*")
 
     # done
-    return text
+    return flowtext
 
 
 def getbookid(text: str) -> Optional[str]:
@@ -1680,7 +1680,6 @@ def parseattributes(tag: str, tagtext: str) -> Tuple[str, str, Any, bool]:
     attribs: Dict[str, str] = {}
 
     # extract attributes
-    attribs = {}
     if "=" not in attributestring:
         attribs[DEFAULTATTRIBUTES.get(tag, "x-default")] = attributestring
     else:
@@ -1701,7 +1700,7 @@ def parseattributes(tag: str, tagtext: str) -> Tuple[str, str, Any, bool]:
             if not _.startswith("x-"):
                 isinvalid = True
 
-    return (text, attributestring, attribs, isinvalid)
+    return text, attributestring, attribs, isinvalid
 
 
 # -------------------------------------------------------------------------- #
@@ -1757,7 +1756,7 @@ def c2o_identification(
     return text, description
 
 
-def c2o_titlepar(text: str, bookid: str) -> str:
+def c2o_titlepar(blocktext: str, bookid: str) -> str:
     """Process title and paragraph tags."""
     # local copies of global variables.
     partags = PARTAGS
@@ -1913,35 +1912,35 @@ def c2o_titlepar(text: str, bookid: str) -> str:
     #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
     # ################################################################### #
 
-    line = list(text.partition(" "))
+    blockline = list(blocktext.partition(" "))
 
     # process titles and sections
-    if line[0] in titletags:
-        text = titles_and_sections(line)
+    if blockline[0] in titletags:
+        blocktext = titles_and_sections(blockline)
 
     # process paragraphs
-    elif line[0] in partags:
-        text = paragraphs(line)
+    elif blockline[0] in partags:
+        blocktext = paragraphs(blockline)
 
     # process tables
-    elif line[0] == r"\tr":
-        text = tables(line)
+    elif blockline[0] == r"\tr":
+        blocktext = tables(blockline)
 
     # other title, paragraph, intro tags
     for _ in othertags.items():
-        text = text.replace(_[0], _[1])
+        blocktext = blocktext.replace(_[0], _[1])
 
     # fix selah
-    if "<selah>" in text:
-        text = selah(text)
+    if "<selah>" in blocktext:
+        blocktext = selah(blocktext)
 
-    return text
+    return blocktext
 
 
-def c2o_fixgroupings(lines: List[str]) -> List[str]:
+def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
     """Fix linegroups in poetry, lists, etc."""
     # append a blank line. (needed in some cases)
-    lines.append("")
+    grouplines.append("")
 
     def btags(lines: List[str]) -> List[str]:
         """Handle b tags."""
@@ -2011,26 +2010,26 @@ def c2o_fixgroupings(lines: List[str]) -> List[str]:
         return lines
 
     # process b tags...
-    lines = btags(lines)
+    grouplines = btags(grouplines)
 
     # add breaks before chapter and verse tags
-    for _ in enumerate(lines):
-        lines[_[0]] = lines[_[0]].replace(r"\c ", "\ufdd0\\c ")
-        lines[_[0]] = lines[_[0]].replace(r"\v ", "\ufdd0\\v ")
+    for _ in enumerate(grouplines):
+        grouplines[_[0]] = grouplines[_[0]].replace(r"\c ", "\ufdd0\\c ")
+        grouplines[_[0]] = grouplines[_[0]].replace(r"\v ", "\ufdd0\\v ")
 
     # add missing lg tags
-    lines = lgtags(lines)
+    grouplines = lgtags(grouplines)
 
     # add missing list tags
-    lines = listtags(lines)
+    grouplines = listtags(grouplines)
 
     # add missing table tags
-    lines = tabletags(lines)
+    grouplines = tabletags(grouplines)
 
     # encapsulate introductions inside div's
-    lines = introductions(lines)
+    grouplines = introductions(grouplines)
 
-    return lines
+    return grouplines
 
 
 def c2o_specialtext(text: str) -> str:
@@ -2163,7 +2162,7 @@ def c2o_noterefmarkers(text: str) -> str:
     return text
 
 
-def c2o_specialfeatures(text: str) -> str:
+def c2o_specialfeatures(specialtext: str) -> str:
     """Process special features."""
 
     def simplerepl(match: Match[str]) -> str:
@@ -2171,7 +2170,6 @@ def c2o_specialfeatures(text: str) -> str:
         matchtag = match.group("tag")
         tag = FEATURETAGS[matchtag]
         rawosis = match.group("osis")
-        attributetext = None
 
         osis, attributetext, attributes, isvalid = {
             True: parseattributes(matchtag, rawosis),
@@ -2396,17 +2394,17 @@ def c2o_specialfeatures(text: str) -> str:
         # rejoin lines
         return "".join(tlines)
 
-    text = SPECIALFEATURESRE.sub(simplerepl, text, 0)
+    specialtext = SPECIALFEATURESRE.sub(simplerepl, specialtext, 0)
 
-    if r"\fig" in text:
-        text = figtags(text)
+    if r"\fig" in specialtext:
+        specialtext = figtags(specialtext)
 
     # Process usfm milestone quotation tags... up to 5 levels.
     for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
-        if _ in text:
-            text = milestonequotes(text)
+        if _ in specialtext:
+            specialtext = milestonequotes(specialtext)
 
-    return text
+    return specialtext
 
 
 def c2o_ztags(text: str) -> str:
@@ -2437,7 +2435,6 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
     def verserange(text: str) -> List[str]:
         """Generate list for verse ranges."""
         low, high = text.split("-")
-        retval = []
         try:
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
         except ValueError:
@@ -3008,7 +3005,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
     descriptiontext = "\n".join(description)
 
     # rejoin lines after processing
-    return ("\n".join([_ for _ in lines if _ != ""]), descriptiontext)
+    return "\n".join([_ for _ in lines if _ != ""]), descriptiontext
 
 
 # -------------------------------------------------------------------------- #
@@ -3035,7 +3032,7 @@ def doconvert(text: str) -> Tuple[str, ...]:
     # convert file to osis
     LOG.info("... Processing %s ...", bookid)
     newtext, descriptiontext = convert_to_osis(newtext, bookid)
-    return (bookid, descriptiontext, newtext)
+    return bookid, descriptiontext, newtext
 
 
 def processfiles(

@@ -384,7 +384,7 @@ USFMRE = re.compile(
         [A-Za-z]+
 
         # tags may or may not be numbered
-        [0-9]?
+        \d?
 
         # a word boundary to mark the end of our tags.
         \b
@@ -397,9 +397,7 @@ USFMRE = re.compile(
     |
 
     # one of the two special spacing tags.
-    (?:
-        (?:~|//)
-    )
+    (?:~|//)
 """,
     re.U + re.VERBOSE,
 )
