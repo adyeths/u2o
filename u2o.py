@@ -109,7 +109,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-07-11",  # THIS SCRIPT revision date
+    "DATE": "2022-11-12",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -432,6 +432,7 @@ ONECHAP = ["Obad", "Phlm", "2John", "3John", "Jude"]
 
 # identification tags
 IDTAGS = {
+    r"\usfm": ("<!-- usfm - ", " -->"),
     r"\sts": ("", '<milestone type="x-usfm-sts" n="{}" />'),
     r"\toc1": ("", '<milestone type="x-usfm-toc1" n="{}" />'),
     r"\toc2": ("", '<milestone type="x-usfm-toc2" n="{}" />'),
@@ -1733,7 +1734,7 @@ def c2o_identification(
     """
     Process identification tags.
 
-    id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore.
+    id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore, usfm.
 
     """
     line = text.partition(" ")
@@ -2189,6 +2190,17 @@ def c2o_specialfeatures(specialtext: str) -> str:
                     [
                         f"strong:{_.strip()}"
                         for _ in attributes["strong"].split(",")
+                    ]
+                )
+                strong1 = f'lemma="{tmp}"'
+                strong2 = ""
+            # this shouldn't be necessary given the "strong" attribute, but I have seen it used.
+            elif "x-strong" in attributes.keys():
+                tag2 = STRONGSTAG
+                tmp = " ".join(
+                    [
+                        f"strong:{_.strip()}"
+                        for _ in attributes["x-strong"].split(",")
                     ]
                 )
                 strong1 = f'lemma="{tmp}"'
