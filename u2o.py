@@ -99,6 +99,7 @@ try:
 
     HAVELXML = True
 except ImportError:
+    et = None
     HAVELXML = False
 
 _: Any
@@ -2178,6 +2179,8 @@ def c2o_specialfeatures(specialtext: str) -> str:
         }["|" in rawosis]
         del isvalid  # make pylint happy
         osis2 = osis
+        strong1 = ""
+        strong2 = ""
 
         # handle w tag attributes
         tag2 = None
@@ -2218,12 +2221,18 @@ def c2o_specialfeatures(specialtext: str) -> str:
                     '<seg type="x-nested"><transChange type="added">', ""
                 )
                 osis2 = osis2.replace("</transChange></seg>", "")
-            outtext = "{}{}".format(osis, tag[1].format(osis2))
+            outtext = f"{osis}{tag[1].format(osis2)}"
         elif tag2 is not None:
+            outtext2 = ""
+            # add index entry for specified lemma if present in markup when strongs is also present
+            if "lemma" in attributes.keys():
+                outtext2 = tag[1].format(attributes["lemma"])
+            # preserve unprocessed x- attributes as comments
+            for i in (_ for _ in attributes.keys() if _.startswith("x-")):
+                if i not in ["x-strong", "x-morph"]:
+                    outtext2 = f"{outtext2}<!-- {i} - {attributes[i]} -->"
             # process strongs
-            outtext = "{}{}{}".format(
-                tag2[0].format(strong1, strong2), osis, tag2[1]
-            )
+            outtext = f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
         else:
             outtext = f"{tag[0]}{osis}{tag[1]}"
 
@@ -2338,7 +2347,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                 text = text.replace(_, f"\n{_}")
         text = text.replace(r"\*", "\\*\n")
         tlines = text.split("\n")
-
+        qlevel = ""
         for i in enumerate(tlines):
             # make sure we're processing milestone \qt tags
             if tlines[i[0]].endswith(r"\*"):
@@ -2484,6 +2493,8 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
         if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
     ]
     for i in cvlist:
+        tmp = ""
+        vnum = ""
         # ## chapter numbers
         if lines[i].startswith(r"\c "):
             haschap = True
