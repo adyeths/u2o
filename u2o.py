@@ -3274,7 +3274,7 @@ def processfiles(
     osisdoc = osisdoc.encode("utf-8")
 
     # write doc to file
-    outfile = f"{workid}.osis"
+    outfile = f"./output/{workid}.osis"
     if outputfile is not None:
         outfile = outputfile
     with open(outfile, "wb") as ofile:
