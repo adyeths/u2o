@@ -40,7 +40,7 @@ There are of course other programs that convert usfm to osis. Here are the ones 
 
 This is a simple wrapper for u2o.py that will allow processing of usfm files that are concatenated into a single file. Consider it experimental. Note that it *requires* u2o in order to work.
 
-#USAGE 
+# USAGE 
 
 ```
 usage: u2o.py [-h] [-d] [-e encoding] [-o output_file] [-l LANG] [-s {canonical,none}] [-v] [-x] [-n] workid filename [filename ...]
