@@ -110,7 +110,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-11-12",  # THIS SCRIPT revision date
+    "DATE": "2022-12-31",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1545,10 +1545,13 @@ def reflow(flowtext: str) -> str:
     # test for paragraph markup before mangling the text
     mangletext = manglecheck(flowtext)
 
+    # remove leading and trailing whitespace from text
+    flowtext = flowtext.strip()
+
     # mark end of cl, sp, and qa tags
     flowtext = endmark(flowtext)
 
-    # process text with paragraph formatting
+    # prepare to process text with paragraph formatting
     flowtext = SQUEEZE.sub(" ", flowtext)
 
     # put (almost) all paragraph style tags on separate lines.
