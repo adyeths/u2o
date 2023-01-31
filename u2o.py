@@ -1611,7 +1611,7 @@ def reflow(flowtext: str) -> str:
 
 def getbookid(text: str) -> Optional[str]:
     """Get book id from file text."""
-    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
+    lines = [_ for _ in text.split("\n") if _.lstrip().startswith("\\id ")]
     try:
         bookid = lines[0].split()[1].strip()
     except IndexError:
@@ -2964,8 +2964,9 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
 
     # ---------------------------------------------------------------------- #
 
-    # split text into lines for processing
+    # split text into lines for processing, strip leading spaces
     lines = text.split("\n")
+    lines = [_.lstrip() for _ in lines]
 
     # mark introduction endings...
     for _ in [r"\ib", r"\ie", r"\il", r"\im", r"\io", r"\ip", r"\iq", r"\is"]:
@@ -3277,7 +3278,7 @@ def processfiles(
     osisdoc = osisdoc.encode("utf-8")
 
     # write doc to file
-    outfile = f"{workid}.osis"
+    outfile = f"./output/{workid}.osis"
     if outputfile is not None:
         outfile = outputfile
     with open(outfile, "wb") as ofile:

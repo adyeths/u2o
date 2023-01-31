@@ -39,3 +39,26 @@ There are of course other programs that convert usfm to osis. Here are the ones 
 # cu2o
 
 This is a simple wrapper for u2o.py that will allow processing of usfm files that are concatenated into a single file. Consider it experimental. Note that it *requires* u2o in order to work.
+
+# USAGE 
+
+```
+usage: u2o.py [-h] [-d] [-e encoding] [-o output_file] [-l LANG] [-s {canonical,none}] [-v] [-x] [-n] workid filename [filename ...]
+
+convert USFM bibles to OSIS.
+
+positional arguments:
+  workid               work id to use for OSIS file
+  filename             file or files to process (wildcards allowed)
+
+options:
+  -h, --help           show this help message and exit
+  -d                   debug mode (default: False)
+  -e encoding          set encoding to use for USFM files (default: None)
+  -o output_file       specify output file (default: None)
+  -l LANG              specify langauge code (default: und)
+  -s {canonical,none}  sort order (default: canonical)
+  -v                   verbose output (default: False)
+  -x                   disable OSIS validation and reformatting (default: False)
+  -n                   disable unicode NFC normalization (default: False)
+```
