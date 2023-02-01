@@ -2189,7 +2189,8 @@ def c2o_specialfeatures(specialtext: str) -> str:
         tag2 = None
         if matchtag in [r"\w", r"\+w"]:
             if "lemma" in attributes.keys():
-                osis2 = attributes["lemma"]
+                if "strong" not in attributes.keys() and "x-strong" not in attributes.keys():
+                    osis2 = attributes["lemma"]
             if "strong" in attributes.keys():
                 tag2 = STRONGSTAG
                 tmp = " ".join(
@@ -2198,6 +2199,9 @@ def c2o_specialfeatures(specialtext: str) -> str:
                         for _ in attributes["strong"].split(",")
                     ]
                 )
+                # add lemma to osis strongs markup
+                if "lemma" in attributes.keys():
+                    tmp = f"{tmp} lemma:{attributes['lemma']}"
                 strong1 = f'lemma="{tmp}"'
                 strong2 = ""
             # this shouldn't be necessary given the "strong" attribute, but I have seen it used.
@@ -2209,6 +2213,9 @@ def c2o_specialfeatures(specialtext: str) -> str:
                         for _ in attributes["x-strong"].split(",")
                     ]
                 )
+                # add lemma to osis strongs markup
+                if "lemma" in attributes.keys():
+                    tmp = f"{tmp} lemma:{attributes['lemma']}"
                 strong1 = f'lemma="{tmp}"'
                 strong2 = ""
             if "x-morph" in attributes.keys():
@@ -2228,8 +2235,8 @@ def c2o_specialfeatures(specialtext: str) -> str:
         elif tag2 is not None:
             outtext2 = ""
             # add index entry for specified lemma if present in markup when strongs is also present
-            if "lemma" in attributes.keys():
-                outtext2 = tag[1].format(attributes["lemma"])
+            # if "lemma" in attributes.keys():
+            #     outtext2 = tag[1].format(attributes["lemma"])
             # preserve unprocessed x- attributes as comments
             for i in (_ for _ in attributes.keys() if _.startswith("x-")):
                 if i not in ["x-strong", "x-morph"]:
