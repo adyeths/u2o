@@ -81,16 +81,12 @@ import datetime
 import unicodedata
 import logging
 import tempfile
+import concurrent.futures
 from collections import OrderedDict
-from typing import Any, List, Tuple, Dict, Union, Match, Optional
+from typing import Any, List, Set, Tuple, Dict, Union, Match, Optional
 
-# try to import concurrent.futures
-try:
-    import concurrent.futures
-
-    HAVEFUTURES = True
-except ImportError:
-    HAVEFUTURES = False
+et: Any
+_: Any
 
 # try to import lxml so that we can validate
 # our output against the OSIS schema.
@@ -102,15 +98,13 @@ except ImportError:
     et = None
     HAVELXML = False
 
-_: Any
-
 # -------------------------------------------------------------------------- #
 
 META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2022-12-31",  # THIS SCRIPT revision date
+    "DATE": "2023-05-17",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2503,7 +2497,7 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
         if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
     ]
     for i in cvlist:
-        tmp = ""
+        tmp: Union[str, List[str]] = ""
         vnum = ""
         # ## chapter numbers
         if lines[i].startswith(r"\c "):
@@ -3086,8 +3080,6 @@ def processfiles(
 
     files = []
 
-    osisdoc: Union[str, bytes]
-
     # get username from operating system
     username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
         os.getenv("USERNAME") is None
@@ -3133,7 +3125,7 @@ def processfiles(
     filelist = files
     results = []
     LOG.info("Processing files...")
-    if not dodebug and HAVEFUTURES:
+    if not dodebug:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(doconvert, filelist))
     else:
@@ -3205,15 +3197,15 @@ def processfiles(
 
     # apply NFC normalization to text unless explicitly disabled.
     if not nonormalize:
-        osisdoc = codecs.encode(unicodedata.normalize("NFC", osisdoc), "utf-8")
+        osisdoc2 = codecs.encode(unicodedata.normalize("NFC", osisdoc), "utf-8")
     else:
-        osisdoc = codecs.encode(osisdoc, "utf-8")
+        osisdoc2 = codecs.encode(osisdoc, "utf-8")
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
         # a test string allows output to still be generated
         # even when when validation fails.
-        testosis = SQUEEZE.sub(" ", osisdoc.decode("utf-8"))
+        testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
 
         # validation is requested...
         if not novalidate:
@@ -3241,7 +3233,7 @@ def processfiles(
                         testosis.encode("utf-8"), vparser
                     )  # nosec
                     LOG.warning("Validation passed!")
-                    osisdoc = et.tostring(
+                    osisdoc2 = et.tostring(
                         _,
                         pretty_print=True,
                         xml_declaration=True,
@@ -3255,7 +3247,7 @@ def processfiles(
             if not dodebug:
                 vparser = et.XMLParser(remove_blank_text=True)
                 _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
-                osisdoc = et.tostring(
+                osisdoc2 = et.tostring(
                     _,
                     pretty_print=True,
                     xml_declaration=True,
@@ -3266,13 +3258,13 @@ def processfiles(
             LOG.error("LXML needs to be installed for validation.")
 
     # find unhandled usfm tags that are leftover after processing
-    usfmtagset = set()
-    usfmtagset.update(USFMRE.findall(osisdoc.decode("utf-8")))
+    usfmtagset: Set = set()
+    usfmtagset.update(USFMRE.findall(osisdoc2.decode("utf-8")))
     if usfmtagset:
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
 
     # simple whitespace cleanups before writing to file...
-    osisdoc = osisdoc.decode("utf-8")
+    osisdoc = osisdoc2.decode("utf-8")
     for i in (
         (" <note", "<note"),
         (" </p>", "</p>"),
@@ -3281,14 +3273,14 @@ def processfiles(
         ("</w><w", "</w> <w"),
     ):
         osisdoc = osisdoc.replace(i[0], i[1])
-    osisdoc = osisdoc.encode("utf-8")
+    osisdoc2 = osisdoc.encode("utf-8")
 
     # write doc to file
     outfile = f"{workid}.osis"
     if outputfile is not None:
         outfile = outputfile
     with open(outfile, "wb") as ofile:
-        ofile.write(osisdoc)
+        ofile.write(osisdoc2)
 
     if "TEST" in books:
         print(books["TEST"])
