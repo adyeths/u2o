@@ -104,7 +104,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2023-05-17",  # THIS SCRIPT revision date
+    "DATE": "2023-05-30",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1938,8 +1938,6 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
 
 def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
     """Fix linegroups in poetry, lists, etc."""
-    # append a blank line. (needed in some cases)
-    grouplines.append("")
 
     def btags(lines: List[str]) -> List[str]:
         """Handle b tags."""
@@ -2008,27 +2006,19 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
                 )
         return lines
 
-    # process b tags...
-    grouplines = btags(grouplines)
+    # append a blank line. (needed in some cases)
+    grouplines.append("")
 
     # add breaks before chapter and verse tags
     for _ in enumerate(grouplines):
         grouplines[_[0]] = grouplines[_[0]].replace(r"\c ", "\ufdd0\\c ")
         grouplines[_[0]] = grouplines[_[0]].replace(r"\v ", "\ufdd0\\v ")
 
-    # add missing lg tags
-    grouplines = lgtags(grouplines)
-
-    # add missing list tags
-    grouplines = listtags(grouplines)
-
-    # add missing table tags
-    grouplines = tabletags(grouplines)
-
-    # encapsulate introductions inside div's
-    grouplines = introductions(grouplines)
-
-    return grouplines
+    # Process b tags,
+    # add missing lg tags, list tags, and table tags.
+    # Encapsulate introductions inside div tags.
+    # Return results.
+    return introductions(tabletags(listtags(lgtags(btags(grouplines)))))
 
 
 def c2o_specialtext(text: str) -> str:
@@ -2183,7 +2173,10 @@ def c2o_specialfeatures(specialtext: str) -> str:
         tag2 = None
         if matchtag in [r"\w", r"\+w"]:
             if "lemma" in attributes.keys():
-                if "strong" not in attributes.keys() and "x-strong" not in attributes.keys():
+                if (
+                    "strong" not in attributes.keys()
+                    and "x-strong" not in attributes.keys()
+                ):
                     osis2 = attributes["lemma"]
             if "strong" in attributes.keys():
                 tag2 = STRONGSTAG
@@ -2236,7 +2229,9 @@ def c2o_specialfeatures(specialtext: str) -> str:
                 if i not in ["x-strong", "x-morph"]:
                     outtext2 = f"{outtext2}<!-- {i} - {attributes[i]} -->"
             # process strongs
-            outtext = f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
+            outtext = (
+                f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
+            )
         else:
             outtext = f"{tag[0]}{osis}{tag[1]}"
 
@@ -2549,7 +2544,6 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
         # ## verse numbers
         # BUG?: \va tags won't be handled unless lines start with a \v tag
         elif lines[i].startswith(r"\v "):
-
             # test for books with only one chapter
             if bookid in ONECHAP and haschap is False:
                 chap = "1"
@@ -2975,7 +2969,6 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
             break
 
     for i in enumerate(lines):
-
         # preprocessing and special spacing... if necessary
         for _ in ["&", "<", ">", "~", r"//", r"\pb"]:
             if _ in lines[i[0]]:
@@ -3197,7 +3190,9 @@ def processfiles(
 
     # apply NFC normalization to text unless explicitly disabled.
     if not nonormalize:
-        osisdoc2 = codecs.encode(unicodedata.normalize("NFC", osisdoc), "utf-8")
+        osisdoc2 = codecs.encode(
+            unicodedata.normalize("NFC", osisdoc), "utf-8"
+        )
     else:
         osisdoc2 = codecs.encode(osisdoc, "utf-8")
 
