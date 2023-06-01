@@ -1723,7 +1723,7 @@ def c2o_preprocess(text: str) -> str:
         if _[0] in text:
             text = text.replace(_[0], _[1])
 
-    return text.strip()
+    return text
 
 
 def c2o_identification(
@@ -2430,22 +2430,23 @@ def c2o_specialfeatures(specialtext: str) -> str:
 def c2o_ztags(text: str) -> str:
     """Process z tags that have both a start and end marker."""
 
-    def simplerepl(match: Match[str]) -> str:
-        """Simple regex replacement helper function."""
-        return '<seg type="x-usfm-z{}">{}</seg>'.format(
-            match.group("tag").replace(r"\z", ""), match.group("osis")
-        )
-
-    text = ZTAGSRE.sub(simplerepl, text, 0)
-    # milestone z tags… this may need more work…
     if r"\z" in text:
-        words = text.split(" ")
-        for i in enumerate(words):
-            if i[1].startswith(r"\z"):
-                words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
-                    i[1].replace(r"\z", "")
-                )
-        text = " ".join(words)
+        def simplerepl(match: Match[str]) -> str:
+            """Simple regex replacement helper function."""
+            return '<seg type="x-usfm-z{}">{}</seg>'.format(
+                match.group("tag").replace(r"\z", ""), match.group("osis")
+            )
+
+        text = ZTAGSRE.sub(simplerepl, text, 0)
+        # milestone z tags… this may need more work…
+        if r"\z" in text:
+            words = text.split(" ")
+            for i in enumerate(words):
+                if i[1].startswith(r"\z"):
+                    words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
+                        i[1].replace(r"\z", "")
+                    )
+            text = " ".join(words)
     return text
 
 
@@ -2472,6 +2473,9 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
             if end2 != "":
                 retval[-1] = "!".join([retval[-1], end2])
         return retval
+
+    # prepare for chapter and verse processing
+    lines = [_.strip() for _ in " ".join(lines).split("\ufdd0")]
 
     # chapter and verse numbers
     closerlist = [
@@ -2959,22 +2963,16 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
 
     # ---------------------------------------------------------------------- #
 
+    # preprocessing and special spacing
+    text = c2o_preprocess(text)
+
     # split text into lines for processing
     lines = text.split("\n")
 
     # mark introduction endings...
-    for _ in [r"\ib", r"\ie", r"\il", r"\im", r"\io", r"\ip", r"\iq", r"\is"]:
-        if _ in text:
-            lines = markintroend(lines)
-            break
+    lines = markintroend(lines)
 
     for i in enumerate(lines):
-        # preprocessing and special spacing... if necessary
-        for _ in ["&", "<", ">", "~", r"//", r"\pb"]:
-            if _ in lines[i[0]]:
-                lines[i[0]] = c2o_preprocess(lines[i[0]])
-                break
-
         # identification
         lines[i[0]], description = c2o_identification(lines[i[0]], description)
 
@@ -2983,26 +2981,10 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
         lines[i[0]] = c2o_specialtext(lines[i[0]])
 
         # special features if present, and stray \xt tags that were missed.
-        for _ in FEATURETAGS:
-            if _ in lines[i[0]]:
-                lines[i[0]] = c2o_specialfeatures(lines[i[0]])
-                break
-        for _ in [
-            r"\fig",
-            r"\qt-",
-            r"\qt1-",
-            r"\qt2-",
-            r"\qt3-",
-            r"\qt4-",
-            r"\qt5-",
-        ]:
-            if _ in lines[i[0]]:
-                lines[i[0]] = c2o_specialfeatures(lines[i[0]])
-                break
+        lines[i[0]] = c2o_specialfeatures(lines[i[0]])
 
         # z tags if present
-        if r"\z" in lines[i[0]]:
-            lines[i[0]] = c2o_ztags(lines[i[0]])
+        lines[i[0]] = c2o_ztags(lines[i[0]])
 
         # paragraph style formatting.
         lines[i[0]] = c2o_titlepar(lines[i[0]], bookid)
@@ -3016,7 +2998,6 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
     lines = c2o_fixgroupings(lines)
 
     # process chapter/verse markers
-    lines = [_.strip() for _ in " ".join(lines).split("\ufdd0")]
     lines = c2o_chapverse(lines, bookid)
 
     # postprocessing to fix some issues that may be present
