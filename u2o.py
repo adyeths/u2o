@@ -2666,8 +2666,7 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
                 lines[i[0]] = lines[i[0]].replace(_, f"</q>{_}")
 
     # rejoin lines, then resplit and return processed lines...
-    text = "".join(lines)
-    return text.split("\ufdd1")
+    return "".join(lines).split("\ufdd1")
 
 
 def c2o_postprocess(lines: List[str]) -> List[str]:
@@ -2730,20 +2729,20 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
 
     # adjust placement of some verse end tags...
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ]:
+    ):
         if lines[i - 1].strip() in OSISL or lines[i - 1].strip() in OSISITEM:
             lines.insert(i - 1, lines.pop(i))
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ]:
+    ):
         if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
             lines.insert(i - 2, lines.pop(i))
 
-    for i, j in [
+    for i, j in (
         (x, y)
-        for x in [
+        for x in (
             "<p",
             "<lb ",
             "</p>",
@@ -2760,20 +2759,20 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             "<title",
             "<div",
             "</div>",
-        ]
-        for y in [
+        )
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]
-    ]:
+        )
+    ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
         elif i == "<title":
             if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
                 lines.insert(j - 1, lines.pop(j))
 
-    for i, j in [
+    for i, j in (
         (x, y)
-        for x in [
+        for x in (
             "<lb ",
             "</p>",
             "</lg>",
@@ -2782,21 +2781,21 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             "<lb",
             "</p>",
             "</div>",
-        ]
-        for y in [
+        )
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]
-    ]:
+        )
+    ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
 
-    for i, j in [
+    for i, j in (
         (x, y)
-        for x in ["</l>", "</item>"]
-        for y in [
+        for x in ("</l>", "</item>")
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]
-    ]:
+        )
+    ):
         if lines[j - 1].endswith(i):
             tmp = lines[j - 1].rpartition("<")
             lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
@@ -2806,38 +2805,38 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
 
     # special fix for verse end markers following "acrostic" titles...
     # because I can't figure out why my other fixes aren't working.
-    for i, j in [
+    for i, j in (
         (x, y)
-        for x in ['<title type="acrostic"', "</lg"]
-        for y in [
+        for x in ('<title type="acrostic"', "</lg")
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]
-    ]:
+        )
+    ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
 
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ]:
+    ):
         if lines[i - 1].endswith("</l>"):
             lines[i - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
             lines[i] = ""
 
-    for i, j in [
+    for i, j in (
         (x, y)
-        for x in ["<!-- ", "</p>"]
-        for y in [
+        for x in ("<!-- ", "</p>")
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        ]
-    ]:
+        )
+    ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
 
     # adjust placement of verse tags in relation
     # to d titles that contain verses.
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")
-    ]:
+    ):
         if (
             lines[i + 1].startswith("<verse sID")
             and lines[i + 1].endswith("</title>")
@@ -2852,13 +2851,13 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     # -- # -- # -- #
 
     # adjust placement of some chapter end tags
-    for i, j in [
+    for i, j in (
         (x, y)
         for x in range(3)
-        for y in [
+        for y in (
             _ for _ in range(len(lines)) if lines[_].startswith("<chapter eID")
-        ]
-    ]:
+        )
+    ):
         try:
             if "<title" in lines[j - 1]:
                 lines.insert(j - 1, lines.pop(j))
@@ -2870,9 +2869,9 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
 
     # adjust placement of some chapter start tags
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ]:
+    ):
         try:
             if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
                 lines.insert(i + 2, lines.pop(i))
@@ -2884,9 +2883,9 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
                 lines.insert(i + 3, lines.pop(i))
         except IndexError:
             pass
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ]:
+    ):
         try:
             if (
                 lines[i + 1] == "</p>"
@@ -2899,9 +2898,9 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
 
     # some chapter start tags have had div's or p's appended to the end...
     # fix that.
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ]:
+    ):
         try:
             if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
                 i + 1
@@ -2923,9 +2922,9 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
 
     # selah processing sometimes does weird things with l and lg tags
     # that needs to be fixed.
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ]:
+    ):
         if (
             lines[i].endswith("</l>")
             and lines[i + 1] == "</lg>"
@@ -2939,9 +2938,9 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             lines[i + 1] = ""
 
     # additional postprocessing for l and lg tags
-    for i in [
+    for i in (
         _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ]:
+    ):
         if (
             lines[i].endswith("</l>")
             and lines[i - 1].startswith("<chapter eID")
@@ -3101,9 +3100,9 @@ def processfiles(
     LOG.info("Processing files...")
     if not dodebug:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(doconvert, filelist))
+            results = executor.map(doconvert, filelist)
     else:
-        results = [doconvert(_) for _ in filelist]
+        results = map(doconvert, filelist)
 
     # store results
     for bookid, descriptiontext, newtext in results:
