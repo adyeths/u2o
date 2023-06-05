@@ -2749,6 +2749,8 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             "<lg",
             "<lb ",
             "</lg>",
+            "<item",
+            "</item",
             "<list",
             "<lb",
             "</list>",
@@ -2775,6 +2777,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
         for x in (
             "<lb ",
             "</p>",
+            "</l",
             "</lg>",
             "<lb",
             "</list>",
