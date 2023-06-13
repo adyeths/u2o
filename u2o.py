@@ -56,6 +56,8 @@ This script is public domain. You may do whatever you want with it.
 #    uFDD4     - mark end of cl and sp tags
 #    uFDD5     - mark end of cp tags
 #
+#    uFDDF     - used to mark separation between files when read from storage.
+#
 #    uFDE0     - used to mark the start of introductions
 #    uFDE1     - used to mark the end of introductions
 #
@@ -3038,31 +3040,8 @@ def doconvert(text: str) -> Tuple[str, ...]:
     return bookid, descriptiontext, newtext
 
 
-def processfiles(
-    fnames: List[str],
-    fencoding: str,
-    dodebug: bool,
-    sortorder: str,
-    langcode: str,
-    nonormalize: bool,
-    novalidate: bool,
-    workid: str,
-    outputfile: str,
-) -> None:
-    """Process usfm files specified on command line."""
-    books = {}
-    descriptions = {}
-    booklist = []
-
+def proc_readfiles(fnames: List[str], fencoding: str) -> str:
     files = []
-
-    # get username from operating system
-    username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
-        os.getenv("USERNAME") is None
-    ]
-
-    # read all files
-    LOG.info("Reading files... ")
     for fname in fnames:
         # read our text files
         with open(fname, "rb") as ifile:
@@ -3086,6 +3065,7 @@ def processfiles(
                         bookencoding = codecs.lookup(tmp).name
                 else:
                     bookencoding = "utf-8-sig"
+
             # use utf-8-sig in place of utf-8 encoding to eliminate errors that
             # may occur if a Byte Order Mark is present in the input file.
             if bookencoding == "utf-8":
@@ -3094,11 +3074,92 @@ def processfiles(
             LOG.error("ERROR: Unknown encoding... aborting conversion.")
             LOG.error(r"    \ide line for %s says --> %s", fname, bookencoding)
             sys.exit()
+
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
+    return "\ufddf".join(files)
+
+
+def proc_xmlvalidate(osisdoc2: bytes, novalidate: bool, dodebug: bool) -> bytes:
+    # a test string allows output to still be generated
+    # even when when validation fails.
+    testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
+
+    # validation is requested...
+    if not novalidate:
+        LOG.warning("Validating osis xml...")
+        osisschema = codecs.decode(
+            codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
+        )
+        xmlschema = codecs.decode(
+            codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
+            "utf-8",
+        )
+        with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
+            osisschema = osisschema.replace(
+                "http://www.w3.org/2001/03/xml.xsd",
+                f"file://{xmlxsd.name}",
+            )
+            xmlxsd.write(xmlschema.encode("utf-8"))
+
+            try:
+                vparser = et.XMLParser(
+                    schema=et.XMLSchema(et.XML(osisschema)),
+                    remove_blank_text=True,
+                )
+                _ = et.fromstring(
+                    testosis.encode("utf-8"), vparser
+                )  # nosec
+                LOG.warning("Validation passed!")
+                osisdoc2 = et.tostring(
+                    _,
+                    pretty_print=True,
+                    xml_declaration=True,
+                    encoding="utf-8",
+                )
+            except et.XMLSyntaxError as err:
+                LOG.error("Validation failed: %s", str(err))
+    # no validation, just pretty printing...
+    else:
+        # ... but only if we're not debugging.
+        if not dodebug:
+            vparser = et.XMLParser(remove_blank_text=True)
+            _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
+            osisdoc2 = et.tostring(
+                _,
+                pretty_print=True,
+                xml_declaration=True,
+                encoding="utf-8",
+            )
+    return osisdoc2
+
+
+def processfiles(
+    fnames: List[str],
+    fencoding: str,
+    dodebug: bool,
+    sortorder: str,
+    langcode: str,
+    nonormalize: bool,
+    novalidate: bool,
+    workid: str,
+    outputfile: str,
+) -> None:
+    """Process usfm files specified on command line."""
+    books = {}
+    descriptions = {}
+    booklist = []
+
+    # get username from operating system
+    username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
+        os.getenv("USERNAME") is None
+    ]
+
+    # read all files
+    LOG.info("Reading files... ")
 
     # process file contents
-    filelist = files
+    filelist = proc_readfiles(fnames, fencoding).split("\ufddf")
     results = []
     LOG.info("Processing files...")
     if not dodebug:
@@ -3148,8 +3209,10 @@ def processfiles(
             ]
         tmp = "\n".join([books[_] for _ in bookorder if _ in books])
         tmp2 = [descriptions[_] for _ in bookorder if _ in books]
+
     # check for strongs presence in osis
     strongsheader = {True: STRONGSWORK, False: ""}["<w " in tmp]
+
     # assemble osis doc in desired order
     osisdoc = "{}{}{}\n".format(
         OSISHEADER.format(
@@ -3181,56 +3244,7 @@ def processfiles(
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
-        # a test string allows output to still be generated
-        # even when when validation fails.
-        testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
-
-        # validation is requested...
-        if not novalidate:
-            LOG.warning("Validating osis xml...")
-            osisschema = codecs.decode(
-                codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
-            )
-            xmlschema = codecs.decode(
-                codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
-                "utf-8",
-            )
-            with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
-                osisschema = osisschema.replace(
-                    "http://www.w3.org/2001/03/xml.xsd",
-                    f"file://{xmlxsd.name}",
-                )
-                xmlxsd.write(xmlschema.encode("utf-8"))
-
-                try:
-                    vparser = et.XMLParser(
-                        schema=et.XMLSchema(et.XML(osisschema)),
-                        remove_blank_text=True,
-                    )
-                    _ = et.fromstring(
-                        testosis.encode("utf-8"), vparser
-                    )  # nosec
-                    LOG.warning("Validation passed!")
-                    osisdoc2 = et.tostring(
-                        _,
-                        pretty_print=True,
-                        xml_declaration=True,
-                        encoding="utf-8",
-                    )
-                except et.XMLSyntaxError as err:
-                    LOG.error("Validation failed: %s", str(err))
-        # no validation, just pretty printing...
-        else:
-            # ... but only if we're not debugging.
-            if not dodebug:
-                vparser = et.XMLParser(remove_blank_text=True)
-                _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
-                osisdoc2 = et.tostring(
-                    _,
-                    pretty_print=True,
-                    xml_declaration=True,
-                    encoding="utf-8",
-                )
+        osisdoc2 = proc_xmlvalidate(osisdoc2, novalidate, dodebug)
     else:
         if not novalidate:
             LOG.error("LXML needs to be installed for validation.")
