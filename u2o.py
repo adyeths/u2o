@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2023-05-30",  # THIS SCRIPT revision date
+    "DATE": "2023-06-23",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2433,6 +2433,7 @@ def c2o_ztags(text: str) -> str:
     """Process z tags that have both a start and end marker."""
 
     if r"\z" in text:
+
         def simplerepl(match: Match[str]) -> str:
             """Simple regex replacement helper function."""
             return '<seg type="x-usfm-z{}">{}</seg>'.format(
@@ -3041,6 +3042,7 @@ def doconvert(text: str) -> Tuple[str, ...]:
 
 
 def proc_readfiles(fnames: List[str], fencoding: str) -> str:
+    """Read files and return concatenated file contents."""
     files = []
     for fname in fnames:
         # read our text files
@@ -3080,57 +3082,42 @@ def proc_readfiles(fnames: List[str], fencoding: str) -> str:
     return "\ufddf".join(files)
 
 
-def proc_xmlvalidate(osisdoc2: bytes, novalidate: bool, dodebug: bool) -> bytes:
+def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
+    """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
     testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
 
-    # validation is requested...
-    if not novalidate:
-        LOG.warning("Validating osis xml...")
-        osisschema = codecs.decode(
-            codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
+    LOG.warning("Validating osis xml...")
+    osisschema = codecs.decode(
+        codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
+    )
+    xmlschema = codecs.decode(
+        codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
+        "utf-8",
+    )
+    with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
+        osisschema = osisschema.replace(
+            "http://www.w3.org/2001/03/xml.xsd",
+            f"file://{xmlxsd.name}",
         )
-        xmlschema = codecs.decode(
-            codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
-            "utf-8",
-        )
-        with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
-            osisschema = osisschema.replace(
-                "http://www.w3.org/2001/03/xml.xsd",
-                f"file://{xmlxsd.name}",
-            )
-            xmlxsd.write(xmlschema.encode("utf-8"))
+        xmlxsd.write(xmlschema.encode("utf-8"))
 
-            try:
-                vparser = et.XMLParser(
-                    schema=et.XMLSchema(et.XML(osisschema)),
-                    remove_blank_text=True,
-                )
-                _ = et.fromstring(
-                    testosis.encode("utf-8"), vparser
-                )  # nosec
-                LOG.warning("Validation passed!")
-                osisdoc2 = et.tostring(
-                    _,
-                    pretty_print=True,
-                    xml_declaration=True,
-                    encoding="utf-8",
-                )
-            except et.XMLSyntaxError as err:
-                LOG.error("Validation failed: %s", str(err))
-    # no validation, just pretty printing...
-    else:
-        # ... but only if we're not debugging.
-        if not dodebug:
-            vparser = et.XMLParser(remove_blank_text=True)
+        try:
+            vparser = et.XMLParser(
+                schema=et.XMLSchema(et.XML(osisschema)),
+                remove_blank_text=True,
+            )
             _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
+            LOG.warning("Validation passed!")
             osisdoc2 = et.tostring(
                 _,
                 pretty_print=True,
                 xml_declaration=True,
                 encoding="utf-8",
             )
+        except et.XMLSyntaxError as err:
+            LOG.error("Validation failed: %s", str(err))
     return osisdoc2
 
 
@@ -3141,7 +3128,6 @@ def processfiles(
     sortorder: str,
     langcode: str,
     nonormalize: bool,
-    novalidate: bool,
     workid: str,
     outputfile: str,
 ) -> None:
@@ -3244,10 +3230,13 @@ def processfiles(
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
-        osisdoc2 = proc_xmlvalidate(osisdoc2, novalidate, dodebug)
+        osisdoc2 = proc_xmlvalidate(osisdoc2)
     else:
-        if not novalidate:
-            LOG.error("LXML needs to be installed for validation.")
+        LOG.error("LXML needs to be installed for validation.")
+
+    # debug output... don't use formatted xml...
+    if dodebug:
+        osisdoc2 = osisdoc.encode("utf-8")
 
     # find unhandled usfm tags that are leftover after processing
     usfmtagset: Set = set()
@@ -3311,7 +3300,7 @@ if __name__ == "__main__":
     PARSER.add_argument("-v", help="verbose output", action="store_true")
     PARSER.add_argument(
         "-x",
-        help="disable OSIS validation and reformatting",
+        help="(deprecated, does nothing) formerly used to disable OSIS validation and reformatting",
         action="store_true",
     )
     PARSER.add_argument(
@@ -3325,9 +3314,7 @@ if __name__ == "__main__":
     )
     ARGS = PARSER.parse_args()
 
-    # make sure we skip OSIS validation if we don't have lxml
-    if not ARGS.x and not HAVELXML:
-        ARGS.x = True
+    if not HAVELXML:
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
     FILENAMES = []
@@ -3360,7 +3347,6 @@ if __name__ == "__main__":
         ARGS.s,
         ARGS.l,
         ARGS.n,
-        ARGS.x,
         ARGS.workid,
         ARGS.o,
     )
