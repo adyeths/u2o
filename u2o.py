@@ -3088,7 +3088,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     # even when when validation fails.
     testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
 
-    LOG.warning("Validating osis xml...")
+    LOG.info("Validating osis xml...")
     osisschema = codecs.decode(
         codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
     )
