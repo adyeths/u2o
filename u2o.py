@@ -2807,6 +2807,34 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
             lines[j] = ""
 
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+        if (lines[i + 1].startswith("<verse sID") and
+                lines[i - 1].startswith("<l ") and
+                lines[i - 2].endswith("</l>")):
+            tmp = lines[i]
+            lines[i] = ""
+            tmp2 = lines[i - 2].rpartition("<")
+            lines[i - 2] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+    lines = [_ for _ in lines if _ != ""]
+
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+        if (lines[i + 1].startswith("<verse sID") and
+                lines[i - 1].startswith("<l ") and
+                lines[i - 2].startswith("<lg") and
+                lines[i - 3].startswith("</lg") and
+                lines[i - 4].endswith("</l>")):
+            tmp = lines[i]
+            lines[i] = ""
+            tmp2 = lines[i - 4].rpartition("<")
+            lines[i - 4] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+    lines = [_ for _ in lines if _ != ""]
+
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+        if (lines[i + 1].startswith("<verse sID") and
+                lines[i - 1].startswith("<l ") and
+                lines[i - 2].startswith("<lg") and
+                lines[i - 3] == "</p>"):
+            lines.insert(i - 3, lines.pop(i))
     lines = [_ for _ in lines if _ != ""]
 
     # special fix for verse end markers following "acrostic" titles...
