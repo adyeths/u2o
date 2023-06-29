@@ -113,7 +113,7 @@ if __name__ == "__main__":
     PARSER.add_argument("-v", help="verbose output", action="store_true")
     PARSER.add_argument(
         "-x",
-        help="disable OSIS validation and reformatting",
+        help="(deprecated, does nothing) formerly used to disable OSIS validation and reformatting",
         action="store_true",
     )
     PARSER.add_argument(

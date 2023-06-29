@@ -3146,13 +3146,13 @@ def processfiles(
 
     # process file contents
     filelist = proc_readfiles(fnames, fencoding).split("\ufddf")
-    results = []
+    results: list[tuple[str, ...]]
     LOG.info("Processing files...")
     if not dodebug:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = executor.map(doconvert, filelist)
+            results = list(executor.map(doconvert, filelist))
     else:
-        results = map(doconvert, filelist)
+        results = list(map(doconvert, filelist))
 
     # store results
     for bookid, descriptiontext, newtext in results:
@@ -3300,7 +3300,7 @@ if __name__ == "__main__":
     PARSER.add_argument("-v", help="verbose output", action="store_true")
     PARSER.add_argument(
         "-x",
-        help="(deprecated, does nothing) formerly used to disable OSIS validation and reformatting",
+        help="",
         action="store_true",
     )
     PARSER.add_argument(
