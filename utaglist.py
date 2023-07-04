@@ -10,10 +10,10 @@ This script is public domain.
 
 """
 
-import argparse
 import re
-import collections
-import glob
+from argparse import ArgumentParser
+from collections import Counter
+from glob import glob
 from typing import Counter, List
 
 # -------------------------------------------------------------------------- #
@@ -408,13 +408,13 @@ USFMRE = re.compile(
 def processtags(fnames: List[str], tcounts: bool) -> None:
     """Process usfm tags in all files."""
     count = 0
-    counttags: Counter[str] = collections.Counter()
+    counttags: Counter[str] = Counter()
     knownset = set()
 
     filenames = []
     for _ in fnames:
         if "*" in _:
-            filenames.extend(glob.glob(_))
+            filenames.extend(glob(_))
         else:
             filenames.append(_)
 
@@ -453,7 +453,7 @@ def processtags(fnames: List[str], tcounts: bool) -> None:
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(
+    PARSER = ArgumentParser(
         description="""
             A simple script to generate a list of usfm tags that were used in
            one or more utf8 encoded usfm files.

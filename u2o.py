@@ -72,19 +72,19 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-arguments
 # pylint: disable=consider-using-f-string
 
-import sys
-import argparse
-import os
 import os.path
-import glob
 import re
-import codecs
-import datetime
-import unicodedata
 import logging
-import tempfile
 import concurrent.futures
+from sys import exit
+from os import getenv
+from glob import glob
+from unicodedata import normalize
+from datetime import datetime
+from tempfile import NamedTemporaryFile
 from collections import OrderedDict
+from codecs import encode, lookup, decode
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Any, List, Set, Tuple, Dict, Union, Match, Optional
 
 et: Any
@@ -268,7 +268,7 @@ CANONICALORDER = [
 BOOKORDERS = sorted(
     [
         _.replace("order-", "").replace(".txt", "")
-        for _ in glob.glob("order-*.txt")
+        for _ in glob("order-*.txt")
     ]
 )
 BOOKORDERS.append("none")
@@ -3085,14 +3085,14 @@ def proc_readfiles(fnames: List[str], fencoding: str) -> str:
         bookencoding = "utf-8-sig"
         try:
             if fencoding is not None:
-                bookencoding = codecs.lookup(fencoding).name
+                bookencoding = lookup(fencoding).name
             else:
                 tmp = getencoding(text)
                 if tmp is not None:
                     if tmp == "65001 - Unicode (UTF-8)":
                         bookencoding = "utf-8-sig"
                     else:
-                        bookencoding = codecs.lookup(tmp).name
+                        bookencoding = lookup(tmp).name
                 else:
                     bookencoding = "utf-8-sig"
 
@@ -3103,7 +3103,7 @@ def proc_readfiles(fnames: List[str], fencoding: str) -> str:
         except LookupError:
             LOG.error("ERROR: Unknown encoding... aborting conversion.")
             LOG.error(r"    \ide line for %s says --> %s", fname, bookencoding)
-            sys.exit()
+            exit()
 
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
@@ -3117,14 +3117,14 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
 
     LOG.info("Validating osis xml...")
-    osisschema = codecs.decode(
-        codecs.decode(codecs.decode(SCHEMA, "base64"), "bz2"), "utf-8"
+    osisschema = decode(
+        decode(decode(SCHEMA, "base64"), "bz2"), "utf-8"
     )
-    xmlschema = codecs.decode(
-        codecs.decode(codecs.decode(XMLSCHEMA, "base64"), "bz2"),
+    xmlschema = decode(
+        decode(decode(XMLSCHEMA, "base64"), "bz2"),
         "utf-8",
     )
-    with tempfile.NamedTemporaryFile(suffix=".xsd") as xmlxsd:
+    with NamedTemporaryFile(suffix=".xsd") as xmlxsd:
         osisschema = osisschema.replace(
             "http://www.w3.org/2001/03/xml.xsd",
             f"file://{xmlxsd.name}",
@@ -3165,9 +3165,9 @@ def processfiles(
     booklist = []
 
     # get username from operating system
-    username = {True: os.getenv("LOGNAME"), False: os.getenv("USERNAME")}[
-        os.getenv("USERNAME") is None
-    ]
+    username = {True: getenv("LOGNAME"), False: getenv("USERNAME")}[
+        getenv("USERNAME") is None
+        ]
 
     # read all files
     LOG.info("Reading files... ")
@@ -3233,7 +3233,7 @@ def processfiles(
             workid,
             langcode,
             username,
-            datetime.datetime.now().strftime("%Y.%m.%dT%H.%M.%S"),
+            datetime.now().strftime("%Y.%m.%dT%H.%M.%S"),
             workid,
             workid,
             "\n".join(tmp2),
@@ -3250,11 +3250,11 @@ def processfiles(
 
     # apply NFC normalization to text unless explicitly disabled.
     if not nonormalize:
-        osisdoc2 = codecs.encode(
-            unicodedata.normalize("NFC", osisdoc), "utf-8"
+        osisdoc2 = encode(
+            normalize("NFC", osisdoc), "utf-8"
         )
     else:
-        osisdoc2 = codecs.encode(osisdoc, "utf-8")
+        osisdoc2 = encode(osisdoc, "utf-8")
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
@@ -3299,8 +3299,8 @@ def processfiles(
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    PARSER = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
         description="""
             convert USFM bibles to OSIS.
         """,
@@ -3347,7 +3347,7 @@ if __name__ == "__main__":
 
     FILENAMES = []
     for _ in ARGS.file:
-        GLOBFILES = glob.glob(_)
+        GLOBFILES = glob(_)
 
         if os.path.isfile(_):
             FILENAMES.append(_)
@@ -3362,7 +3362,7 @@ if __name__ == "__main__":
     for _ in ARGS.file:
         if not os.path.isfile(_):
             LOG.error("*** input file not present or not a normal file. ***")
-            sys.exit()
+            exit()
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)

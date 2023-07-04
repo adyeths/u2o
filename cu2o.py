@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Program information goes here."""
-import sys
-import argparse
 import logging
-import tempfile
-import pathlib
-import os
+from sys import exit
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from tempfile import TemporaryDirectory
+from pathlib import Path
+from os import path
 from typing import Any
 
 from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
@@ -58,9 +58,9 @@ def processfiles2(
             i += 1
 
         # create temporary files and process
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with TemporaryDirectory() as tmpdir:
             filenames = []
-            pth = pathlib.Path(tmpdir)
+            pth = Path(tmpdir)
             for i in books.items():
                 ipth = pth / i[0]
                 with open(ipth, "w+", encoding="utf-8") as outfile:
@@ -84,8 +84,8 @@ def processfiles2(
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    PARSER = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
         description="""
             convert USFM bibles to OSIS.
         """,
@@ -131,9 +131,9 @@ if __name__ == "__main__":
         ARGS.x = True
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    if not os.path.isfile(ARGS.file):
+    if not path.isfile(ARGS.file):
         LOG.error("*** input file not present or not a normal file. ***")
-        sys.exit()
+        exit()
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)
