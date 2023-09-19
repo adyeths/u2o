@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2023-06-23",  # THIS SCRIPT revision date
+    "DATE": "2023-09-18",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -3280,6 +3280,8 @@ def processfiles(
         (" </item>", "</item>"),
         (" </l>", "</l>"),
         ("</w><w", "</w> <w"),
+        ("</w><transChange", "</w> <transChange"),
+        ("</transChange><w", "</transChange> <w"),
     ):
         osisdoc = osisdoc.replace(i[0], i[1])
     osisdoc2 = osisdoc.encode("utf-8")
