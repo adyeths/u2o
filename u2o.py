@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2023-09-18",  # THIS SCRIPT revision date
+    "DATE": "2023-10-03",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -788,6 +788,7 @@ SPECIALTEXT = {
     r"\bdit": ('<hi type="bold"><hi type="italic">', "</hi></hi>"),
     r"\no": ('<hi type="normal">', "</hi>"),
     r"\sc": ('<hi type="small-caps">', "</hi>"),
+    r"\sup": ('<hi type="super">', "</hi>"),
     r"\+em": ('<seg type="x-nested"><hi type="emphasis">', "</hi></seg>"),
     r"\+bd": ('<seg type="x-nested"><hi type="bold">', "</hi></seg>"),
     r"\+it": ('<seg type="x-nested"><hi type="italic">', "</hi></seg>"),
@@ -797,6 +798,7 @@ SPECIALTEXT = {
     ),
     r"\+no": ('<seg type="x-nested"><hi type="normal">', "</hi></seg>"),
     r"\+sc": ('<seg type="x-nested"><hi type="small-caps">', "</hi></seg>"),
+    r"\+sup": ('<seg type="x-nested"><hi type="super">', "</hi></seg>"),
     # a few stray list tags that work well being handled in this section.
     r"\lik": ('<seg type="x-usfm-lik">', "</seg>"),
     r"\liv": ('<seg type="x-usfm-liv">', "</seg>"),
