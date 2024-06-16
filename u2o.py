@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2023-10-03",  # THIS SCRIPT revision date
+    "DATE": "2024-6-16",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -939,7 +939,9 @@ NOTETAGS2 = {
 # defined attributes for tags
 DEFINEDATTRIBUTES = {
     r"\w": ["lemma", "strong", "srcloc"],
+    r"\+w": ["lemma", "strong", "srcloc"],
     r"\xt": ["link-ref"],
+    r"\+xt": ["link-ref"],
     r"\fig": ["alt", "src", "size", "loc", "copy", "ref"],
     r"\jmp": ["link-href", "link-title", "link-name"],
     r"\+jmp": ["link-href", "link-title", "link-name"],
@@ -950,7 +952,7 @@ DEFINEDATTRIBUTES = {
 
 # defaultattributes for tags
 # x-default will be used as the default for undefined default attributes
-DEFAULTATTRIBUTES = {r"\w": "lemma", r"\xt": "link-ref"}
+DEFAULTATTRIBUTES = {r"\w": "lemma", r"\+w": "lemma", r"\xt": "link-ref", r"\+xt": "link-ref"}
 
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
@@ -2810,33 +2812,42 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             lines[j] = ""
 
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        if (lines[i + 1].startswith("<verse sID") and
-                lines[i - 1].startswith("<l ") and
-                lines[i - 2].endswith("</l>")):
-            tmp = lines[i]
-            lines[i] = ""
-            tmp2 = lines[i - 2].rpartition("<")
-            lines[i - 2] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+        try:
+            if (lines[i + 1].startswith("<verse sID") and
+                    lines[i - 1].startswith("<l ") and
+                    lines[i - 2].endswith("</l>")):
+                tmp = lines[i]
+                lines[i] = ""
+                tmp2 = lines[i - 2].rpartition("<")
+                lines[i - 2] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+        except IndexError:
+            pass
     lines = [_ for _ in lines if _ != ""]
 
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        if (lines[i + 1].startswith("<verse sID") and
-                lines[i - 1].startswith("<l ") and
-                lines[i - 2].startswith("<lg") and
-                lines[i - 3].startswith("</lg") and
-                lines[i - 4].endswith("</l>")):
-            tmp = lines[i]
-            lines[i] = ""
-            tmp2 = lines[i - 4].rpartition("<")
-            lines[i - 4] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+        try:
+            if (lines[i + 1].startswith("<verse sID") and
+                    lines[i - 1].startswith("<l ") and
+                    lines[i - 2].startswith("<lg") and
+                    lines[i - 3].startswith("</lg") and
+                    lines[i - 4].endswith("</l>")):
+                tmp = lines[i]
+                lines[i] = ""
+                tmp2 = lines[i - 4].rpartition("<")
+                lines[i - 4] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
+        except IndexError:
+            pass
     lines = [_ for _ in lines if _ != ""]
 
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        if (lines[i + 1].startswith("<verse sID") and
-                lines[i - 1].startswith("<l ") and
-                lines[i - 2].startswith("<lg") and
-                lines[i - 3] == "</p>"):
-            lines.insert(i - 3, lines.pop(i))
+        try:
+            if (lines[i + 1].startswith("<verse sID") and
+                    lines[i - 1].startswith("<l ") and
+                    lines[i - 2].startswith("<lg") and
+                    lines[i - 3] == "</p>"):
+                lines.insert(i - 3, lines.pop(i))
+        except IndexError:
+            pass
     lines = [_ for _ in lines if _ != ""]
 
     # special fix for verse end markers following "acrostic" titles...
@@ -3012,11 +3023,13 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
         lines[i[0]], description = c2o_identification(lines[i[0]], description)
 
         # character style formatting
-        lines[i[0]] = c2o_noterefmarkers(lines[i[0]])
         lines[i[0]] = c2o_specialtext(lines[i[0]])
 
-        # special features if present, and stray \xt tags that were missed.
+        # special features
         lines[i[0]] = c2o_specialfeatures(lines[i[0]])
+
+        # footnotes and cross references
+        lines[i[0]] = c2o_noterefmarkers(lines[i[0]])
 
         # z tags if present
         lines[i[0]] = c2o_ztags(lines[i[0]])
