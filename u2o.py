@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2024-6-16",  # THIS SCRIPT revision date
+    "DATE": "2024-11-23",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -266,10 +266,7 @@ CANONICALORDER = [
 # working directory.  Each order file has the following naming pattern:
 #    order-SOMEORDER.txt
 BOOKORDERS = sorted(
-    [
-        _.replace("order-", "").replace(".txt", "")
-        for _ in glob("order-*.txt")
-    ]
+    [_.replace("order-", "").replace(".txt", "") for _ in glob("order-*.txt")]
 )
 BOOKORDERS.append("none")
 BOOKORDERS.insert(0, "canonical")
@@ -952,7 +949,12 @@ DEFINEDATTRIBUTES = {
 
 # defaultattributes for tags
 # x-default will be used as the default for undefined default attributes
-DEFAULTATTRIBUTES = {r"\w": "lemma", r"\+w": "lemma", r"\xt": "link-ref", r"\+xt": "link-ref"}
+DEFAULTATTRIBUTES = {
+    r"\w": "lemma",
+    r"\+w": "lemma",
+    r"\xt": "link-ref",
+    r"\+xt": "link-ref",
+}
 
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
@@ -1847,9 +1849,9 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
             if tmp[0] in celltags:
-                cells[
-                    i[0]
-                ] = f"{celltags[tmp[0]][0]}{tmp[2].strip()}{celltags[tmp[0]][1]}"
+                cells[i[0]] = (
+                    f"{celltags[tmp[0]][0]}{tmp[2].strip()}{celltags[tmp[0]][1]}"
+                )
         return f"<row>{''.join(cells)}</row>\ufdd0"
 
     def selah(text: str) -> str:
@@ -2463,6 +2465,10 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
     def verserange(text: str) -> List[str]:
         """Generate list for verse ranges."""
         low, high = text.split("-")
+        # make sure Right-To-Left and Left-To-Right marks aren't included
+        # in verse range numbers.
+        low = low.replace("\u200e", "").replace("\u200f", "")
+        high = high.replace("\u200e", "").replace("\u200f", "")
         try:
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
         except ValueError:
@@ -2511,7 +2517,9 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
             tmp = list(lines[i].split(" ", 2))
             if len(tmp) < 3:
                 tmp.append("")
-            cnum = tmp[1]
+            # make sure Right-To-Left and Left-To-Right marks aren't included
+            # in chapter number when creating osisID.
+            cnum = tmp[1].replace("\u200e", "").replace("\u200f", "")
 
             # nb fix...
             if "<!--" in cnum and "nb -->" in tmp[2]:
@@ -2563,7 +2571,9 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
             tmp = list(lines[i].split(" ", 2))
             if len(tmp) < 3:
                 tmp.append("")
-            vnum = tmp[1]
+            # make sure Right-To-Left and Left-To-Right marks aren't included
+            # in verse number when creating osisID.
+            vnum = tmp[1].replace("\u200e", "").replace("\u200f", "")
 
             vaid = ""
 
@@ -2811,11 +2821,15 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
             lines[j] = ""
 
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+    for i in (
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ):
         try:
-            if (lines[i + 1].startswith("<verse sID") and
-                    lines[i - 1].startswith("<l ") and
-                    lines[i - 2].endswith("</l>")):
+            if (
+                lines[i + 1].startswith("<verse sID")
+                and lines[i - 1].startswith("<l ")
+                and lines[i - 2].endswith("</l>")
+            ):
                 tmp = lines[i]
                 lines[i] = ""
                 tmp2 = lines[i - 2].rpartition("<")
@@ -2824,13 +2838,17 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
     lines = [_ for _ in lines if _ != ""]
 
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+    for i in (
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ):
         try:
-            if (lines[i + 1].startswith("<verse sID") and
-                    lines[i - 1].startswith("<l ") and
-                    lines[i - 2].startswith("<lg") and
-                    lines[i - 3].startswith("</lg") and
-                    lines[i - 4].endswith("</l>")):
+            if (
+                lines[i + 1].startswith("<verse sID")
+                and lines[i - 1].startswith("<l ")
+                and lines[i - 2].startswith("<lg")
+                and lines[i - 3].startswith("</lg")
+                and lines[i - 4].endswith("</l>")
+            ):
                 tmp = lines[i]
                 lines[i] = ""
                 tmp2 = lines[i - 4].rpartition("<")
@@ -2839,12 +2857,16 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
     lines = [_ for _ in lines if _ != ""]
 
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
+    for i in (
+        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
+    ):
         try:
-            if (lines[i + 1].startswith("<verse sID") and
-                    lines[i - 1].startswith("<l ") and
-                    lines[i - 2].startswith("<lg") and
-                    lines[i - 3] == "</p>"):
+            if (
+                lines[i + 1].startswith("<verse sID")
+                and lines[i - 1].startswith("<l ")
+                and lines[i - 2].startswith("<lg")
+                and lines[i - 3] == "</p>"
+            ):
                 lines.insert(i - 3, lines.pop(i))
         except IndexError:
             pass
@@ -3132,9 +3154,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
 
     LOG.info("Validating osis xml...")
-    osisschema = decode(
-        decode(decode(SCHEMA, "base64"), "bz2"), "utf-8"
-    )
+    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf-8")
     xmlschema = decode(
         decode(decode(XMLSCHEMA, "base64"), "bz2"),
         "utf-8",
@@ -3182,7 +3202,7 @@ def processfiles(
     # get username from operating system
     username = {True: getenv("LOGNAME"), False: getenv("USERNAME")}[
         getenv("USERNAME") is None
-        ]
+    ]
 
     # read all files
     LOG.info("Reading files... ")
@@ -3202,13 +3222,13 @@ def processfiles(
         # store our converted text for output
         if bookid != "TEST":
             if bookid in NONCANONICAL:
-                books[
-                    bookid
-                ] = f'<div type="{NONCANONICAL[bookid]}">\n{newtext}\n</div>\n\n'
+                books[bookid] = (
+                    f'<div type="{NONCANONICAL[bookid]}">\n{newtext}\n</div>\n\n'
+                )
             else:
-                books[
-                    bookid
-                ] = f'<div type="book" osisID="{bookid}" canonical="true">\n{newtext}\n</div>\n\n'
+                books[bookid] = (
+                    f'<div type="book" osisID="{bookid}" canonical="true">\n{newtext}\n</div>\n\n'
+                )
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
@@ -3265,9 +3285,7 @@ def processfiles(
 
     # apply NFC normalization to text unless explicitly disabled.
     if not nonormalize:
-        osisdoc2 = encode(
-            normalize("NFC", osisdoc), "utf-8"
-        )
+        osisdoc2 = encode(normalize("NFC", osisdoc), "utf-8")
     else:
         osisdoc2 = encode(osisdoc, "utf-8")
 
