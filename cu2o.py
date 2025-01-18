@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Program information goes here."""
 import logging
-from sys import exit
+from sys import exit as sysexit
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -21,7 +21,6 @@ def processfiles2(
     sortorder: str,
     langcode: str,
     nonormalize: bool,
-    novalidate: bool,
     workid: str,
     outputfile: str,
 ) -> None:
@@ -74,7 +73,6 @@ def processfiles2(
                 sortorder,
                 langcode,
                 nonormalize,
-                novalidate,
                 workid,
                 outputfile,
             )
@@ -101,9 +99,7 @@ if __name__ == "__main__":
         default=None,
         metavar="encoding",
     )
-    PARSER.add_argument(
-        "-o", help="specify output file", metavar="output_file"
-    )
+    PARSER.add_argument("-o", help="specify output file", metavar="output_file")
     PARSER.add_argument(
         "-l", help="specify langauge code", metavar="LANG", default="und"
     )
@@ -133,7 +129,7 @@ if __name__ == "__main__":
 
     if not path.isfile(ARGS.file):
         LOG.error("*** input file not present or not a normal file. ***")
-        exit()
+        sysexit()
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)
@@ -146,7 +142,6 @@ if __name__ == "__main__":
         ARGS.s,
         ARGS.l,
         ARGS.n,
-        ARGS.x,
         ARGS.workid,
         ARGS.o,
     )

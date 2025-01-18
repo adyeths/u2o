@@ -76,7 +76,7 @@ import os.path
 import re
 import logging
 import concurrent.futures
-from sys import exit
+from sys import exit as sysexit
 from os import getenv
 from glob import glob
 from unicodedata import normalize
@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2024-11-23",  # THIS SCRIPT revision date
+    "DATE": "2025-01-18",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -986,9 +986,7 @@ SPECIALTEXTRE_S = r"""
         # tag end marker
         (?P=tag)\*
     """.format(
-    "|".join(
-        [_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")]
-    )
+    "|".join([_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")])
 )
 SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
 del SPECIALTEXTRE_S
@@ -1041,9 +1039,7 @@ SPECIALFEATURESRE_S = r"""
         # tag end marker
         (?P=tag)\*
     """.format(
-    "|".join(
-        [_.replace("\\", "") for _ in FEATURETAGS if not _.startswith(r"\+")]
-    )
+    "|".join([_.replace("\\", "") for _ in FEATURETAGS if not _.startswith(r"\+")])
 )
 SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
 del SPECIALFEATURESRE_S
@@ -1077,9 +1073,7 @@ NOTERE_S = r"""
         # footnote / cross reference end tag
         (?P=tag)\*
     """.format(
-    "|".join(
-        [_.replace("\\", "") for _ in NOTETAGS if not _.startswith(r"\+")]
-    )
+    "|".join([_.replace("\\", "") for _ in NOTETAGS if not _.startswith(r"\+")])
 )
 NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
 del NOTERE_S
@@ -1106,9 +1100,7 @@ NOTEFIXRE_S = r"""
         # start of an additional tag or the end of the note.
         (?=\\\+?[fx]|</note)
     """.format(
-    "|".join(
-        [_.replace("\\", "") for _ in NOTETAGS2 if not _.startswith(r"\+")]
-    )
+    "|".join([_.replace("\\", "") for _ in NOTETAGS2 if not _.startswith(r"\+")])
 )
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
@@ -1423,9 +1415,7 @@ def convertcl(text: str) -> str:
 
     # test for presence of only 1 cl marker.
     if clcount == 1:
-        chaplines = [
-            _ for _ in range(len(lines)) if lines[_].startswith(r"\c ")
-        ]
+        chaplines = [_ for _ in range(len(lines)) if lines[_].startswith(r"\c ")]
 
         # get cl marker line if it precedes chapter 1 and add this after
         # each chapter marker in the book.
@@ -1627,9 +1617,7 @@ def getbookid(text: str) -> Optional[str]:
 
 def getencoding(text: bytes) -> Optional[str]:
     """Get encoding from file text."""
-    lines = [
-        _.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")
-    ]
+    lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
     encoding: Optional[str]
     try:
         encoding = lines[0].partition(" ")[2].lower().strip()
@@ -1734,9 +1722,7 @@ def c2o_preprocess(text: str) -> str:
     return text
 
 
-def c2o_identification(
-    text: str, description: List[str]
-) -> Tuple[str, List[str]]:
+def c2o_identification(text: str, description: List[str]) -> Tuple[str, List[str]]:
     """
     Process identification tags.
 
@@ -1757,9 +1743,7 @@ def c2o_identification(
         # fix problems with url's in rem lines resulting from processing
         # of special spacing in preprocessing section.
         if '<lb type="x-optional" />' in description[-1]:
-            description[-1] = description[-1].replace(
-                '<lb type="x-optional" />', "//"
-            )
+            description[-1] = description[-1].replace('<lb type="x-optional" />', "//")
     return text, description
 
 
@@ -1859,10 +1843,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
         selahfix = [_ for _ in tmp.split("\n") if _ != ""]
         for _ in enumerate(selahfix):
-            if (
-                selahfix[_[0]].startswith(r"<l")
-                and "<selah>" in selahfix[_[0]]
-            ):
+            if selahfix[_[0]].startswith(r"<l") and "<selah>" in selahfix[_[0]]:
                 selahfix[_[0]] = selahfix[_[0]].replace(
                     "<selah>", '</l><l type="selah">'
                 )
@@ -1876,9 +1857,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
                 selahfix[_[0]] = selahfix[_[0]].replace(
                     "<selah>", '<lg><l type="selah">'
                 )
-                selahfix[_[0]] = selahfix[_[0]].replace(
-                    "</selah>", "</l></lg>"
-                )
+                selahfix[_[0]] = selahfix[_[0]].replace("</selah>", "</l></lg>")
         return " ".join(selahfix)
 
     # add periph tag to titletags if book being processed
@@ -1952,9 +1931,7 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
         for _ in enumerate(lines):
             if "<!-- b -->" in lines[_[0]]:
                 if lines[_[0]][:2] in ["<l", "<p"]:
-                    lines[_[0]] = lines[_[0]].replace(
-                        "<!-- b -->", '<lb type="x-p" />'
-                    )
+                    lines[_[0]] = lines[_[0]].replace("<!-- b -->", '<lb type="x-p" />')
                 else:
                     lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
         return lines
@@ -2009,9 +1986,7 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
             elif lines[_[0]] == "\ufde1":
                 lines[_[0]] = "</div>\ufdd0"
             elif lines[_[0]].endswith("\ufde1"):
-                lines[_[0]] = "{}</div>\ufdd0".format(
-                    lines[_[0]].replace("\ufde1", "")
-                )
+                lines[_[0]] = "{}</div>\ufdd0".format(lines[_[0]].replace("\ufde1", ""))
         return lines
 
     # append a blank line. (needed in some cases)
@@ -2129,9 +2104,7 @@ def c2o_noterefmarkers(text: str) -> str:
                 '<transChange type="added">',
                 '<seg><transChange type="added">',
             )
-            notetext = notetext.replace(
-                "</transChange>", "</transChange></seg>"
-            )
+            notetext = notetext.replace("</transChange>", "</transChange></seg>")
         return f"{tag[0]}{notetext}{tag[1]}"
 
     text = NOTERE.sub(simplerepl, text, 0)
@@ -2189,10 +2162,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
             if "strong" in attributes.keys():
                 tag2 = STRONGSTAG
                 tmp = " ".join(
-                    [
-                        f"strong:{_.strip()}"
-                        for _ in attributes["strong"].split(",")
-                    ]
+                    [f"strong:{_.strip()}" for _ in attributes["strong"].split(",")]
                 )
                 # add lemma to osis strongs markup
                 if "lemma" in attributes.keys():
@@ -2203,10 +2173,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
             elif "x-strong" in attributes.keys():
                 tag2 = STRONGSTAG
                 tmp = " ".join(
-                    [
-                        f"strong:{_.strip()}"
-                        for _ in attributes["x-strong"].split(",")
-                    ]
+                    [f"strong:{_.strip()}" for _ in attributes["x-strong"].split(",")]
                 )
                 # add lemma to osis strongs markup
                 if "lemma" in attributes.keys():
@@ -2237,9 +2204,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                 if i not in ["x-strong", "x-morph"]:
                     outtext2 = f"{outtext2}<!-- {i} - {attributes[i]} -->"
             # process strongs
-            outtext = (
-                f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
-            )
+            outtext = f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
         else:
             outtext = f"{tag[0]}{osis}{tag[1]}"
 
@@ -2491,9 +2456,7 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
     lines = [_.strip() for _ in " ".join(lines).split("\ufdd0")]
 
     # chapter and verse numbers
-    closerlist = [
-        _ for _ in range(len(lines)) if lines[_].startswith(r"<closer")
-    ]
+    closerlist = [_ for _ in range(len(lines)) if lines[_].startswith(r"<closer")]
     for i in reversed(closerlist):
         lines[i - 1] = " ".join([lines[i - 1], lines[i]])
         del lines[i]
@@ -2669,16 +2632,12 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
     for i in enumerate(lines):
         if lines[i[0]].startswith(r"\wj "):
             # Add initial start and end q tags
-            lines[i[0]] = lines[i[0]].replace(
-                r"\wj ", '<q who="Jesus" marker="">'
-            )
+            lines[i[0]] = lines[i[0]].replace(r"\wj ", '<q who="Jesus" marker="">')
             lines[i[0]] = lines[i[0]].replace(r"\wj*", "</q>")
 
             # add additional closing and opening q tags
             for _ in wjstarttags:
-                lines[i[0]] = lines[i[0]].replace(
-                    _, f'{_}<q who="Jesus" marker="">'
-                )
+                lines[i[0]] = lines[i[0]].replace(_, f'{_}<q who="Jesus" marker="">')
             for _ in wjendtags:
                 lines[i[0]] = lines[i[0]].replace(_, f"</q>{_}")
 
@@ -2703,9 +2662,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     for _ in enumerate(lines):
         # fix SIDEBAR
         if "SIDEBAR" in lines[_[0]]:
-            lines[_[0]] = lines[_[0]].replace(
-                "<SIDEBAR>", '<div type="x-sidebar">'
-            )
+            lines[_[0]] = lines[_[0]].replace("<SIDEBAR>", '<div type="x-sidebar">')
             lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
         # Convert unhandled vp tags, to milestones...
         while r"\vp " in lines[_[0]]:
@@ -2746,14 +2703,10 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
 
     # adjust placement of some verse end tags...
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         if lines[i - 1].strip() in OSISL or lines[i - 1].strip() in OSISITEM:
             lines.insert(i - 1, lines.pop(i))
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
             lines.insert(i - 2, lines.pop(i))
 
@@ -2779,9 +2732,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             "<div",
             "</div>",
         )
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
@@ -2802,9 +2753,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             "</p>",
             "</div>",
         )
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
@@ -2812,18 +2761,14 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     for i, j in (
         (x, y)
         for x in ("</l>", "</item>")
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
         if lines[j - 1].endswith(i):
             tmp = lines[j - 1].rpartition("<")
             lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
             lines[j] = ""
 
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         try:
             if (
                 lines[i + 1].startswith("<verse sID")
@@ -2838,9 +2783,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
     lines = [_ for _ in lines if _ != ""]
 
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         try:
             if (
                 lines[i + 1].startswith("<verse sID")
@@ -2857,9 +2800,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
     lines = [_ for _ in lines if _ != ""]
 
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         try:
             if (
                 lines[i + 1].startswith("<verse sID")
@@ -2877,16 +2818,12 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     for i, j in (
         (x, y)
         for x in ('<title type="acrostic"', "</lg")
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
 
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         if lines[i - 1].endswith("</l>"):
             lines[i - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
             lines[i] = ""
@@ -2894,18 +2831,14 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     for i, j in (
         (x, y)
         for x in ("<!-- ", "</p>")
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<verse eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
 
     # adjust placement of verse tags in relation
     # to d titles that contain verses.
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")):
         if (
             lines[i + 1].startswith("<verse sID")
             and lines[i + 1].endswith("</title>")
@@ -2923,9 +2856,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     for i, j in (
         (x, y)
         for x in range(3)
-        for y in (
-            _ for _ in range(len(lines)) if lines[_].startswith("<chapter eID")
-        )
+        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter eID"))
     ):
         try:
             if "<title" in lines[j - 1]:
@@ -2938,9 +2869,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             pass
 
     # adjust placement of some chapter start tags
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
         try:
             if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
                 lines.insert(i + 2, lines.pop(i))
@@ -2952,9 +2881,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
                 lines.insert(i + 3, lines.pop(i))
         except IndexError:
             pass
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
         try:
             if (
                 lines[i + 1] == "</p>"
@@ -2967,9 +2894,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
 
     # some chapter start tags have had div's or p's appended to the end...
     # fix that.
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
         try:
             if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
                 i + 1
@@ -2991,9 +2916,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
 
     # selah processing sometimes does weird things with l and lg tags
     # that needs to be fixed.
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
         if (
             lines[i].endswith("</l>")
             and lines[i + 1] == "</lg>"
@@ -3007,9 +2930,7 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
             lines[i + 1] = ""
 
     # additional postprocessing for l and lg tags
-    for i in (
-        _ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")
-    ):
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
         if (
             lines[i].endswith("</l>")
             and lines[i - 1].startswith("<chapter eID")
@@ -3140,7 +3061,7 @@ def proc_readfiles(fnames: List[str], fencoding: str) -> str:
         except LookupError:
             LOG.error("ERROR: Unknown encoding... aborting conversion.")
             LOG.error(r"    \ide line for %s says --> %s", fname, bookencoding)
-            exit()
+            sysexit()
 
         # convert file to unicode and add contents to list for processing...
         files.append(text.decode(bookencoding))
@@ -3252,9 +3173,7 @@ def processfiles(
         with open(f"order-{sortorder}.txt", "r", encoding="utf-8") as order:
             bookorderstr = order.read()
             bookorder = [
-                _
-                for _ in bookorderstr.split("\n")
-                if _ != "" and not _.startswith("#")
+                _ for _ in bookorderstr.split("\n") if _ != "" and not _.startswith("#")
             ]
         tmp = "\n".join([books[_] for _ in bookorder if _ in books])
         tmp2 = [descriptions[_] for _ in bookorder if _ in books]
@@ -3351,9 +3270,7 @@ if __name__ == "__main__":
         default=None,
         metavar="encoding",
     )
-    PARSER.add_argument(
-        "-o", help="specify output file", metavar="output_file"
-    )
+    PARSER.add_argument("-o", help="specify output file", metavar="output_file")
     PARSER.add_argument(
         "-l", help="specify langauge code", metavar="LANG", default="und"
     )
@@ -3397,7 +3314,7 @@ if __name__ == "__main__":
     for _ in ARGS.file:
         if not os.path.isfile(_):
             LOG.error("*** input file not present or not a normal file. ***")
-            exit()
+            sysexit()
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)

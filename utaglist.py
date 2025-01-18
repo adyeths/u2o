@@ -12,7 +12,7 @@ This script is public domain.
 
 import re
 from argparse import ArgumentParser
-from collections import Counter
+from collections import Counter as cCounter
 from glob import glob
 from typing import Counter, List
 
@@ -408,7 +408,7 @@ USFMRE = re.compile(
 def processtags(fnames: List[str], tcounts: bool) -> None:
     """Process usfm tags in all files."""
     count = 0
-    counttags: Counter[str] = Counter()
+    counttags: Counter[str] = cCounter()
     knownset = set()
 
     filenames = []
@@ -462,9 +462,7 @@ if __name__ == "__main__":
             * Version: {VERSION} * This script is public domain *
         """,
     )
-    PARSER.add_argument(
-        "-c", help="include usage counts for tags", action="store_true"
-    )
+    PARSER.add_argument("-c", help="include usage counts for tags", action="store_true")
     PARSER.add_argument(
         "file", help="name of file to process (wildcards allowed)", nargs="+"
     )
