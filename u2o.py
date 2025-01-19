@@ -85,7 +85,7 @@ from tempfile import NamedTemporaryFile
 from collections import OrderedDict
 from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Any, List, Set, Tuple, Dict, Union, Match, Optional
+from typing import Any
 
 et: Any
 _: Any
@@ -1447,22 +1447,16 @@ def reflow(flowtext: str) -> str:
 
     def manglecheck(text: str) -> bool:
         """Check to see if we have paragraph markup."""
-        retval = False
-        for _ in PARCHECK:
-            if re.search(
-                r"\\{}\b".format(_.lstrip(r"\\")),
-                text,
-                re.U + re.M + re.DOTALL,
-            ):
-                retval = True
-                break
-        return retval
+        return any(
+            re.search(r"\\{}\b".format(_.lstrip(r"\\")), text, re.U + re.M + re.DOTALL)
+            for _ in PARCHECK
+        )
 
     def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
         textlines = text.split("\n")
         for _ in enumerate(textlines):
-            if textlines[_[0]][0:4] in [r"\cl ", r"\sp ", r"\qa "]:
+            if textlines[_[0]][0:4] in {r"\cl ", r"\sp ", r"\qa "}:
                 textlines[_[0]] = f"{textlines[_[0]]}\uFDD4"
             elif textlines[_[0]][0:4] == r"\cp ":
                 textlines[_[0]] = f"{textlines[_[0]]}\uFDD5"
@@ -1512,7 +1506,7 @@ def reflow(flowtext: str) -> str:
 
         for _ in enumerate(textlines):
             # make sure some lines don't contain chapter or verse markers
-            for i in [
+            for i in (
                 r"\rem ",
                 r"\is",
                 r"\ms",
@@ -1523,7 +1517,7 @@ def reflow(flowtext: str) -> str:
                 r"\s4 ",
                 r"\th",
                 r"\tc",
-            ]:
+            ):
                 if textlines[_[0]].startswith(i):
                     textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
                     textlines[_[0]] = textlines[_[0]].replace("\\v ", "\n\\v ")
@@ -1601,7 +1595,7 @@ def reflow(flowtext: str) -> str:
     return flowtext
 
 
-def getbookid(text: str) -> Optional[str]:
+def getbookid(text: str) -> str | None:
     """Get book id from file text."""
     lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
     try:
@@ -1615,10 +1609,10 @@ def getbookid(text: str) -> Optional[str]:
     }[bookid is not None]
 
 
-def getencoding(text: bytes) -> Optional[str]:
+def getencoding(text: bytes) -> str | None:
     """Get encoding from file text."""
     lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
-    encoding: Optional[str]
+    encoding: str | None
     try:
         encoding = lines[0].partition(" ")[2].lower().strip()
     except IndexError:
@@ -1626,7 +1620,7 @@ def getencoding(text: bytes) -> Optional[str]:
     return encoding
 
 
-def markintroend(lines: List[str]) -> List[str]:
+def markintroend(lines: list[str]) -> list[str]:
     """
     Mark end of introductions.
 
@@ -1642,24 +1636,26 @@ def markintroend(lines: List[str]) -> List[str]:
         if tmp[0][0:3] == r"\ie":
             intro = False
             lines.insert(i, "\ufde0")
-        elif tmp[0][:3] in [
-            r"\ib",
-            r"\il",
-            r"\im",
-            r"\io",
-            r"\ip",
-            r"\iq",
-            r"\is",
-            r"\ie",
-        ]:
-            if not intro:
-                lines.insert(i, "\ufde0")
-                intro = True
-        else:
-            if intro:
-                intro = False
-                lines.insert(i, "\ufde1")
-                j += 1
+        elif (
+            tmp[0][:3]
+            in {
+                r"\ib",
+                r"\il",
+                r"\im",
+                r"\io",
+                r"\ip",
+                r"\iq",
+                r"\is",
+                r"\ie",
+            }
+            and not intro
+        ):
+            lines.insert(i, "\ufde0")
+            intro = True
+        elif intro:
+            intro = False
+            lines.insert(i, "\ufde1")
+            j += 1
         i += 1
 
     if intro:
@@ -1668,11 +1664,11 @@ def markintroend(lines: List[str]) -> List[str]:
     return lines
 
 
-def parseattributes(tag: str, tagtext: str) -> Tuple[str, str, Any, bool]:
+def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
     """Separate attributes from text in usfm."""
     # split attributes from text
     text, _, attributestring = tagtext.partition("|")
-    attribs: Dict[str, str] = {}
+    attribs: dict[str, str] = {}
 
     # extract attributes
     if "=" not in attributestring:
@@ -1722,7 +1718,7 @@ def c2o_preprocess(text: str) -> str:
     return text
 
 
-def c2o_identification(text: str, description: List[str]) -> Tuple[str, List[str]]:
+def c2o_identification(text: str, description: list[str]) -> tuple[str, list[str]]:
     """
     Process identification tags.
 
@@ -1755,7 +1751,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
     celltags = CELLTAGS
     titletags = TITLETAGS
 
-    def titles_and_sections(line: List[str]) -> str:
+    def titles_and_sections(line: list[str]) -> str:
         """Process titles and sections."""
         # make sure titles don't end with a \b or an \ib tag
         line[2] = line[2].strip()
@@ -1801,7 +1797,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
             )
         return text
 
-    def paragraphs(line: List[str]) -> str:
+    def paragraphs(line: list[str]) -> str:
         """Process paragraph tags."""
         pstart, pend = partags[line[0]]
         btag = ""
@@ -1822,7 +1818,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         # finish paragraphs.
         return f"{text}{pend}{btag}\ufdd0"
 
-    def tables(line: List[str]) -> str:
+    def tables(line: list[str]) -> str:
         """Process tables."""
         # make sure table rows don't end with b tags...
         line[2] = line[2].strip().rstrip("\\b").strip()
@@ -1862,7 +1858,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
 
     # add periph tag to titletags if book being processed
     # is a  peripheral or private use book.
-    if bookid in [
+    if bookid in {
         "FRONT",
         "INTRODUCTION",
         "BACK",
@@ -1874,7 +1870,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         "XXE",
         "XXF",
         "XXG",
-    ]:
+    }:
         titletags[r"\periph"] = ('<title type="main">', "</title>")
 
     # ################################################################### #
@@ -1923,20 +1919,20 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
     return blocktext
 
 
-def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
+def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
     """Fix linegroups in poetry, lists, etc."""
 
-    def btags(lines: List[str]) -> List[str]:
+    def btags(lines: list[str]) -> list[str]:
         """Handle b tags."""
         for _ in enumerate(lines):
             if "<!-- b -->" in lines[_[0]]:
-                if lines[_[0]][:2] in ["<l", "<p"]:
+                if lines[_[0]][:2] in {"<l", "<p"}:
                     lines[_[0]] = lines[_[0]].replace("<!-- b -->", '<lb type="x-p" />')
                 else:
                     lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
         return lines
 
-    def lgtags(lines: List[str]) -> List[str]:
+    def lgtags(lines: list[str]) -> list[str]:
         """Handle lg tag groupings."""
         inlg = False
         for _ in enumerate(lines):
@@ -1944,13 +1940,12 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
                 if not inlg:
                     lines[_[0]] = f"<lg>\ufdd0{lines[_[0]]}"
                     inlg = True
-            else:
-                if inlg:
-                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</lg>\ufdd0"
-                    inlg = False
+            elif inlg:
+                lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</lg>\ufdd0"
+                inlg = False
         return lines
 
-    def listtags(lines: List[str]) -> List[str]:
+    def listtags(lines: list[str]) -> list[str]:
         """Handle list tag groupings."""
         inlist = False
         for _ in enumerate(lines):
@@ -1958,13 +1953,12 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
                 if not inlist:
                     lines[_[0]] = f"<list>\ufdd0{lines[_[0]]}"
                     inlist = True
-            else:
-                if inlist:
-                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</list>\ufdd0"
-                    inlist = False
+            elif inlist:
+                lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</list>\ufdd0"
+                inlist = False
         return lines
 
-    def tabletags(lines: List[str]) -> List[str]:
+    def tabletags(lines: list[str]) -> list[str]:
         """Handle table tag groupings."""
         intable = False
         for _ in enumerate(lines):
@@ -1972,13 +1966,12 @@ def c2o_fixgroupings(grouplines: List[str]) -> List[str]:
                 if not intable:
                     lines[_[0]] = f"\ufdd0<table>\ufdd0{lines[_[0]]}"
                     intable = True
-            else:
-                if intable:
-                    lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</table>\ufdd0"
-                    intable = False
+            elif intable:
+                lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</table>\ufdd0"
+                intable = False
         return lines
 
-    def introductions(lines: List[str]) -> List[str]:
+    def introductions(lines: list[str]) -> list[str]:
         """Encapsulate introductions in divs."""
         for _ in enumerate(lines):
             if lines[_[0]] == "\ufde0":
@@ -2018,7 +2011,7 @@ def c2o_specialtext(text: str) -> str:
 
     """
 
-    def simplerepl(match: Match[str]) -> str:
+    def simplerepl(match: re.Match[str]) -> str:
         """Simple regex replacement helper function."""
         tag = SPECIALTEXT[match.group("tag")]
         return f'{tag[0]}{match.group("osis")}{tag[1]}'
@@ -2043,10 +2036,10 @@ def c2o_noterefmarkers(text: str) -> str:
     def notefix(notetext: str) -> str:
         """Additional footnote and cross reference tag processing."""
 
-        def notefixsub(fnmatch: Match[str]) -> str:
+        def notefixsub(fnmatch: re.Match[str]) -> str:
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
-            attrtxt: Optional[str]
+            attrtxt: str | None
             if "<reference>" in tag:
                 txt, _, attrtxt = fnmatch.groups()[1].partition("|")
             else:
@@ -2095,7 +2088,7 @@ def c2o_noterefmarkers(text: str) -> str:
                 notetext = notetext.replace(_, "")
         return notetext
 
-    def simplerepl(match: Match[str]) -> str:
+    def simplerepl(match: re.Match[str]) -> str:
         """Simple regex replacement helper function."""
         tag = NOTETAGS[match.group("tag")]
         notetext = match.group("osis").replace("\n", " ")
@@ -2135,7 +2128,7 @@ def c2o_noterefmarkers(text: str) -> str:
 def c2o_specialfeatures(specialtext: str) -> str:
     """Process special features."""
 
-    def simplerepl(match: Match[str]) -> str:
+    def simplerepl(match: re.Match[str]) -> str:
         """Simple regex replacement helper function."""
         matchtag = match.group("tag")
         tag = FEATURETAGS[matchtag]
@@ -2152,7 +2145,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
 
         # handle w tag attributes
         tag2 = None
-        if matchtag in [r"\w", r"\+w"]:
+        if matchtag in {r"\w", r"\+w"}:
             if "lemma" in attributes.keys():
                 if (
                     "strong" not in attributes.keys()
@@ -2355,7 +2348,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                                 False: newline,
                             }["who" in attributes]
                             qlevel = {True: tag[3], False: "1"}[
-                                tag[3] in ["2", "3", "4", "5"]
+                                tag[3] in {"2", "3", "4", "5"}
                             ]
 
                             newline = f'{newline} level="{qlevel}" />'
@@ -2373,7 +2366,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                                 False: newline,
                             }["id" in attributes]
                             qlevel = {True: tag[3], False: "1"}[
-                                tag[3] in ["2", "3", "4", "5"]
+                                tag[3] in {"2", "3", "4", "5"}
                             ]
 
                             # I don't know if I need the level attribute
@@ -2405,7 +2398,7 @@ def c2o_ztags(text: str) -> str:
 
     if r"\z" in text:
 
-        def simplerepl(match: Match[str]) -> str:
+        def simplerepl(match: re.Match[str]) -> str:
             """Simple regex replacement helper function."""
             return '<seg type="x-usfm-z{}">{}</seg>'.format(
                 match.group("tag").replace(r"\z", ""), match.group("osis")
@@ -2424,10 +2417,10 @@ def c2o_ztags(text: str) -> str:
     return text
 
 
-def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
+def c2o_chapverse(lines: list[str], bookid: str) -> list[str]:
     """Process chapter and verse tags."""
 
-    def verserange(text: str) -> List[str]:
+    def verserange(text: str) -> list[str]:
         """Generate list for verse ranges."""
         low, high = text.split("-")
         # make sure Right-To-Left and Left-To-Right marks aren't included
@@ -2439,10 +2432,10 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
         except ValueError:
             end1 = ""
             end2 = ""
-            if low[-1] in ["a", "b", "A", "B"]:
+            if low[-1] in {"a", "b", "A", "B"}:
                 end1 = low[-1]
                 low = "".join(low[:-1])
-            if high[-1] in ["a", "b", "A", "B"]:
+            if high[-1] in {"a", "b", "A", "B"}:
                 end2 = high[-1]
                 high = "".join(high[:-1])
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
@@ -2472,7 +2465,7 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
         if lines[_].startswith(r"\c ") or lines[_].startswith(r"\v ")
     ]
     for i in cvlist:
-        tmp: Union[str, List[str]] = ""
+        tmp: str | list[str] = ""
         vnum = ""
         # ## chapter numbers
         if lines[i].startswith(r"\c "):
@@ -2600,7 +2593,7 @@ def c2o_chapverse(lines: List[str], bookid: str) -> List[str]:
     return lines
 
 
-def c2o_processwj2(lines: List[str]) -> List[str]:
+def c2o_processwj2(lines: list[str]) -> list[str]:
     """
     Alternate processing of wj tags.
 
@@ -2645,7 +2638,7 @@ def c2o_processwj2(lines: List[str]) -> List[str]:
     return "".join(lines).split("\ufdd1")
 
 
-def c2o_postprocess(lines: List[str]) -> List[str]:
+def c2o_postprocess(lines: list[str]) -> list[str]:
     """Attempt to fix some formatting issues."""
     i: Any
     j: Any
@@ -2944,11 +2937,11 @@ def c2o_postprocess(lines: List[str]) -> List[str]:
     return lines
 
 
-def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
+def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
     """Convert usfm file to osis."""
     # ---------------------------------------------------------------------- #
 
-    description: List[str] = []
+    description: list[str] = []
 
     # ---------------------------------------------------------------------- #
 
@@ -3003,7 +2996,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> Tuple[str, ...]:
 # -------------------------------------------------------------------------- #
 
 
-def doconvert(text: str) -> Tuple[str, ...]:
+def doconvert(text: str) -> tuple[str, ...]:
     """Convert our text and return our results."""
     # convert cl lines to form that follows each chapter marker instead of
     # form that precedes first chapter.
@@ -3027,7 +3020,7 @@ def doconvert(text: str) -> Tuple[str, ...]:
     return bookid, descriptiontext, newtext
 
 
-def proc_readfiles(fnames: List[str], fencoding: str) -> str:
+def proc_readfiles(fnames: list[str], fencoding: str) -> str:
     """Read files and return concatenated file contents."""
     files = []
     for fname in fnames:
@@ -3106,7 +3099,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
 
 
 def processfiles(
-    fnames: List[str],
+    fnames: list[str],
     fencoding: str,
     dodebug: bool,
     sortorder: str,
@@ -3136,7 +3129,7 @@ def processfiles(
         with concurrent.futures.ProcessPoolExecutor() as executor:
             results = list(executor.map(doconvert, filelist))
     else:
-        results = list(map(doconvert, filelist))
+        results = [doconvert(_) for _ in filelist]
 
     # store results
     for bookid, descriptiontext, newtext in results:
@@ -3203,10 +3196,11 @@ def processfiles(
     LOG.warning("NOTE: References have not been processed.")
 
     # apply NFC normalization to text unless explicitly disabled.
-    if not nonormalize:
-        osisdoc2 = encode(normalize("NFC", osisdoc), "utf-8")
-    else:
-        osisdoc2 = encode(osisdoc, "utf-8")
+    osisdoc2 = (
+        encode(osisdoc, "utf-8")
+        if nonormalize
+        else encode(normalize("NFC", osisdoc), "utf-8")
+    )
 
     # validate and "pretty print" our osis doc if requested.
     if HAVELXML:
@@ -3219,7 +3213,7 @@ def processfiles(
         osisdoc2 = osisdoc.encode("utf-8")
 
     # find unhandled usfm tags that are leftover after processing
-    usfmtagset: Set = set()
+    usfmtagset: set = set()
     usfmtagset.update(USFMRE.findall(osisdoc2.decode("utf-8")))
     if usfmtagset:
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))

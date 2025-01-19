@@ -12,9 +12,8 @@ This script is public domain.
 
 import re
 from argparse import ArgumentParser
-from collections import Counter as cCounter
+from collections import Counter
 from glob import glob
-from typing import Counter, List
 
 # -------------------------------------------------------------------------- #
 
@@ -405,10 +404,10 @@ USFMRE = re.compile(
 # -------------------------------------------------------------------------- #
 
 
-def processtags(fnames: List[str], tcounts: bool) -> None:
+def processtags(fnames: list[str], tcounts: bool) -> None:
     """Process usfm tags in all files."""
     count = 0
-    counttags: Counter[str] = cCounter()
+    counttags: Counter[str] = Counter()
     knownset = set()
 
     filenames = []
