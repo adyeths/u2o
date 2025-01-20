@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-01-18",  # THIS SCRIPT revision date
+    "DATE": "2025-01-19",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1194,7 +1194,9 @@ ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 PARFLOW = set(IDTAGS.keys())
 PARFLOW.update(TITLETAGS.keys())
 PARFLOW.update(PARTAGS.keys())
-PARFLOW.update([r"\ide", r"\rem", r"\tr", r"\pb", r"\periph", r"\b"])
+PARFLOW.update(
+    [r"\ide", r"\rem", r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"]
+)
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
@@ -1473,37 +1475,6 @@ def reflow(flowtext: str) -> str:
         """Fix various potential issues with lines of text."""
         textlines = text.split("\n")
 
-        # always make sure chapter markers are on a separate line from titles.
-        for _ in enumerate(textlines):
-            if (
-                textlines[_[0]].partition(" ")[0] in TITLEFLOW
-                and r"\c " in textlines[_[0]]
-            ):
-                textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
-
-        # fix placement of chapter markers with regards to lists...
-        # this probably needs more work.
-        for _ in enumerate(textlines):
-            if (
-                textlines[_[0]].partition(" ")[0].startswith(r"\li")
-                and r"\c " in textlines[_[0]]
-            ):
-                if (
-                    textlines[_[0] + 1].startswith(r"\s")
-                    or textlines[_[0] + 1].startswith(r"\ms")
-                    or textlines[_[0] + 1].startswith(r"\p")
-                ):
-                    textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
-
-        # fix placement of chapter markers with regards to tables...
-        # this probably needs more work.
-        for _ in enumerate(textlines):
-            if (
-                textlines[_[0]].partition(" ")[0].startswith(r"\tr")
-                and r"\c " in textlines[_[0]]
-            ):
-                textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
-
         for _ in enumerate(textlines):
             # make sure some lines don't contain chapter or verse markers
             for i in (
@@ -1519,12 +1490,7 @@ def reflow(flowtext: str) -> str:
                 r"\tc",
             ):
                 if textlines[_[0]].startswith(i):
-                    textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
                     textlines[_[0]] = textlines[_[0]].replace("\\v ", "\n\\v ")
-            # make sure some lines don't contain chapter markers
-            for i in [r"\li", r"\ph", r"\io", "ili"]:
-                if textlines[_[0]].startswith(i):
-                    textlines[_[0]] = textlines[_[0]].replace("\\c ", "\n\\c ")
 
         return "\n".join(textlines)
 
@@ -1544,9 +1510,6 @@ def reflow(flowtext: str) -> str:
     flowtext = reflowpar(flowtext)
 
     for _ in (
-        # always put \cl and \cd on newlines
-        (r"\cl ", "\n\\cl "),
-        (r"\cd ", "\n\\cd "),
         # always add newline after \ie
         (r"\ie ", "\\ie\n"),
         # always put a space before \cp and \ca tags
@@ -1555,9 +1518,6 @@ def reflow(flowtext: str) -> str:
     ):
         if _[0] in flowtext:
             flowtext = flowtext.replace(_[0], _[1])
-
-    # always make sure chapter 1 marker is on a new line.
-    flowtext = flowtext.replace(r"\c 1 ", "\n\\c 1")
 
     # fix various possible issues in text lines.
     flowtext = fixlines(flowtext)
@@ -1628,40 +1588,39 @@ def markintroend(lines: list[str]) -> list[str]:
     to aid in adding div's to introduction sections.
 
     """
-    i = 0
-    j = len(lines)
+    newlines = []
     intro = False
-    while i < j:
-        tmp = lines[i].partition(" ")
+    for i in enumerate(lines):
+        tmp = i[1].partition(" ")
         if tmp[0][0:3] == r"\ie":
             intro = False
-            lines.insert(i, "\ufde0")
-        elif (
-            tmp[0][:3]
-            in {
-                r"\ib",
-                r"\il",
-                r"\im",
-                r"\io",
-                r"\ip",
-                r"\iq",
-                r"\is",
-                r"\ie",
-            }
-            and not intro
-        ):
-            lines.insert(i, "\ufde0")
-            intro = True
+            newlines.append(i[1])
+            newlines.append("\ufde1")
+        elif tmp[0][:3] in {
+            r"\ib",
+            r"\il",
+            r"\im",
+            r"\io",
+            r"\ip",
+            r"\iq",
+            r"\is",
+            r"\ie",
+        }:
+            if not intro:
+                newlines.append("\ufde0")
+                intro = True
+            newlines.append(i[1])
         elif intro:
             intro = False
-            lines.insert(i, "\ufde1")
-            j += 1
-        i += 1
+            newlines.append(i[1])
+            newlines.append("\ufde1")
+        else:
+            newlines.append(i[1])
 
     if intro:
-        lines.append("\ufde1")
+        newlines.append("\ufde1")
 
-    return lines
+    return newlines
 
 
 def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
@@ -1985,9 +1944,8 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
     # append a blank line. (needed in some cases)
     grouplines.append("")
 
-    # add breaks before chapter and verse tags
+    # add breaks before verse tags
     for _ in enumerate(grouplines):
-        grouplines[_[0]] = grouplines[_[0]].replace(r"\c ", "\ufdd0\\c ")
         grouplines[_[0]] = grouplines[_[0]].replace(r"\v ", "\ufdd0\\v ")
 
     # Process b tags,
@@ -2806,6 +2764,15 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
             pass
     lines = [_ for _ in lines if _ != ""]
 
+    # adjust placement of some verse start tags...
+    # This is only to make sure they are properly nested inside paragraph markers!
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse sID")):
+        try:
+            if lines[i + 1].startswith("</p") and lines[i + 2].startswith("<p"):
+                lines.insert(i + 2, lines.pop(i))
+        except IndexError:
+            pass
+
     # special fix for verse end markers following "acrostic" titles...
     # because I can't figure out why my other fixes aren't working.
     for i, j in (
@@ -2841,68 +2808,6 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
             lines[i] = f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>"
             lines[i + 1] = ""
             lines[i + 2] = ""
-    lines = [_ for _ in lines if _ != ""]
-
-    # -- # -- # -- #
-
-    # adjust placement of some chapter end tags
-    for i, j in (
-        (x, y)
-        for x in range(3)
-        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter eID"))
-    ):
-        try:
-            if "<title" in lines[j - 1]:
-                lines.insert(j - 1, lines.pop(j))
-            elif "chapterLabel" in lines[j - 1]:
-                lines.insert(j - 1, lines.pop(j))
-            elif lines[j - 1] == "</p>":
-                lines.insert(j - 1, lines.pop(j))
-        except IndexError:
-            pass
-
-    # adjust placement of some chapter start tags
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
-        try:
-            if lines[i + 1] == "</p>" and lines[i + 2].startswith("<p"):
-                lines.insert(i + 2, lines.pop(i))
-            elif (
-                lines[i + 1] == "</p>"
-                and "chapterLabel" in lines[i + 2]
-                and lines[i + 3].startswith("<p")
-            ):
-                lines.insert(i + 3, lines.pop(i))
-        except IndexError:
-            pass
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
-        try:
-            if (
-                lines[i + 1] == "</p>"
-                and lines[i + 2] == "</div>"
-                and lines[i + 3].startswith("<div")
-            ):
-                lines.insert(i + 3, lines.pop(i))
-        except IndexError:
-            pass
-
-    # some chapter start tags have had div's or p's appended to the end...
-    # fix that.
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
-        try:
-            if re.match("<chapter sID[^>]+> ?</div>", lines[i]) and lines[
-                i + 1
-            ].startswith("<div"):
-                lines.insert(i + 2, lines[i].replace("</div>", ""))
-                lines[i] = "</div>"
-            elif re.match("<chapter sID[^>]+> ?<div", lines[i]):
-                tmp = lines[i].replace("<div", "\n<div").split("\n", 1)
-                lines[i] = tmp[0]
-                lines.insert(i + 1, tmp[1])
-            elif re.match("<chapter sID[^>]+> ?<p>", lines[i]):
-                lines.insert(i + 1, lines[i].replace("<p>", ""))
-                lines[i] = "<p>"
-        except IndexError:
-            pass
     lines = [_ for _ in lines if _ != ""]
 
     # -- # -- # -- #
