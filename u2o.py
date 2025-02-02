@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-01-19",  # THIS SCRIPT revision date
+    "DATE": "2025-02-01",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -700,8 +700,13 @@ for _ in [
     (r"\b ", "<!-- b -->"),
     (r"\nb ", "<!-- nb -->"),
     (r"\nb", "<!-- nb -->"),
-    # translators chunk marker…
-    (r"\ts", "<!-- ts -->"),
+    # translators chunk marker… this probably needs more changes
+    (r"\ts-s\*", " <!-- ts --> "),
+    (r"\ts-e\*", " <!-- ts --> "),
+    (r"\ts-s", " <!-- ts --> "),
+    (r"\ts-e", " <!-- ts --> "),
+    (r"\ts\*", " <!-- ts --> "),
+    (r"\ts", " <!-- ts --> "),
 ]:
     OTHERTAGS[_[0]] = _[1]
 
@@ -866,12 +871,12 @@ STRONGSTAG = ("<w {}{}>", "</w>")
 
 # footnote and cross reference tags
 NOTETAGS = {
-    r"\f": ('<note placement="foot">\uFDD2', "\uFDD3</note>"),
-    r"\fe": ('<note placement="end">\uFDD2', "\uFDD3</note>"),
+    r"\f": ('<note placement="foot">\ufdd2', "\ufdd3</note>"),
+    r"\fe": ('<note placement="end">\ufdd2', "\ufdd3</note>"),
     r"\x": ('<note type="crossReference">', "</note>"),
     r"\ef": (
-        '<note placement="foot" subType="x-extended">\uFDD2',
-        "\uFDD3</note>",
+        '<note placement="foot" subType="x-extended">\ufdd2',
+        "\ufdd3</note>",
     ),
     r"\ex": ('<note type="crossReference" subType="x-extended">', "</note>"),
 }
@@ -1014,6 +1019,30 @@ ZTAGS_S = r"""
     """
 ZTAGSRE = re.compile(ZTAGS_S, re.U + re.VERBOSE)
 del ZTAGS_S
+
+# match milestone z tags
+ZTAGS2_S = r"""
+    # put z tag content in a named group 'tag'
+    (?P<tag>
+
+        # tags start with a backslash
+        \\
+
+        # match alphanumeric characters and hyphen
+        z(?:[A-Za-z0-9\-]+)
+
+        # there may be a space
+        \s*
+
+        # there may be attributes before the end tag
+        .*?
+
+        # tag end marker
+        \\\*
+    )
+"""
+ZTAGS2RE = re.compile(ZTAGS2_S, re.U + re.VERBOSE)
+del ZTAGS2_S
 
 # matches special feature tags
 # Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
@@ -1459,9 +1488,9 @@ def reflow(flowtext: str) -> str:
         textlines = text.split("\n")
         for _ in enumerate(textlines):
             if textlines[_[0]][0:4] in {r"\cl ", r"\sp ", r"\qa "}:
-                textlines[_[0]] = f"{textlines[_[0]]}\uFDD4"
+                textlines[_[0]] = f"{textlines[_[0]]}\ufdd4"
             elif textlines[_[0]][0:4] == r"\cp ":
-                textlines[_[0]] = f"{textlines[_[0]]}\uFDD5"
+                textlines[_[0]] = f"{textlines[_[0]]}\ufdd5"
         return "\n".join(textlines)
 
     def reflowpar(text: str) -> str:
@@ -1544,12 +1573,12 @@ def reflow(flowtext: str) -> str:
             flowtext = flowtext.replace(f"\n{_}", f" {_}")
 
     # fix newline issue
-    if "\uFDD4" in flowtext:
-        flowtext = flowtext.replace("\uFDD4", "\n")
+    if "\ufdd4" in flowtext:
+        flowtext = flowtext.replace("\ufdd4", "\n")
 
     # add custom end marker for cp tags for easier processing
-    if "\uFDD5" in flowtext:
-        flowtext = flowtext.replace("\uFDD5", r"\cp*")
+    if "\ufdd5" in flowtext:
+        flowtext = flowtext.replace("\ufdd5", r"\cp*")
 
     # done
     return flowtext
@@ -1633,8 +1662,8 @@ def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
     if "=" not in attributestring:
         attribs[DEFAULTATTRIBUTES.get(tag, "x-default")] = attributestring
     else:
-        tmp = ATTRIBRE.sub("\uFDE2\\1", attributestring)
-        for _ in tmp.split("\uFDE2"):
+        tmp = ATTRIBRE.sub("\ufde2\\1", attributestring)
+        for _ in tmp.split("\ufde2"):
             attr = _.partition("=")
             attribs[attr[0]] = attr[2].strip('"')
 
@@ -2068,11 +2097,11 @@ def c2o_noterefmarkers(text: str) -> str:
     # handle fp tags
     if r"\fp " in text:
         # xmllint says this works and validates.
-        text = text.replace("\uFDD2", "<p>")
-        text = text.replace("\uFDD3", "</p>")
+        text = text.replace("\ufdd2", "<p>")
+        text = text.replace("\ufdd3", "</p>")
         text = text.replace(r"\fp ", r"</p><p>")
     else:
-        text = text.replace("\uFDD2", "").replace("\uFDD3", "")
+        text = text.replace("\ufdd2", "").replace("\ufdd3", "")
 
     # study bible index categories
     if r"\cat " in text:
@@ -2358,17 +2387,21 @@ def c2o_ztags(text: str) -> str:
 
         def simplerepl(match: re.Match[str]) -> str:
             """Simple regex replacement helper function."""
-            return '<seg type="x-usfm-z{}">{}</seg>'.format(
-                match.group("tag").replace(r"\z", ""), match.group("osis")
-            )
+            return f' <seg type="x-usfm-z{match.group("tag")}">{match.group("osis")}</seg> '
+
+        def simplerepl2(match: re.Match[str]) -> str:
+            """Simple regex replacement helper for milestone z tags."""
+            return f' <!-- {match.group("tag").replace("\\z", "")} --> '
 
         text = ZTAGSRE.sub(simplerepl, text, 0)
+        text = ZTAGS2RE.sub(simplerepl2, text, 0)
+
         # milestone z tags… this may need more work…
         if r"\z" in text:
             words = text.split(" ")
             for i in enumerate(words):
                 if i[1].startswith(r"\z"):
-                    words[i[0]] = '<milestone type="x-usfm-z{}" />'.format(
+                    words[i[0]] = ' <milestone type="x-usfm-z{}" /> '.format(
                         i[1].replace(r"\z", "")
                     )
             text = " ".join(words)
