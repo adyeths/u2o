@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-02-01",  # THIS SCRIPT revision date
+    "DATE": "2025-03-13",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1796,23 +1796,24 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         text = f"{pstart}{line[2].strip()}"
         # handle b  and ib tags in paragraphs and poetry...
         if text.endswith("\\b") or text.endswith("\\ib"):
-            text = text.rstrip("\\b")
-            text = text.rstrip("\\ib")
+            text = text.rstrip("\\b").rstrip("\\ib")
             btag = "<!-- b -->"
         elif r"\b " in text or r"\ib" in text:
-            text = text.replace("\\b ", "<!-- b -->")
-            text = text.replace("\\ib ", "<!-- b -->")
+            text = text.replace("\\b ", "<!-- b -->").replace("\\ib ", "<!-- b -->")
 
         # finish paragraphs.
         return f"{text}{pend}{btag}\ufdd0"
 
     def tables(line: list[str]) -> str:
         """Process tables."""
-        # make sure table rows don't end with b tags...
-        line[2] = line[2].strip().rstrip("\\b").strip()
-
-        line[2] = line[2].replace(r"\th", "\n\\th")
-        line[2] = line[2].replace(r"\tc", "\n\\tc")
+        line[2] = (
+            line[2]
+            .strip()
+            .rstrip("\\b")
+            .strip()
+            .replace(r"\th", "\n\\th")
+            .replace(r"\tc", "\n\\tc")
+        )
         cells = line[2].split("\n")
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
@@ -1828,20 +1829,22 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         selahfix = [_ for _ in tmp.split("\n") if _ != ""]
         for _ in enumerate(selahfix):
             if selahfix[_[0]].startswith(r"<l") and "<selah>" in selahfix[_[0]]:
-                selahfix[_[0]] = selahfix[_[0]].replace(
-                    "<selah>", '</l><l type="selah">'
+                selahfix[_[0]] = (
+                    selahfix[_[0]]
+                    .replace("<selah>", '</l><l type="selah">')
+                    .replace("</selah>", "</l><l>")
                 )
-                selahfix[_[0]] = selahfix[_[0]].replace("</selah>", "</l><l>")
                 if "<l> </l>" in selahfix[_[0]]:
                     selahfix[_[0]] = selahfix[_[0]].replace("<l> </l>", "")
                 if "<l>  </l>" in selahfix[_[0]]:
                     selahfix[_[0]] = selahfix[_[0]].replace("<l>  </l>", "")
         for _ in enumerate(selahfix):
             if "<selah>" in selahfix[_[0]] or "</selah>" in selahfix[_[0]]:
-                selahfix[_[0]] = selahfix[_[0]].replace(
-                    "<selah>", '<lg><l type="selah">'
+                selahfix[_[0]] = (
+                    selahfix[_[0]]
+                    .replace("<selah>", '<lg><l type="selah">')
+                    .replace("</selah>", "</l></lg>")
                 )
-                selahfix[_[0]] = selahfix[_[0]].replace("</selah>", "</l></lg>")
         return " ".join(selahfix)
 
     # add periph tag to titletags if book being processed
@@ -1914,10 +1917,11 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
         """Handle b tags."""
         for _ in enumerate(lines):
             if "<!-- b -->" in lines[_[0]]:
-                if lines[_[0]][:2] in {"<l", "<p"}:
-                    lines[_[0]] = lines[_[0]].replace("<!-- b -->", '<lb type="x-p" />')
-                else:
-                    lines[_[0]] = lines[_[0]].replace("<!-- b -->", "")
+                lines[_[0]] = (
+                    lines[_[0]].replace("<!-- b -->", '<lb type="x-p" />')
+                    if lines[_[0]][:2] in {"<l", "<p"}
+                    else lines[_[0]].replace("<!-- b -->", "")
+                )
         return lines
 
     def lgtags(lines: list[str]) -> list[str]:
@@ -2083,8 +2087,7 @@ def c2o_noterefmarkers(text: str) -> str:
             notetext = notetext.replace(
                 '<transChange type="added">',
                 '<seg><transChange type="added">',
-            )
-            notetext = notetext.replace("</transChange>", "</transChange></seg>")
+            ).replace("</transChange>", "</transChange></seg>")
         return f"{tag[0]}{notetext}{tag[1]}"
 
     text = NOTERE.sub(simplerepl, text, 0)
@@ -2095,18 +2098,19 @@ def c2o_noterefmarkers(text: str) -> str:
             text = notefix(text)
 
     # handle fp tags
-    if r"\fp " in text:
-        # xmllint says this works and validates.
-        text = text.replace("\ufdd2", "<p>")
-        text = text.replace("\ufdd3", "</p>")
-        text = text.replace(r"\fp ", r"</p><p>")
-    else:
-        text = text.replace("\ufdd2", "").replace("\ufdd3", "")
+    text = (
+        text.replace("\ufdd2", "<p>")
+        .replace("\ufdd3", "</p>")
+        .replace(r"\fp ", r"</p><p>")
+        if r"\fp " in text
+        else text.replace("\ufdd2", "").replace("\ufdd3", "")
+    )
 
     # study bible index categories
     if r"\cat " in text:
-        text = text.replace(r"\cat ", r'<index index="category" level1="')
-        text = text.replace(r"\cat*", r'" />')
+        text = text.replace(r"\cat ", r'<index index="category" level1="').replace(
+            r"\cat*", r'" />'
+        )
 
     # return our processed text
     return text
@@ -2171,8 +2175,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
             if '<seg type="x-nested"><transChange type="added">' in osis2:
                 osis2 = osis2.replace(
                     '<seg type="x-nested"><transChange type="added">', ""
-                )
-                osis2 = osis2.replace("</transChange></seg>", "")
+                ).replace("</transChange></seg>", "")
             outtext = f"{osis}{tag[1].format(osis2)}"
         elif tag2 is not None:
             outtext2 = ""
@@ -2198,8 +2201,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
 
     def figtags(text: str) -> str:
         """Process fig tags."""
-        text = text.replace(r"\fig ", "\n\\fig ")
-        text = text.replace(r"\fig*", "\\fig*\n")
+        text = text.replace(r"\fig ", "\n\\fig ").replace(r"\fig*", "\\fig*\n")
         tlines = text.split("\n")
         for i in enumerate(tlines):
             if tlines[i[0]].startswith(r"\fig "):
@@ -2297,8 +2299,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
         ]:
             if _ in text:
                 text = text.replace(_, f"\n{_}")
-        text = text.replace(r"\*", "\\*\n")
-        tlines = text.split("\n")
+        tlines = text.replace(r"\*", "\\*\n").split("\n")
         qlevel = ""
         for i in enumerate(tlines):
             # make sure we're processing milestone \qt tags
@@ -2393,8 +2394,7 @@ def c2o_ztags(text: str) -> str:
             """Simple regex replacement helper for milestone z tags."""
             return f' <!-- {match.group("tag").replace("\\z", "")} --> '
 
-        text = ZTAGSRE.sub(simplerepl, text, 0)
-        text = ZTAGS2RE.sub(simplerepl2, text, 0)
+        text = ZTAGS2RE.sub(simplerepl2, ZTAGSRE.sub(simplerepl, text, 0), 0)
 
         # milestone z tags… this may need more work…
         if r"\z" in text:
@@ -2604,20 +2604,23 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
             wjstarttags.add(_[1][0].strip())
             wjendtags.add(_[1][1].strip())
 
-    # prepare for processing by joining lines together
-    text = "\ufdd1".join(lines)
-
     # split words of jesus from the rest of the text.
-    text = text.replace("\\wj ", "\n\\wj ")
-    text = text.replace("\\wj*", "\\wj*\n ")
-    lines = text.split("\n")
+    lines = (
+        "\ufdd1".join(lines)
+        .replace("\\wj ", "\n\\wj ")
+        .replace("\\wj*", "\\wj*\n ")
+        .split("\n")
+    )
 
     # process words of Jesus.
     for i in enumerate(lines):
         if lines[i[0]].startswith(r"\wj "):
             # Add initial start and end q tags
-            lines[i[0]] = lines[i[0]].replace(r"\wj ", '<q who="Jesus" marker="">')
-            lines[i[0]] = lines[i[0]].replace(r"\wj*", "</q>")
+            lines[i[0]] = (
+                lines[i[0]]
+                .replace(r"\wj ", '<q who="Jesus" marker="">')
+                .replace(r"\wj*", "</q>")
+            )
 
             # add additional closing and opening q tags
             for _ in wjstarttags:
@@ -2646,8 +2649,11 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
     for _ in enumerate(lines):
         # fix SIDEBAR
         if "SIDEBAR" in lines[_[0]]:
-            lines[_[0]] = lines[_[0]].replace("<SIDEBAR>", '<div type="x-sidebar">')
-            lines[_[0]] = lines[_[0]].replace("</SIDEBAR>", "</div>")
+            lines[_[0]] = (
+                lines[_[0]]
+                .replace("<SIDEBAR>", '<div type="x-sidebar">')
+                .replace("</SIDEBAR>", "</div>")
+            )
         # Convert unhandled vp tags, to milestones...
         while r"\vp " in lines[_[0]]:
             tmp = VPRE.search(lines[_[0]])
@@ -2896,17 +2902,10 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
         # identification
         lines[i[0]], description = c2o_identification(lines[i[0]], description)
 
-        # character style formatting
-        lines[i[0]] = c2o_specialtext(lines[i[0]])
-
-        # special features
-        lines[i[0]] = c2o_specialfeatures(lines[i[0]])
-
-        # footnotes and cross references
-        lines[i[0]] = c2o_noterefmarkers(lines[i[0]])
-
-        # z tags if present
-        lines[i[0]] = c2o_ztags(lines[i[0]])
+        # character styles, special features, footnotes and cross references, ztags
+        lines[i[0]] = c2o_ztags(
+            c2o_noterefmarkers(c2o_specialfeatures(c2o_specialtext(lines[i[0]])))
+        )
 
         # paragraph style formatting.
         lines[i[0]] = c2o_titlepar(lines[i[0]], bookid)
@@ -2970,25 +2969,24 @@ def proc_readfiles(fnames: list[str], fencoding: str) -> str:
         text = text.strip()
 
         # get encoding. Abort processing if we don't know the encoding.
-        # default to utf-8-sig encoding if no encoding is specified.
-        bookencoding = "utf-8-sig"
+        # default to utf_8_sig encoding if no encoding is specified.
+        bookencoding = "utf_8_sig"
         try:
             if fencoding is not None:
                 bookencoding = lookup(fencoding).name
             else:
                 tmp = getencoding(text)
                 if tmp is not None:
-                    if tmp == "65001 - Unicode (UTF-8)":
-                        bookencoding = "utf-8-sig"
-                    else:
-                        bookencoding = lookup(tmp).name
+                    bookencoding = (
+                        "utf_8_sig" if "utf-8" in tmp.lower() else lookup(tmp).name
+                    )
                 else:
-                    bookencoding = "utf-8-sig"
+                    bookencoding = "utf_8_sig"
 
-            # use utf-8-sig in place of utf-8 encoding to eliminate errors that
+            # use utf_8_sig in place of utf_8 encoding to eliminate errors that
             # may occur if a Byte Order Mark is present in the input file.
-            if bookencoding == "utf-8":
-                bookencoding = "utf-8-sig"
+            if bookencoding == "utf_8":
+                bookencoding = "utf_8_sig"
         except LookupError:
             LOG.error("ERROR: Unknown encoding... aborting conversion.")
             LOG.error(r"    \ide line for %s says --> %s", fname, bookencoding)
@@ -3003,33 +3001,33 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
-    testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf-8"))
+    testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf_8"))
 
     LOG.info("Validating osis xml...")
-    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf-8")
+    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf_8")
     xmlschema = decode(
         decode(decode(XMLSCHEMA, "base64"), "bz2"),
-        "utf-8",
+        "utf_8",
     )
     with NamedTemporaryFile(suffix=".xsd") as xmlxsd:
         osisschema = osisschema.replace(
             "http://www.w3.org/2001/03/xml.xsd",
             f"file://{xmlxsd.name}",
         )
-        xmlxsd.write(xmlschema.encode("utf-8"))
+        xmlxsd.write(xmlschema.encode("utf_8"))
 
         try:
             vparser = et.XMLParser(
                 schema=et.XMLSchema(et.XML(osisschema)),
                 remove_blank_text=True,
             )
-            _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
+            _ = et.fromstring(testosis.encode("utf_8"), vparser)  # nosec
             LOG.warning("Validation passed!")
             osisdoc2 = et.tostring(
                 _,
                 pretty_print=True,
                 xml_declaration=True,
-                encoding="utf-8",
+                encoding="utf_8",
             )
         except et.XMLSyntaxError as err:
             LOG.error("Validation failed: %s", str(err))
@@ -3101,7 +3099,7 @@ def processfiles(
         tmp = "\n".join([books[_] for _ in CANONICALORDER if _ in books])
         tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books]
     else:
-        with open(f"order-{sortorder}.txt", "r", encoding="utf-8") as order:
+        with open(f"order-{sortorder}.txt", "r", encoding="utf_8") as order:
             bookorderstr = order.read()
             bookorder = [
                 _ for _ in bookorderstr.split("\n") if _ != "" and not _.startswith("#")
@@ -3135,9 +3133,9 @@ def processfiles(
 
     # apply NFC normalization to text unless explicitly disabled.
     osisdoc2 = (
-        encode(osisdoc, "utf-8")
+        encode(osisdoc, "utf_8")
         if nonormalize
-        else encode(normalize("NFC", osisdoc), "utf-8")
+        else encode(normalize("NFC", osisdoc), "utf_8")
     )
 
     # validate and "pretty print" our osis doc if requested.
@@ -3148,16 +3146,16 @@ def processfiles(
 
     # debug output... don't use formatted xml...
     if dodebug:
-        osisdoc2 = osisdoc.encode("utf-8")
+        osisdoc2 = osisdoc.encode("utf_8")
 
     # find unhandled usfm tags that are leftover after processing
     usfmtagset: set = set()
-    usfmtagset.update(USFMRE.findall(osisdoc2.decode("utf-8")))
+    usfmtagset.update(USFMRE.findall(osisdoc2.decode("utf_8")))
     if usfmtagset:
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
 
     # simple whitespace cleanups before writing to file...
-    osisdoc = osisdoc2.decode("utf-8")
+    osisdoc = osisdoc2.decode("utf_8")
     for i in (
         (" <note", "<note"),
         (" </p>", "</p>"),
@@ -3168,7 +3166,7 @@ def processfiles(
         ("</transChange><w", "</transChange> <w"),
     ):
         osisdoc = osisdoc.replace(i[0], i[1])
-    osisdoc2 = osisdoc.encode("utf-8")
+    osisdoc2 = osisdoc.encode("utf_8")
 
     # write doc to file
     outfile = f"{workid}.osis"
