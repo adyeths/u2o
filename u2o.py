@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-13",  # THIS SCRIPT revision date
+    "DATE": "2025-03-14",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2632,29 +2632,24 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     return "".join(lines).split("\ufdd1")
 
 
-def c2o_postprocess(lines: list[str]) -> list[str]:
-    """Attempt to fix some formatting issues."""
-    i: Any
-    j: Any
-    tmp: Any
+###########################################################################################
 
-    # resplit lines for post processing,
-    # removing leading and trailing whitespace, and b comments
-    lines = [
-        _.strip()
-        for _ in "\n".join(lines).split("\n")
-        if _.strip() != "" and _.strip() != "<!-- b -->"
-    ]
 
+def post_sidebar(lines: list[str]) -> list[str]:
+    """Fix sidebar."""
     for _ in enumerate(lines):
-        # fix SIDEBAR
         if "SIDEBAR" in lines[_[0]]:
             lines[_[0]] = (
                 lines[_[0]]
                 .replace("<SIDEBAR>", '<div type="x-sidebar">')
                 .replace("</SIDEBAR>", "</div>")
             )
-        # Convert unhandled vp tags, to milestones...
+    return lines
+
+
+def post_vp(lines: list[str]) -> list[str]:
+    """Handle vp tags that were missed."""
+    for _ in enumerate(lines):
         while r"\vp " in lines[_[0]]:
             tmp = VPRE.search(lines[_[0]])
             if tmp is not None:
@@ -2664,8 +2659,11 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
                     lines[_[0]],
                     1,
                 )
+    return lines
 
-    # adjust some tags for postprocessing purposes.
+
+def post_tagadjust(lines: list[str]) -> list[str]:
+    """Adjust tags for postprocessing purposes."""
     i = len(lines)
     while i > 0:
         i -= 1
@@ -2681,8 +2679,11 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
         if lines[i].endswith("<lg>"):
             lines.insert(i + 1, "<lg>")
             lines[i] = lines[i].rpartition("<lg>")[0].strip()
+    return lines
 
-    # swap lb and lg end tag when lg end tag follows lb.
+
+def post_swap_lblg(lines: list[str]) -> list[str]:
+    """Swap lb and lg tags when lg end tag follows lb."""
     i = len(lines)
     while i > 0:
         i -= 1
@@ -2691,8 +2692,11 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
         except IndexError:
             pass
+    return lines
 
-    # adjust placement of some verse end tags...
+
+def post_verseend(lines: list[str]) -> list[str]:
+    """Adjust placement of verse end tags."""
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         if lines[i - 1].strip() in OSISL or lines[i - 1].strip() in OSISITEM:
             lines.insert(i - 1, lines.pop(i))
@@ -2801,19 +2805,103 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
                 lines.insert(i - 3, lines.pop(i))
         except IndexError:
             pass
-    lines = [_ for _ in lines if _ != ""]
+    return [_ for _ in lines if _ != ""]
 
-    # adjust placement of some verse start tags...
-    # This is only to make sure they are properly nested inside paragraph markers!
+
+def post_versestart(lines: list[str]) -> list[str]:
+    """Adjust placement of some verse start tags...
+    This is only to make sure they are properly nested inside paragraph markers!"""
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse sID")):
         try:
             if lines[i + 1].startswith("</p") and lines[i + 2].startswith("<p"):
                 lines.insert(i + 2, lines.pop(i))
         except IndexError:
             pass
+    return lines
+
+
+def post_selahlgl(lines: list[str]) -> list[str]:
+    """Fix problems with selah and l or lg tags."""
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
+        if (
+            lines[i].endswith("</l>")
+            and lines[i + 1] == "</lg>"
+            and lines[i - 1].startswith("<chapter eID")
+            and lines[i - 2].startswith("<verse eID")
+            and lines[i - 3].endswith("</l><l>")
+        ):
+            lines[i - 3] = lines[i - 3][:-3]
+            lines[i - 2] = f"{lines[i - 2]}</lg>"
+            lines[i] = lines[i][:-4]
+            lines[i + 1] = ""
+    return lines
+
+
+def post_lgl(lines: list[str]) -> list[str]:
+    """Fix additional things with lg and l tags."""
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
+        if (
+            lines[i].endswith("</l>")
+            and lines[i - 1].startswith("<chapter eID")
+            and lines[i + 1] == "</lg>"
+        ):
+            lines[i - 2] = f"{lines[i - 2]}</l></lg>"
+            lines[i] = lines[i][:-4]
+            lines[i + 1] = ""
+    return lines
+
+
+def post_dverse(lines: list[str]) -> list[str]:
+    """Fix placement of verse tags in relation to d titles with verses."""
+    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")):
+        if (
+            lines[i + 1].startswith("<verse sID")
+            and lines[i + 1].endswith("</title>")
+            and lines[i + 2].startswith("<verse eID")
+        ):
+            tmp1 = lines[i + 1].rpartition("<")
+            lines[i] = f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>"
+            lines[i + 1] = ""
+            lines[i + 2] = ""
+    return [_ for _ in lines if _ != ""]
+
+
+def c2o_postprocess(lines: list[str]) -> list[str]:
+    """Attempt to fix some formatting issues."""
+    i: Any
+    j: Any
+
+    ##################################################################################
+
+    lines = post_dverse(
+        post_lgl(
+            post_selahlgl(
+                post_versestart(
+                    post_verseend(
+                        post_swap_lblg(
+                            post_tagadjust(
+                                post_vp(
+                                    post_sidebar(
+                                        [
+                                            _.strip()
+                                            for _ in "\n".join(lines).split("\n")
+                                            if _.strip() != ""
+                                            and _.strip() != "<!-- b -->"
+                                        ]
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
 
     # special fix for verse end markers following "acrostic" titles...
     # because I can't figure out why my other fixes aren't working.
+    # Also: this is left here instead of in a separate function because
+    # for some reason it doesn't work in a separate function. I don't know why.
     for i, j in (
         (x, y)
         for x in ('<title type="acrostic"', "</lg")
@@ -2834,48 +2922,6 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
-
-    # adjust placement of verse tags in relation
-    # to d titles that contain verses.
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<!-- d -->")):
-        if (
-            lines[i + 1].startswith("<verse sID")
-            and lines[i + 1].endswith("</title>")
-            and lines[i + 2].startswith("<verse eID")
-        ):
-            tmp1 = lines[i + 1].rpartition("<")
-            lines[i] = f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>"
-            lines[i + 1] = ""
-            lines[i + 2] = ""
-    lines = [_ for _ in lines if _ != ""]
-
-    # -- # -- # -- #
-
-    # selah processing sometimes does weird things with l and lg tags
-    # that needs to be fixed.
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
-        if (
-            lines[i].endswith("</l>")
-            and lines[i + 1] == "</lg>"
-            and lines[i - 1].startswith("<chapter eID")
-            and lines[i - 2].startswith("<verse eID")
-            and lines[i - 3].endswith("</l><l>")
-        ):
-            lines[i - 3] = lines[i - 3][:-3]
-            lines[i - 2] = f"{lines[i - 2]}</lg>"
-            lines[i] = lines[i][:-4]
-            lines[i + 1] = ""
-
-    # additional postprocessing for l and lg tags
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<chapter sID")):
-        if (
-            lines[i].endswith("</l>")
-            and lines[i - 1].startswith("<chapter eID")
-            and lines[i + 1] == "</lg>"
-        ):
-            lines[i - 2] = f"{lines[i - 2]}</l></lg>"
-            lines[i] = lines[i][:-4]
-            lines[i + 1] = ""
 
     # done postprocessing of lines
     return lines
