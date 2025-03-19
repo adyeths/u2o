@@ -1587,26 +1587,16 @@ def reflow(flowtext: str) -> str:
 def getbookid(text: str) -> str | None:
     """Get book id from file text."""
     lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
-    try:
-        bookid = lines[0].split()[1].strip()
-    except IndexError:
-        bookid = None
-
-    return {
-        True: BOOKNAMES.get(bookid, f"* {bookid}"),
-        False: None,
-    }[bookid is not None]
+    bookid = None if not lines else lines[0].split()[1].strip()
+    return None if not bookid else BOOKNAMES.get(bookid, f"* {bookid}")
 
 
 def getencoding(text: bytes) -> str | None:
     """Get encoding from file text."""
     lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
-    encoding: str | None
-    try:
-        encoding = lines[0].partition(" ")[2].lower().strip()
-    except IndexError:
-        encoding = None
-    return encoding
+    if not lines:
+        return "utf_8_sig"
+    return lines[0].partition(" ")[2].lower().strip()
 
 
 def markintroend(lines: list[str]) -> list[str]:
@@ -2866,42 +2856,12 @@ def post_dverse(lines: list[str]) -> list[str]:
     return [_ for _ in lines if _ != ""]
 
 
-def c2o_postprocess(lines: list[str]) -> list[str]:
-    """Attempt to fix some formatting issues."""
+def post_acrostic(lines: list[str]) -> list[str]:
+    """Fix verse end markers following "acrostic" Titles."""
+    # This exists because I can't figure out why my other fixes aren't working.
     i: Any
     j: Any
 
-    ##################################################################################
-
-    lines = post_dverse(
-        post_lgl(
-            post_selahlgl(
-                post_versestart(
-                    post_verseend(
-                        post_swap_lblg(
-                            post_tagadjust(
-                                post_vp(
-                                    post_sidebar(
-                                        [
-                                            _.strip()
-                                            for _ in "\n".join(lines).split("\n")
-                                            if _.strip() != ""
-                                            and _.strip() != "<!-- b -->"
-                                        ]
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
-
-    # special fix for verse end markers following "acrostic" titles...
-    # because I can't figure out why my other fixes aren't working.
-    # Also: this is left here instead of in a separate function because
-    # for some reason it doesn't work in a separate function. I don't know why.
     for i, j in (
         (x, y)
         for x in ('<title type="acrostic"', "</lg")
@@ -2922,8 +2882,6 @@ def c2o_postprocess(lines: list[str]) -> list[str]:
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
-
-    # done postprocessing of lines
     return lines
 
 
@@ -2968,7 +2926,32 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
     lines = c2o_chapverse(lines, bookid)
 
     # postprocessing to fix some issues that may be present
-    lines = c2o_postprocess(lines)
+    lines = post_acrostic(
+        post_dverse(
+            post_lgl(
+                post_selahlgl(
+                    post_versestart(
+                        post_verseend(
+                            post_swap_lblg(
+                                post_tagadjust(
+                                    post_vp(
+                                        post_sidebar(
+                                            [
+                                                _.strip()
+                                                for _ in "\n".join(lines).split("\n")
+                                                if _.strip() != ""
+                                                and _.strip() != "<!-- b -->"
+                                            ]
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
 
     descriptiontext = "\n".join(description)
 
@@ -3022,12 +3005,9 @@ def proc_readfiles(fnames: list[str], fencoding: str) -> str:
                 bookencoding = lookup(fencoding).name
             else:
                 tmp = getencoding(text)
-                if tmp is not None:
-                    bookencoding = (
-                        "utf_8_sig" if "utf-8" in tmp.lower() else lookup(tmp).name
-                    )
-                else:
-                    bookencoding = "utf_8_sig"
+                bookencoding = (
+                    "utf_8_sig" if "utf-8" in tmp.lower() else lookup(tmp).name
+                )
 
             # use utf_8_sig in place of utf_8 encoding to eliminate errors that
             # may occur if a Byte Order Mark is present in the input file.
