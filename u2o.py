@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-14",  # THIS SCRIPT revision date
+    "DATE": "2025-03-19",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1594,9 +1594,7 @@ def getbookid(text: str) -> str | None:
 def getencoding(text: bytes) -> str | None:
     """Get encoding from file text."""
     lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
-    if not lines:
-        return "utf_8_sig"
-    return lines[0].partition(" ")[2].lower().strip()
+    return "utf_8_sig" if not lines else lines[0].partition(" ")[2].lower().strip()
 
 
 def markintroend(lines: list[str]) -> list[str]:
@@ -2893,14 +2891,8 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
 
     # ---------------------------------------------------------------------- #
 
-    # preprocessing and special spacing
-    text = c2o_preprocess(text)
-
-    # split text into lines for processing
-    lines = text.split("\n")
-
-    # mark introduction endings...
-    lines = markintroend(lines)
+    # preprocess, split text, and mark introduction endings...
+    lines = markintroend(c2o_preprocess(text).split("\n"))
 
     for i in enumerate(lines):
         # identification
@@ -2920,10 +2912,8 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
 
     # postprocessing of poetry, lists, tables, and sections
     # to add missing tags and div's.
-    lines = c2o_fixgroupings(lines)
-
     # process chapter/verse markers
-    lines = c2o_chapverse(lines, bookid)
+    lines = c2o_chapverse(c2o_fixgroupings(lines), bookid)
 
     # postprocessing to fix some issues that may be present
     lines = post_acrostic(
@@ -3097,23 +3087,21 @@ def processfiles(
     for bookid, descriptiontext, newtext in results:
         # store our converted text for output
         if bookid != "TEST":
-            if bookid in NONCANONICAL:
-                books[bookid] = (
-                    f'<div type="{NONCANONICAL[bookid]}">\n{newtext}\n</div>\n\n'
-                )
-            else:
-                books[bookid] = (
+            books[bookid] = (
+                (f'<div type="{NONCANONICAL[bookid]}">\n{newtext}\n</div>\n\n')
+                if bookid in NONCANONICAL
+                else (
                     f'<div type="book" osisID="{bookid}" canonical="true">\n{newtext}\n</div>\n\n'
                 )
+            )
             descriptions[bookid] = descriptiontext
             booklist.append(bookid)
         else:
-            if bookid in books:
-                books[bookid] = f"{books[bookid]}\n{newtext}"
-                descriptions[bookid] = f"{books[bookid]}\n{descriptiontext}"
-            else:
-                books[bookid] = newtext
-                descriptions[bookid] = descriptiontext
+            books[bookid], descriptions[bookid] = (
+                (f"{books[bookid]}\n{newtext}", f"{books[bookid]}\n{descriptiontext}")
+                if bookid in books
+                else (newtext, descriptiontext)
+            )
             if "TEST" not in booklist:
                 booklist.append("TEST")
 
@@ -3181,23 +3169,20 @@ def processfiles(
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
 
     # simple whitespace cleanups before writing to file...
-    osisdoc = osisdoc2.decode("utf_8")
-    for i in (
-        (" <note", "<note"),
-        (" </p>", "</p>"),
-        (" </item>", "</item>"),
-        (" </l>", "</l>"),
-        ("</w><w", "</w> <w"),
-        ("</w><transChange", "</w> <transChange"),
-        ("</transChange><w", "</transChange> <w"),
-    ):
-        osisdoc = osisdoc.replace(i[0], i[1])
-    osisdoc2 = osisdoc.encode("utf_8")
+    osisdoc2 = (
+        osisdoc2.decode("utf_8")
+        .replace(" <note", "<note")
+        .replace(" </p>", "</p>")
+        .replace(" </item>", "</item>")
+        .replace(" </l>", "</l>")
+        .replace(" </w><w", "</w> <w")
+        .replace("</w><transChange", "</w> <transChange")
+        .replace("</transChange><w", "</transChange> <w")
+        .encode("utf_8")
+    )
 
     # write doc to file
-    outfile = f"{workid}.osis"
-    if outputfile is not None:
-        outfile = outputfile
+    outfile = f"{workid}.osis" if outputfile is None else outputfile
     with open(outfile, "wb") as ofile:
         ofile.write(osisdoc2)
 
