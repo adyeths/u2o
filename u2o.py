@@ -86,6 +86,7 @@ from collections import OrderedDict
 from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Any
+import sys
 
 et: Any
 _: Any
@@ -106,7 +107,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-19",  # THIS SCRIPT revision date
+    "DATE": "2025-03-20",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -455,9 +456,8 @@ IDTAGS = {
 }
 
 # the osis 2.1.1 user manual says the value of id, ide, and rem should be
-# placed in description tags in the header. That's why they are in a separate
-# list instead of the dict above.
-IDTAGS2 = [r"\id", r"\ide", r"\rem"]
+# placed in description tags in the header.
+# These are handled in a separate function. That's why they aren't included above.
 
 # title tags
 TITLETAGS = {
@@ -1507,7 +1507,6 @@ def reflow(flowtext: str) -> str:
         for _ in enumerate(textlines):
             # make sure some lines don't contain chapter or verse markers
             for i in (
-                r"\rem ",
                 r"\is",
                 r"\ms",
                 r"\s ",
@@ -1526,14 +1525,9 @@ def reflow(flowtext: str) -> str:
     # test for paragraph markup before mangling the text
     mangletext = manglecheck(flowtext)
 
-    # remove leading and trailing whitespace from text
-    flowtext = flowtext.strip()
-
-    # mark end of cl, sp, and qa tags
-    flowtext = endmark(flowtext)
-
+    # remove leading and trailing whitespace, mark end of cl sp and qa tags.
     # prepare to process text with paragraph formatting
-    flowtext = SQUEEZE.sub(" ", flowtext)
+    flowtext = SQUEEZE.sub(" ", endmark(flowtext.strip()))
 
     # put (almost) all paragraph style tags on separate lines.
     flowtext = reflowpar(flowtext)
@@ -1554,12 +1548,10 @@ def reflow(flowtext: str) -> str:
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
         # force some things  onto newlines.
-        for _ in (
-            (r"\c ", "\n\\c "),
-            (r"\v ", "\n\\v "),
-            (r"\ide ", "\n\\ide "),
-        ):
-            flowtext = flowtext.replace(_[0], _[1])
+        flowtext = (
+            flowtext.replace("\\c ", "\n\\c ")
+            .replace("\\v ", "\n\\v ")
+        )
 
         # make sure all lines start with a usfm tag...
         lines = flowtext.split("\n")
@@ -1568,9 +1560,14 @@ def reflow(flowtext: str) -> str:
                 lines[_ - 1] = f"{lines[_ - 1]} {lines[1]}"
                 lines.pop(_)
         flowtext = "\n".join(lines)
+
         # remove some newlines that we don't want...
-        for _ in [r"\ca", r"\cp", r"\va", r"\vp"]:
-            flowtext = flowtext.replace(f"\n{_}", f" {_}")
+        flowtext = (
+            flowtext.replace("\n\\ca", " \\ca")
+            .replace("\n\\cp", " \\cp")
+            .replace("\n\\va", " \\va")
+            .replace("\n\\vp", " \\vp")
+        )
 
     # fix newline issue
     if "\ufdd4" in flowtext:
@@ -1674,6 +1671,26 @@ def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
 # -------------------------------------------------------------------------- #
 
 
+def c2o_getdescription(text: str) -> tuple[str, str]:
+    """Extract id, ide, and rem lines from text to use as osis description."""
+    lines = text.split("\n")
+    descriptionlines = [
+        (_.split(" ", maxsplit=1))
+        for _ in lines
+        if _.startswith(r"\id ") or _.startswith(r"\ide ") or _.startswith(r"\rem ")
+    ]
+    newtext = "\n".join(
+        [_ for _ in lines if (_.split(" ", maxsplit=1)) not in descriptionlines]
+    )
+    description = "\n".join(
+        [
+            f'<description type="usfm" subType="x-{_[0][1:].strip()}">{_[1].strip()}</description>'
+            for _ in descriptionlines
+        ]
+    )
+    return description, newtext
+
+
 def c2o_preprocess(text: str) -> str:
     """Preprocess text."""
     # preprocessing...
@@ -1694,7 +1711,7 @@ def c2o_preprocess(text: str) -> str:
     return text
 
 
-def c2o_identification(text: str, description: list[str]) -> tuple[str, list[str]]:
+def c2o_identification(text: str) -> str:
     """
     Process identification tags.
 
@@ -1707,16 +1724,7 @@ def c2o_identification(text: str, description: list[str]) -> tuple[str, list[str
             True: f"{IDTAGS[line[0]][1].format(line[2].strip())}\ufdd0",
             False: f"{IDTAGS[line[0]][0]}{line[2].strip()}{IDTAGS[line[0]][1]}\ufdd0",
         }[IDTAGS[line[0]][0] == ""]
-    elif line[0] in IDTAGS2:
-        description.append(
-            f'<description type="usfm" subType="x-{line[0][1:]}">{line[2].strip()}</description>'
-        )
-        text = ""
-        # fix problems with url's in rem lines resulting from processing
-        # of special spacing in preprocessing section.
-        if '<lb type="x-optional" />' in description[-1]:
-            description[-1] = description[-1].replace('<lb type="x-optional" />', "//")
-    return text, description
+    return text
 
 
 def c2o_titlepar(blocktext: str, bookid: str) -> str:
@@ -1821,11 +1829,9 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
                     selahfix[_[0]]
                     .replace("<selah>", '</l><l type="selah">')
                     .replace("</selah>", "</l><l>")
+                    .replace("<l> </l>", "")
+                    .replace("<l>  </l>", "")
                 )
-                if "<l> </l>" in selahfix[_[0]]:
-                    selahfix[_[0]] = selahfix[_[0]].replace("<l> </l>", "")
-                if "<l>  </l>" in selahfix[_[0]]:
-                    selahfix[_[0]] = selahfix[_[0]].replace("<l>  </l>", "")
         for _ in enumerate(selahfix):
             if "<selah>" in selahfix[_[0]] or "</selah>" in selahfix[_[0]]:
                 selahfix[_[0]] = (
@@ -2019,11 +2025,11 @@ def c2o_noterefmarkers(text: str) -> str:
             """Simple regex replacement helper function."""
             tag = NOTETAGS2[fnmatch.groups()[0]]
             attrtxt: str | None
-            if "<reference>" in tag:
-                txt, _, attrtxt = fnmatch.groups()[1].partition("|")
-            else:
-                txt = fnmatch.groups()[1]
-                attrtxt = None
+            txt, _, attrtxt = (
+                (fnmatch.groups()[1].partition("|"))
+                if "<reference>" in tag
+                else (fnmatch.groups()[1], "", None)
+            )
             if attrtxt is not None:
                 txt = f"<!-- USFM Attributes: {attrtxt} -->{txt}"
             return "".join([tag[0], txt, tag[1]])
@@ -2883,28 +2889,26 @@ def post_acrostic(lines: list[str]) -> list[str]:
     return lines
 
 
-def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
+def convert_to_osis(text: str, bookid: str = "TEST") -> str:
     """Convert usfm file to osis."""
-    # ---------------------------------------------------------------------- #
-
-    description: list[str] = []
-
     # ---------------------------------------------------------------------- #
 
     # preprocess, split text, and mark introduction endings...
     lines = markintroend(c2o_preprocess(text).split("\n"))
 
     for i in enumerate(lines):
-        # identification
-        lines[i[0]], description = c2o_identification(lines[i[0]], description)
-
-        # character styles, special features, footnotes and cross references, ztags
-        lines[i[0]] = c2o_ztags(
-            c2o_noterefmarkers(c2o_specialfeatures(c2o_specialtext(lines[i[0]])))
+        # identification, character styles, special features, footnotes and cross references,
+        # ztags, paragraph style formatting
+        lines[i[0]] = c2o_titlepar(
+            c2o_ztags(
+                c2o_noterefmarkers(
+                    c2o_specialfeatures(
+                        c2o_specialtext(c2o_identification(lines[i[0]]))
+                    )
+                )
+            ),
+            bookid,
         )
-
-        # paragraph style formatting.
-        lines[i[0]] = c2o_titlepar(lines[i[0]], bookid)
 
     # process words of Jesus
     if r"\wj" in text:
@@ -2943,10 +2947,8 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> tuple[str, ...]:
         )
     )
 
-    descriptiontext = "\n".join(description)
-
     # rejoin lines after processing
-    return "\n".join([_ for _ in lines if _ != ""]), descriptiontext
+    return "\n".join([_ for _ in lines if _ != ""])
 
 
 # -------------------------------------------------------------------------- #
@@ -2959,20 +2961,23 @@ def doconvert(text: str) -> tuple[str, ...]:
     if r"\cl " in text:
         text = convertcl(text)
 
-    # decode and reflow our text
-    newtext = reflow(text)
-
     # get book id. use TEST if none present.
-    bookid = getbookid(newtext)
+    bookid = getbookid(text)
     if bookid is not None:
         if bookid.startswith("* "):
             LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
     else:
         bookid = "TEST"
 
+    # get id, ide, and rem statements to use for descriptiontext
+    descriptiontext, newtext = c2o_getdescription(text)
+
+    # decode and reflow our text
+    newtext = reflow(newtext)
+
     # convert file to osis
     LOG.info("... Processing %s ...", bookid)
-    newtext, descriptiontext = convert_to_osis(newtext, bookid)
+    newtext = convert_to_osis(newtext, bookid)
     return bookid, descriptiontext, newtext
 
 
@@ -3175,7 +3180,8 @@ def processfiles(
         .replace(" </p>", "</p>")
         .replace(" </item>", "</item>")
         .replace(" </l>", "</l>")
-        .replace(" </w><w", "</w> <w")
+        .replace("</w><w", "</w> <w")
+        .replace(" </w>", "</w>")
         .replace("</w><transChange", "</w> <transChange")
         .replace("</transChange><w", "</transChange> <w")
         .encode("utf_8")
