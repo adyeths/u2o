@@ -86,7 +86,6 @@ from collections import OrderedDict
 from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Any
-import sys
 
 et: Any
 _: Any
@@ -107,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-20",  # THIS SCRIPT revision date
+    "DATE": "2025-03-22",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1223,9 +1222,7 @@ ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 PARFLOW = set(IDTAGS.keys())
 PARFLOW.update(TITLETAGS.keys())
 PARFLOW.update(PARTAGS.keys())
-PARFLOW.update(
-    [r"\ide", r"\rem", r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"]
-)
+PARFLOW.update([r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"])
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
@@ -1505,7 +1502,7 @@ def reflow(flowtext: str) -> str:
         textlines = text.split("\n")
 
         for _ in enumerate(textlines):
-            # make sure some lines don't contain chapter or verse markers
+            # make sure some lines don't contain verse markers
             for i in (
                 r"\is",
                 r"\ms",
@@ -1548,10 +1545,7 @@ def reflow(flowtext: str) -> str:
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
         # force some things  onto newlines.
-        flowtext = (
-            flowtext.replace("\\c ", "\n\\c ")
-            .replace("\\v ", "\n\\v ")
-        )
+        flowtext = flowtext.replace("\\c ", "\n\\c ").replace("\\v ", "\n\\v ")
 
         # make sure all lines start with a usfm tag...
         lines = flowtext.split("\n")
@@ -1675,16 +1669,16 @@ def c2o_getdescription(text: str) -> tuple[str, str]:
     """Extract id, ide, and rem lines from text to use as osis description."""
     lines = text.split("\n")
     descriptionlines = [
-        (_.split(" ", maxsplit=1))
+        (_.partition(" "))
         for _ in lines
         if _.startswith(r"\id ") or _.startswith(r"\ide ") or _.startswith(r"\rem ")
     ]
     newtext = "\n".join(
-        [_ for _ in lines if (_.split(" ", maxsplit=1)) not in descriptionlines]
+        [_ for _ in lines if (_.partition(" ")) not in descriptionlines]
     )
     description = "\n".join(
         [
-            f'<description type="usfm" subType="x-{_[0][1:].strip()}">{_[1].strip()}</description>'
+            f'<description type="usfm" subType="x-{_[0][1:].strip()}">{_[2].strip()}</description>'
             for _ in descriptionlines
         ]
     )
@@ -1715,7 +1709,8 @@ def c2o_identification(text: str) -> str:
     """
     Process identification tags.
 
-    id, ide, sts, rem, h, h1, h2, h3, toc1, toc2, toc3, restore, usfm.
+    sts, h, h1, h2, h3, toc1, toc2, toc3, restore, usfm.
+    handling of id, ide, and rem are done elsewhere.
 
     """
     line = text.partition(" ")
@@ -2694,8 +2689,7 @@ def post_verseend(lines: list[str]) -> list[str]:
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         if lines[i - 1].strip() in OSISL or lines[i - 1].strip() in OSISITEM:
             lines.insert(i - 1, lines.pop(i))
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        if lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
+        elif lines[i - 1] == "<row><cell>" and lines[i - 2] == "<table>":
             lines.insert(i - 2, lines.pop(i))
 
     for i, j in (
@@ -2719,18 +2713,6 @@ def post_verseend(lines: list[str]) -> list[str]:
             "<title",
             "<div",
             "</div>",
-        )
-        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
-    ):
-        if lines[j - 1].startswith(i):
-            lines.insert(j - 1, lines.pop(j))
-        elif i == "<title":
-            if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
-                lines.insert(j - 1, lines.pop(j))
-
-    for i, j in (
-        (x, y)
-        for x in (
             "<lb ",
             "</p>",
             "</l",
@@ -2745,6 +2727,10 @@ def post_verseend(lines: list[str]) -> list[str]:
     ):
         if lines[j - 1].startswith(i):
             lines.insert(j - 1, lines.pop(j))
+        elif i == "<title":
+            if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
+                lines.insert(j - 1, lines.pop(j))
+
 
     for i, j in (
         (x, y)
