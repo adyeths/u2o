@@ -2573,11 +2573,7 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     # get lists of tags where lines need to be broken for processing
     wjstarttags = set()
     wjendtags = set()
-    for _ in TITLETAGS.items():
-        if _[1][0] != "" and _[1][1] != "":
-            wjstarttags.add(_[1][0].strip())
-            wjendtags.add(_[1][1].strip())
-    for _ in PARTAGS.items():
+    for _ in (list(TITLETAGS.items()) + list(PARTAGS.items())):
         if _[1][0] != "" and _[1][1] != "":
             wjstarttags.add(_[1][0].strip())
             wjendtags.add(_[1][1].strip())
@@ -2837,9 +2833,6 @@ def post_dverse(lines: list[str]) -> list[str]:
 def post_acrostic(lines: list[str]) -> list[str]:
     """Fix verse end markers following "acrostic" Titles."""
     # This exists because I can't figure out why my other fixes aren't working.
-    i: Any
-    j: Any
-
     for i, j in (
         (x, y)
         for x in ('<title type="acrostic"', "</lg", "</l>", "<!- ", "</p>")
@@ -2848,7 +2841,7 @@ def post_acrostic(lines: list[str]) -> list[str]:
         if lines[j - 1].startswith(i) and i != "</l>":
             lines.insert(j - 1, lines.pop(j))
         elif lines[j - 1].endswith(i) and i == "</l>":
-            lines[j - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
+            lines[j - 1] = f'{lines[j - 1].rpartition("<")[0]}{lines[j]}</l>'
             lines[j] = ""
     return [_ for _ in lines if _ != ""]
 
