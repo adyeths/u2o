@@ -86,6 +86,7 @@ from collections import OrderedDict
 from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Any
+from functools import partial
 
 et: Any
 _: Any
@@ -106,7 +107,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-22",  # THIS SCRIPT revision date
+    "DATE": "2025-03-26",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -461,20 +462,18 @@ IDTAGS = {
 # title tags
 TITLETAGS = {
     # ---------------------------------------------------------
-    # ##### SECTION TAGS get special handling elsewhere ##### #
+    # ##### SECTION TAGS ##### #
     r"\is": ('<title type="x-introduction">', "</title>"),
     r"\is1": ('<title type="x-introduction">', "</title>"),
     r"\is2": ('<title type="x-introduction">', "</title>"),
-    # \is3 and \is4 are not currently handled in this script.
-    # r'\is3': ('<title type="x-introduction">', '</title>'),
-    # r'\is4': ('<title type="x-introduction">', '</title>'),
+    r"\is3": ('<title type="x-introduction">', "</title>"),
+    r"\is4": ('<title type="x-introduction">', "</title>"),
     #
     r"\ms": ("<title>", "</title>"),
     r"\ms1": ("<title>", "</title>"),
     r"\ms2": ("<title>", "</title>"),
     r"\ms3": ("<title>", "</title>"),
-    # \ms4 is not currently handled by this script.
-    # r'\ms4': ('<title>', '</title>'),
+    r"\ms4": ("<title>", "</title>"),
     #
     r"\s": ("<title>", "</title>"),
     r"\s1": ("<title>", "</title>"),
@@ -963,9 +962,9 @@ DEFAULTATTRIBUTES = {
 # -------------------------------------------------------------------------- #
 # REGULAR EXPRESSIONS
 
-# squeeze all regular spaces, carriage returns, and newlines
-# into a single space.
-SQUEEZE = re.compile(r"[ \t\n\r]+", re.U + re.M + re.DOTALL)
+# create a function to squeeze all regular spaces, carriage returns,
+# and newlines into a single space.
+SQUEEZE = partial(re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
@@ -1133,16 +1132,7 @@ NOTEFIXRE_S = r"""
 NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
 del NOTEFIXRE_S
 
-# match \cp and \vp tags
-CPRE = re.compile(
-    r"""
-        \\cp
-        \s+
-        (?P<num>\S+)\b
-        \s*
-    """,
-    re.U + re.VERBOSE,
-)
+# match \vp tags
 VPRE = re.compile(
     r"""
         \\vp
@@ -1524,10 +1514,8 @@ def reflow(flowtext: str) -> str:
 
     # remove leading and trailing whitespace, mark end of cl sp and qa tags.
     # prepare to process text with paragraph formatting
-    flowtext = SQUEEZE.sub(" ", endmark(flowtext.strip()))
-
-    # put (almost) all paragraph style tags on separate lines.
-    flowtext = reflowpar(flowtext)
+    # put (almost) all paragraph style tags on separate lines
+    flowtext = reflowpar(SQUEEZE(endmark(flowtext.strip())))
 
     for _ in (
         # always add newline after \ie
@@ -1715,10 +1703,11 @@ def c2o_identification(text: str) -> str:
     """
     line = text.partition(" ")
     if line[0] in IDTAGS:
-        text = {
-            True: f"{IDTAGS[line[0]][1].format(line[2].strip())}\ufdd0",
-            False: f"{IDTAGS[line[0]][0]}{line[2].strip()}{IDTAGS[line[0]][1]}\ufdd0",
-        }[IDTAGS[line[0]][0] == ""]
+        text = (
+            f"{IDTAGS[line[0]][1].format(line[2].strip())}\ufdd0"
+            if IDTAGS[line[0]][0] == ""
+            else f"{IDTAGS[line[0]][0]}{line[2].strip()}{IDTAGS[line[0]][1]}\ufdd0"
+        )
     return text
 
 
@@ -2633,7 +2622,7 @@ def post_sidebar(lines: list[str]) -> list[str]:
                 .replace("<SIDEBAR>", '<div type="x-sidebar">')
                 .replace("</SIDEBAR>", "</div>")
             )
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_vp(lines: list[str]) -> list[str]:
@@ -2648,7 +2637,7 @@ def post_vp(lines: list[str]) -> list[str]:
                     lines[_[0]],
                     1,
                 )
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_tagadjust(lines: list[str]) -> list[str]:
@@ -2668,7 +2657,7 @@ def post_tagadjust(lines: list[str]) -> list[str]:
         if lines[i].endswith("<lg>"):
             lines.insert(i + 1, "<lg>")
             lines[i] = lines[i].rpartition("<lg>")[0].strip()
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_swap_lblg(lines: list[str]) -> list[str]:
@@ -2681,7 +2670,7 @@ def post_swap_lblg(lines: list[str]) -> list[str]:
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
         except IndexError:
             pass
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_verseend(lines: list[str]) -> list[str]:
@@ -2730,7 +2719,6 @@ def post_verseend(lines: list[str]) -> list[str]:
         elif i == "<title":
             if lines[j - 1].startswith("<!-- ") and i in lines[j - 1]:
                 lines.insert(j - 1, lines.pop(j))
-
 
     for i, j in (
         (x, y)
@@ -2797,7 +2785,7 @@ def post_versestart(lines: list[str]) -> list[str]:
                 lines.insert(i + 2, lines.pop(i))
         except IndexError:
             pass
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_selahlgl(lines: list[str]) -> list[str]:
@@ -2814,7 +2802,7 @@ def post_selahlgl(lines: list[str]) -> list[str]:
             lines[i - 2] = f"{lines[i - 2]}</lg>"
             lines[i] = lines[i][:-4]
             lines[i + 1] = ""
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_lgl(lines: list[str]) -> list[str]:
@@ -2828,7 +2816,7 @@ def post_lgl(lines: list[str]) -> list[str]:
             lines[i - 2] = f"{lines[i - 2]}</l></lg>"
             lines[i] = lines[i][:-4]
             lines[i + 1] = ""
-    return lines
+    return [_ for _ in lines if _ != ""]
 
 
 def post_dverse(lines: list[str]) -> list[str]:
@@ -2854,25 +2842,15 @@ def post_acrostic(lines: list[str]) -> list[str]:
 
     for i, j in (
         (x, y)
-        for x in ('<title type="acrostic"', "</lg")
+        for x in ('<title type="acrostic"', "</lg", "</l>", "<!- ", "</p>")
         for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
     ):
-        if lines[j - 1].startswith(i):
+        if lines[j - 1].startswith(i) and i != "</l>":
             lines.insert(j - 1, lines.pop(j))
-
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        if lines[i - 1].endswith("</l>"):
-            lines[i - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
-            lines[i] = ""
-
-    for i, j in (
-        (x, y)
-        for x in ("<!-- ", "</p>")
-        for y in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID"))
-    ):
-        if lines[j - 1].startswith(i):
-            lines.insert(j - 1, lines.pop(j))
-    return lines
+        elif lines[j - 1].endswith(i) and i == "</l>":
+            lines[j - 1] = f'{lines[i - 1].rpartition("<")[0]}{lines[i]}</l>'
+            lines[j] = ""
+    return [_ for _ in lines if _ != ""]
 
 
 def convert_to_osis(text: str, bookid: str = "TEST") -> str:
@@ -3008,7 +2986,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
-    testosis = SQUEEZE.sub(" ", osisdoc2.decode("utf_8"))
+    testosis = SQUEEZE(osisdoc2.decode("utf_8"))
 
     LOG.info("Validating osis xml...")
     osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf_8")
@@ -3113,7 +3091,7 @@ def processfiles(
         tmp2 = [descriptions[_] for _ in bookorder if _ in books]
 
     # check for strongs presence in osis
-    strongsheader = {True: STRONGSWORK, False: ""}["<w " in tmp]
+    strongsheader = STRONGSWORK if "<w " in tmp else ""
 
     # assemble osis doc in desired order
     osisdoc = "{}{}{}\n".format(
