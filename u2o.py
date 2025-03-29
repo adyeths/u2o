@@ -107,7 +107,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-26",  # THIS SCRIPT revision date
+    "DATE": "2025-03-28",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2573,7 +2573,7 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     # get lists of tags where lines need to be broken for processing
     wjstarttags = set()
     wjendtags = set()
-    for _ in (list(TITLETAGS.items()) + list(PARTAGS.items())):
+    for _ in list(TITLETAGS.items()) + list(PARTAGS.items()):
         if _[1][0] != "" and _[1][1] != "":
             wjstarttags.add(_[1][0].strip())
             wjendtags.add(_[1][1].strip())
@@ -2611,14 +2611,13 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
 
 def post_sidebar(lines: list[str]) -> list[str]:
     """Fix sidebar."""
-    for _ in enumerate(lines):
-        if "SIDEBAR" in lines[_[0]]:
-            lines[_[0]] = (
-                lines[_[0]]
-                .replace("<SIDEBAR>", '<div type="x-sidebar">')
-                .replace("</SIDEBAR>", "</div>")
-            )
-    return [_ for _ in lines if _ != ""]
+    if not [_ for _ in lines if "SIDEBAR" in _]:
+        return lines
+    return [
+        _.replace("<SIDEBAR>", '<div type="x-sidebar">').replace("</SIDEBAR>", "</div>")
+        for _ in lines
+        if _ != ""
+    ]
 
 
 def post_vp(lines: list[str]) -> list[str]:
@@ -2638,18 +2637,13 @@ def post_vp(lines: list[str]) -> list[str]:
 
 def post_tagadjust(lines: list[str]) -> list[str]:
     """Adjust tags for postprocessing purposes."""
-    i = len(lines)
-    while i > 0:
-        i -= 1
-        # remove empty l tags if present.
-        if lines[i] == '<l level="1"> </l>':
-            del lines[i]
-            continue
-        # move lb to it's own line
+    # remove empty l tags
+    lines = [_ for _ in lines if _ != '<l level="1"> </l>']
+    # move lb and lg to their own lines
+    for i in range(len(lines) - 1, 0, -1):
         if lines[i].endswith('<lb type="x-p" />'):
             lines.insert(i + 1, '<lb type="x-p" />')
             lines[i] = lines[i].rpartition('<lb type="x-p" />')[0].strip()
-        # move lg to it's own line
         if lines[i].endswith("<lg>"):
             lines.insert(i + 1, "<lg>")
             lines[i] = lines[i].rpartition("<lg>")[0].strip()
@@ -2658,9 +2652,7 @@ def post_tagadjust(lines: list[str]) -> list[str]:
 
 def post_swap_lblg(lines: list[str]) -> list[str]:
     """Swap lb and lg tags when lg end tag follows lb."""
-    i = len(lines)
-    while i > 0:
-        i -= 1
+    for i in range(len(lines) - 1, 0, -1):
         try:
             if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
