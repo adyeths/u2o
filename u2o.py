@@ -2110,12 +2110,12 @@ def c2o_specialfeatures(specialtext: str) -> str:
         # handle w tag attributes
         tag2 = None
         if matchtag in {r"\w", r"\+w"}:
-            if "lemma" in attributes.keys():
-                if (
-                    "strong" not in attributes.keys()
-                    and "x-strong" not in attributes.keys()
-                ):
-                    osis2 = attributes["lemma"]
+            if (
+                "lemma" in attributes.keys()
+                and "strong" not in attributes.keys()
+                and "x-strong" not in attributes.keys()
+            ):
+                osis2 = attributes["lemma"]
             if "strong" in attributes.keys() or "x-strong" in attributes.keys():
                 tag2 = STRONGSTAG
                 tmp = (
@@ -2151,9 +2151,12 @@ def c2o_specialfeatures(specialtext: str) -> str:
         elif tag2 is not None:
             outtext2 = ""
             # preserve unprocessed x- attributes as comments
-            for i in (_ for _ in attributes.keys() if _.startswith("x-")):
-                if i not in ["x-strong", "x-morph"]:
-                    outtext2 = f"{outtext2}<!-- {i} - {attributes[i]} -->"
+            for i in (
+                _
+                for _ in attributes.keys()
+                if _.startswith("x-") and _ not in ["x-strong", "x-morph"]
+            ):
+                outtext2 = f"{outtext2}<!-- {i} - {attributes[i]} -->"
             # process strongs
             outtext = f"{tag2[0].format(strong1, strong2)}{osis}{outtext2}{tag2[1]}"
         else:
@@ -2698,8 +2701,7 @@ def post_verseend(lines: list[str]) -> list[str]:
     ):
         if lines[j - 1].endswith(i):
             tmp = lines[j - 1].rpartition("<")
-            lines[j - 1] = f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}"
-            lines[j] = ""
+            lines[j - 1], lines[j] = (f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}", "")
 
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
         try:
@@ -2708,16 +2710,8 @@ def post_verseend(lines: list[str]) -> list[str]:
                 and lines[i - 1].startswith("<l ")
                 and lines[i - 2].endswith("</l>")
             ):
-                tmp = lines[i]
-                lines[i] = ""
-                tmp2 = lines[i - 2].rpartition("<")
-                lines[i - 2] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
-        except IndexError:
-            pass
-    lines = [_ for _ in lines if _ != ""]
-
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        try:
+                tmp = lines[i - 2].rpartition("<")
+                lines[i - 2], lines[i] = (f"{tmp[0]}{lines[i]}<{tmp[2]}", "")
             if (
                 lines[i + 1].startswith("<verse sID")
                 and lines[i - 1].startswith("<l ")
@@ -2725,16 +2719,8 @@ def post_verseend(lines: list[str]) -> list[str]:
                 and lines[i - 3].startswith("</lg")
                 and lines[i - 4].endswith("</l>")
             ):
-                tmp = lines[i]
-                lines[i] = ""
-                tmp2 = lines[i - 4].rpartition("<")
-                lines[i - 4] = f"{tmp2[0]}{tmp}<{tmp2[2]}"
-        except IndexError:
-            pass
-    lines = [_ for _ in lines if _ != ""]
-
-    for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        try:
+                tmp = lines[i - 4].rpartition("<")
+                lines[i - 4], lines[i] = (f"{tmp[0]}{lines[i]}<{tmp[2]}", "")
             if (
                 lines[i + 1].startswith("<verse sID")
                 and lines[i - 1].startswith("<l ")
@@ -2769,10 +2755,12 @@ def post_selahlgl(lines: list[str]) -> list[str]:
             and lines[i - 2].startswith("<verse eID")
             and lines[i - 3].endswith("</l><l>")
         ):
-            lines[i - 3] = lines[i - 3][:-3]
-            lines[i - 2] = f"{lines[i - 2]}</lg>"
-            lines[i] = lines[i][:-4]
-            lines[i + 1] = ""
+            lines[i - 3], lines[i - 2], lines[i], lines[i + 1] = (
+                lines[i - 3][:-3],
+                f"{lines[i - 2]}</lg>",
+                lines[i][:-4],
+                "",
+            )
     return [_ for _ in lines if _ != ""]
 
 
@@ -2784,9 +2772,11 @@ def post_lgl(lines: list[str]) -> list[str]:
             and lines[i - 1].startswith("<chapter eID")
             and lines[i + 1] == "</lg>"
         ):
-            lines[i - 2] = f"{lines[i - 2]}</l></lg>"
-            lines[i] = lines[i][:-4]
-            lines[i + 1] = ""
+            lines[i - 2], lines[i], lines[i + 1] = (
+                f"{lines[i - 2]}</l></lg>",
+                lines[i][:-4],
+                "",
+            )
     return [_ for _ in lines if _ != ""]
 
 
@@ -2799,9 +2789,11 @@ def post_dverse(lines: list[str]) -> list[str]:
             and lines[i + 2].startswith("<verse eID")
         ):
             tmp1 = lines[i + 1].rpartition("<")
-            lines[i] = f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>"
-            lines[i + 1] = ""
-            lines[i + 2] = ""
+            lines[i], lines[i + 1], lines[i + 2] = (
+                f"{lines[i]}{tmp1[0]}{lines[i+2]}</title>",
+                "",
+                "",
+            )
     return [_ for _ in lines if _ != ""]
 
 
@@ -2816,8 +2808,10 @@ def post_acrostic(lines: list[str]) -> list[str]:
         if lines[j - 1].startswith(i) and i != "</l>":
             lines.insert(j - 1, lines.pop(j))
         elif lines[j - 1].endswith(i) and i == "</l>":
-            lines[j - 1] = f'{lines[j - 1].rpartition("<")[0]}{lines[j]}</l>'
-            lines[j] = ""
+            lines[j - 1], lines[j] = (
+                f'{lines[j - 1].rpartition("<")[0]}{lines[j]}</l>',
+                "",
+            )
     return [_ for _ in lines if _ != ""]
 
 
@@ -3014,11 +3008,12 @@ def processfiles(
     filelist = proc_readfiles(fnames, fencoding).split("\ufddf")
     results: list[tuple[str, ...]]
     LOG.info("Processing files...")
-    if not dodebug:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(doconvert, filelist))
-    else:
-        results = [doconvert(_) for _ in filelist]
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        results = (
+            list(executor.map(doconvert, filelist))
+            if not dodebug
+            else [doconvert(_) for _ in filelist]
+        )
 
     # store results
     for bookid, descriptiontext, newtext in results:
