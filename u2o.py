@@ -7,7 +7,6 @@ Notes:
    * better handling of osisID's is probably needed.
 
    * no attempt has been made to process any x- attributes in this script
-     other than x-morph as found in bibles located on the ebible.org website.
 
    * I can think of scenarios where this script may not work properly. However,
      it works fine for all of the usfm bibles that I have access to at this
@@ -107,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-28",  # THIS SCRIPT revision date
+    "DATE": "2025-03-29",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -432,10 +431,6 @@ IDTAGS = {
     r"\toc1": ("", '<milestone type="x-usfm-toc1" n="{}" />'),
     r"\toc2": ("", '<milestone type="x-usfm-toc2" n="{}" />'),
     r"\toc3": ("", '<milestone type="x-usfm-toc3" n="{}" />'),
-    # ebible.org bibles sometimes use a ztoc4 tag. If it's desired to process
-    # this tag then simply uncomment the ztoc4 line here.
-    # (No other ztags are even attempted in this converter.)
-    # r'\ztoc4': ('', '<milestone type=x-usfm-ztoc4 n="{}" />'),
     r"\restore": ("<!-- restore - ", " -->"),
     # the osis 2.1.1 user manual says the value of h h1 h2 and h3 tags should
     # be in the short attribute of a title.
@@ -2121,21 +2116,19 @@ def c2o_specialfeatures(specialtext: str) -> str:
                     and "x-strong" not in attributes.keys()
                 ):
                     osis2 = attributes["lemma"]
-            if "strong" in attributes.keys():
+            if "strong" in attributes.keys() or "x-strong" in attributes.keys():
                 tag2 = STRONGSTAG
-                tmp = " ".join(
-                    [f"strong:{_.strip()}" for _ in attributes["strong"].split(",")]
-                )
-                # add lemma to osis strongs markup
-                if "lemma" in attributes.keys():
-                    tmp = f"{tmp} lemma:{attributes['lemma']}"
-                strong1 = f'lemma="{tmp}"'
-                strong2 = ""
-            # this shouldn't be necessary given the "strong" attribute, but I have seen it used.
-            elif "x-strong" in attributes.keys():
-                tag2 = STRONGSTAG
-                tmp = " ".join(
-                    [f"strong:{_.strip()}" for _ in attributes["x-strong"].split(",")]
+                tmp = (
+                    " ".join(
+                        [f"strong:{_.strip()}" for _ in attributes["strong"].split(",")]
+                    )
+                    if "strong" in attributes.keys()
+                    else " ".join(
+                        [
+                            f"strong:{_.strip()}"
+                            for _ in attributes["x-strong"].split(",")
+                        ]
+                    )
                 )
                 # add lemma to osis strongs markup
                 if "lemma" in attributes.keys():
@@ -2157,9 +2150,6 @@ def c2o_specialfeatures(specialtext: str) -> str:
             outtext = f"{osis}{tag[1].format(osis2)}"
         elif tag2 is not None:
             outtext2 = ""
-            # add index entry for specified lemma if present in markup when strongs is also present
-            # if "lemma" in attributes.keys():
-            #     outtext2 = tag[1].format(attributes["lemma"])
             # preserve unprocessed x- attributes as comments
             for i in (_ for _ in attributes.keys() if _.startswith("x-")):
                 if i not in ["x-strong", "x-morph"]:
@@ -2169,11 +2159,9 @@ def c2o_specialfeatures(specialtext: str) -> str:
         else:
             outtext = f"{tag[0]}{osis}{tag[1]}"
 
-        if attributetext is not None:
-            # problems can occur when strongs numbers are present...
-            # this avoids those problems.
-            if matchtag not in [r"\w", r"\+w"]:
-                outtext = f"{outtext}<!-- USFM Attributes: {attributetext} -->"
+        # problems can occur when strongs numbers are present. This avoids those problems.
+        if attributetext is not None and matchtag not in [r"\w", r"\+w"]:
+            outtext = f"{outtext}<!-- USFM Attributes: {attributetext} -->"
 
         return outtext
 
@@ -2552,7 +2540,6 @@ def c2o_chapverse(lines: list[str], bookid: str) -> list[str]:
             lines[i] = f'<verse eID="{bookid}.{chap}.{verse}" />\n{tmp[2]}'
             verse = vnum
             hasverse = False
-            # hascloser = True # apparently we're not using this?
 
     if hasverse:
         lines.append(f'<verse eID="{bookid}.{chap}.{verse}" />')
@@ -2589,18 +2576,14 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     # process words of Jesus.
     for i in enumerate(lines):
         if lines[i[0]].startswith(r"\wj "):
-            # Add initial start and end q tags
-            lines[i[0]] = (
-                lines[i[0]]
-                .replace(r"\wj ", '<q who="Jesus" marker="">')
-                .replace(r"\wj*", "</q>")
-            )
-
-            # add additional closing and opening q tags
             for _ in wjstarttags:
                 lines[i[0]] = lines[i[0]].replace(_, f'{_}<q who="Jesus" marker="">')
             for _ in wjendtags:
                 lines[i[0]] = lines[i[0]].replace(_, f"</q>{_}")
+    lines = [
+        _.replace(r"\wj ", '<q who="Jesus" marker="">').replace(r"\wj*", "</q>")
+        for _ in lines
+    ]
 
     # rejoin lines, then resplit and return processed lines...
     return "".join(lines).split("\ufdd1")
