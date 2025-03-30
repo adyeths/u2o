@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-29",  # THIS SCRIPT revision date
+    "DATE": "2025-03-30",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2002,14 +2002,50 @@ def c2o_noterefmarkers(text: str) -> str:
 
         def notefixsub(fnmatch: re.Match[str]) -> str:
             """Simple regex replacement helper function."""
-            tag = NOTETAGS2[fnmatch.groups()[0]]
-            attrtxt: str | None
+            tag = list(NOTETAGS2[fnmatch.groups()[0]])
+            attrtxt: str
             txt, _, attrtxt = (
                 (fnmatch.groups()[1].partition("|"))
                 if "<reference>" in tag
-                else (fnmatch.groups()[1], "", None)
+                else (fnmatch.groups()[1], "", "")
             )
-            if attrtxt is not None:
+            # try to convert usfm reference attributes to osisRef
+            if "<reference" in tag:
+                tmp = attrtxt.replace("link-href=", "")
+                reftxt = ""
+                if len(tmp) == 3:
+                    # reference points to a book
+                    reftxt = BOOKNAMES[tmp]
+                elif " " in reftxt and "=" not in reftxt:
+                    bk, chapverse = tmp.split(" ", maxsplit=1)
+                    isonechap = BOOKNAMES[bk] in ONECHAP
+                    if ":" not in chapverse and "-" not in reftxt:
+                        # reference points to a chapter
+                        reftxt = f"{BOOKNAMES[bk]}.{chapverse}"
+                    elif "-" not in reftxt:
+                        # reference points to a single verse
+                        reftxt = (
+                            f'{BOOKNAMES[bk]}.{chapverse.replace(":", ".")}'
+                            if not isonechap
+                            else f"{BOOKNAMES[bk]}.1.{chapverse}"
+                        )
+                    else:
+                        # is a reference to a range of verses
+                        cvsplit = chapverse.split(":", maxsplit=1)
+                        if len(cvsplit) == 1:
+                            chap1, chap2 = ("1", "1")
+                            verse1, verse2 = cvsplit[0].split("-", maxsplit=1)
+                        else:
+                            chap1, chap2 = (cvsplit[0], cvsplit[0])
+                            verse1, verse2 = cvsplit[1].split("-", maxsplit=1)
+                            if ":" in verse2:
+                                chap2, verse2 = verse2.split(":", maxsplit=1)
+                        refstart = f"{BOOKNAMES[bk]}.{chap1}.{verse1}"
+                        refend = f"{BOOKNAMES[bk]}.{chap2}.{verse2}"
+                        reftxt = f"{refstart}-{refend}"
+                if reftxt != "":
+                    tag[0] = tag[0].replace(">", f' osisRef="{reftxt}">')
+            if attrtxt != "":
                 txt = f"<!-- USFM Attributes: {attrtxt} -->{txt}"
             return "".join([tag[0], txt, tag[1]])
 
@@ -2992,9 +3028,9 @@ def processfiles(
     outputfile: str,
 ) -> None:
     """Process usfm files specified on command line."""
-    books = {}
-    descriptions = {}
-    booklist = []
+    books: dict[str, str] = {}
+    descriptions: dict[str, str] = {}
+    booklist: list[str] = []
 
     # get username from operating system
     username = {True: getenv("LOGNAME"), False: getenv("USERNAME")}[
@@ -3095,7 +3131,7 @@ def processfiles(
         osisdoc2 = osisdoc.encode("utf_8")
 
     # find unhandled usfm tags that are leftover after processing
-    usfmtagset: set = set()
+    usfmtagset: set[str] = set()
     usfmtagset.update(USFMRE.findall(osisdoc2.decode("utf_8")))
     if usfmtagset:
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
