@@ -2019,7 +2019,7 @@ def c2o_noterefmarkers(text: str) -> str:
                 elif " " in reftxt and "=" not in reftxt:
                     bk, chapverse = tmp.split(" ", maxsplit=1)
                     isonechap = BOOKNAMES[bk] in ONECHAP
-                    if ":" not in chapverse and "-" not in reftxt:
+                    if ":" not in chapverse and "-" not in reftxt and not isonechap:
                         # reference points to a chapter
                         reftxt = f"{BOOKNAMES[bk]}.{chapverse}"
                     elif "-" not in reftxt:
