@@ -2393,11 +2393,19 @@ def c2o_ztags(text: str) -> str:
 
         def simplerepl(match: re.Match[str]) -> str:
             """Simple regex replacement helper function."""
-            return f' <seg type="x-usfm-z{match.group("tag")}">{match.group("osis")}</seg> '
+            return "".join(
+                [
+                    ' <seg type="x-usfm-z',
+                    match.group("tag"),
+                    ">",
+                    match.group("osis"),
+                    "</seg> ",
+                ]
+            )
 
         def simplerepl2(match: re.Match[str]) -> str:
             """Simple regex replacement helper for milestone z tags."""
-            return f' <!-- {match.group("tag").replace("\\z", "")} --> '
+            return "".join([" <!-- ", match.group("tag").replace("\\z", ""), "--> "])
 
         text = ZTAGS2RE.sub(simplerepl2, ZTAGSRE.sub(simplerepl, text, 0), 0)
 
