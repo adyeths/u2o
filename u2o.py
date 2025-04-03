@@ -81,7 +81,6 @@ from glob import glob
 from unicodedata import normalize
 from datetime import datetime
 from tempfile import NamedTemporaryFile
-from collections import OrderedDict
 from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Any
@@ -106,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-03-30",  # THIS SCRIPT revision date
+    "DATE": "2025-04-03",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -682,26 +681,24 @@ PARTAGS = {
 }
 
 # other introduction and poetry tags
-OTHERTAGS = OrderedDict()
-for _ in [
+OTHERTAGS = {
     # selah is handled in a special manner…
-    (r"\qs ", "<selah>"),
-    (r"\qs*", "</selah>"),
+    r"\qs ": "<selah>",
+    r"\qs*": "</selah>",
     # these tags get special handling…
-    (r"\ie", "<!-- ie -->"),  # handled with partags… may not need here…
-    (r"\ib ", "<!-- b -->"),  # handled exactly like \b
-    (r"\b ", "<!-- b -->"),
-    (r"\nb ", "<!-- nb -->"),
-    (r"\nb", "<!-- nb -->"),
+    r"\ie": "<!-- ie -->",  # handled with partags… may not need here…
+    r"\ib ": "<!-- b -->",  # handled exactly like \b
+    r"\b ": "<!-- b -->",
+    r"\nb ": "<!-- nb -->",
+    r"\nb": "<!-- nb -->",
     # translators chunk marker… this probably needs more changes
-    (r"\ts-s\*", " <!-- ts --> "),
-    (r"\ts-e\*", " <!-- ts --> "),
-    (r"\ts-s", " <!-- ts --> "),
-    (r"\ts-e", " <!-- ts --> "),
-    (r"\ts\*", " <!-- ts --> "),
-    (r"\ts", " <!-- ts --> "),
-]:
-    OTHERTAGS[_[0]] = _[1]
+    r"\ts-s\*": " <!-- ts --> ",
+    r"\ts-e\*": " <!-- ts --> ",
+    r"\ts-s": " <!-- ts --> ",
+    r"\ts-e": " <!-- ts --> ",
+    r"\ts\*": " <!-- ts --> ",
+    r"\ts": " <!-- ts --> ",
+}
 
 # table cell tags
 CELLTAGS = {
@@ -933,16 +930,16 @@ NOTETAGS2 = {
 
 # defined attributes for tags
 DEFINEDATTRIBUTES = {
-    r"\w": ["lemma", "strong", "srcloc"],
-    r"\+w": ["lemma", "strong", "srcloc"],
-    r"\xt": ["link-ref"],
-    r"\+xt": ["link-ref"],
-    r"\fig": ["alt", "src", "size", "loc", "copy", "ref"],
-    r"\jmp": ["link-href", "link-title", "link-name"],
-    r"\+jmp": ["link-href", "link-title", "link-name"],
-    r"\qt-s": ["id", "who"],
-    r"\qt-e": ["id"],
-    r"\periph": ["id"],
+    r"\w": ("lemma", "strong", "srcloc"),
+    r"\+w": ("lemma", "strong", "srcloc"),
+    r"\xt": ("link-ref"),
+    r"\+xt": ("link-ref"),
+    r"\fig": ("alt", "src", "size", "loc", "copy", "ref"),
+    r"\jmp": ("link-href", "link-title", "link-name"),
+    r"\+jmp": ("link-href", "link-title", "link-name"),
+    r"\qt-s": ("id", "who"),
+    r"\qt-e": ("id"),
+    r"\periph": ("id"),
 }
 
 # defaultattributes for tags
@@ -1484,25 +1481,56 @@ def reflow(flowtext: str) -> str:
 
     def fixlines(text: str) -> str:
         """Fix various potential issues with lines of text."""
-        textlines = text.split("\n")
-
-        for _ in enumerate(textlines):
-            # make sure some lines don't contain verse markers
-            for i in (
-                r"\is",
-                r"\ms",
-                r"\s ",
-                r"\s1 ",
-                r"\s2 ",
-                r"\s3 ",
-                r"\s4 ",
-                r"\th",
-                r"\tc",
-            ):
-                if textlines[_[0]].startswith(i):
-                    textlines[_[0]] = textlines[_[0]].replace("\\v ", "\n\\v ")
-
-        return "\n".join(textlines)
+        return "\n".join(
+            [
+                (
+                    _.replace("\\v ", "\n\v ")
+                    if _.split(" ", maxsplit=1)[0]
+                    in {
+                        r"\is ",
+                        r"\is1 ",
+                        r"\is2 ",
+                        r"\is3 ",
+                        r"\is4 ",
+                        r"\is5 ",
+                        r"\ms ",
+                        r"\ms1 ",
+                        r"\ms2 ",
+                        r"\ms3 ",
+                        r"\ms4 ",
+                        r"\ms5 ",
+                        r"\s ",
+                        r"\s1 ",
+                        r"\s2 ",
+                        r"\s3",
+                        r"\s4 ",
+                        r"\s5 ",
+                        r"\th ",
+                        r"\th1 ",
+                        r"\th2 ",
+                        r"\th3 ",
+                        r"\th4 ",
+                        r"\th5 ",
+                        r"\th6 ",
+                        r"\th7 ",
+                        r"\th8 ",
+                        r"\th9 ",
+                        r"\tc ",
+                        r"\tc1 ",
+                        r"\tc2 ",
+                        r"\tc3 ",
+                        r"\tc4 ",
+                        r"\tc5 ",
+                        r"\tc6 ",
+                        r"\tc7 ",
+                        r"\tc8 ",
+                        r"\tc9 ",
+                    }
+                    else _
+                )
+                for _ in text.split("\n")
+            ]
+        )
 
     # test for paragraph markup before mangling the text
     mangletext = manglecheck(flowtext)
@@ -1951,14 +1979,17 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
     grouplines.append("")
 
     # add breaks before verse tags
-    for _ in enumerate(grouplines):
-        grouplines[_[0]] = grouplines[_[0]].replace(r"\v ", "\ufdd0\\v ")
-
     # Process b tags,
     # add missing lg tags, list tags, and table tags.
     # Encapsulate introductions inside div tags.
     # Return results.
-    return introductions(tabletags(listtags(lgtags(btags(grouplines)))))
+    return introductions(
+        tabletags(
+            listtags(
+                lgtags(btags([_.replace(r"\v ", "\ufdd0\\v ") for _ in grouplines]))
+            )
+        )
+    )
 
 
 def c2o_specialtext(text: str) -> str:
@@ -2863,34 +2894,35 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> str:
     """Convert usfm file to osis."""
     # ---------------------------------------------------------------------- #
 
-    # preprocess, split text, and mark introduction endings...
-    lines = markintroend(c2o_preprocess(text).split("\n"))
-
-    for i in enumerate(lines):
-        # identification, character styles, special features, footnotes and cross references,
-        # ztags, paragraph style formatting
-        lines[i[0]] = c2o_titlepar(
-            c2o_ztags(
-                c2o_noterefmarkers(
-                    c2o_specialfeatures(
-                        c2o_specialtext(c2o_identification(lines[i[0]]))
-                    )
-                )
-            ),
-            bookid,
-        )
-
-    # process words of Jesus
-    if r"\wj" in text:
-        lines = c2o_processwj2(lines)
-
-    # postprocessing of poetry, lists, tables, and sections
-    # to add missing tags and div's.
+    # preprocess, split text, mark introduction endings... then process
+    # identification, character styles, special features, footnotes and cross references,
+    # ztags, paragraph style formatting
+    # words of Jesus
+    # fix groupings for poetry, lists, tables
     # process chapter/verse markers
-    lines = c2o_chapverse(c2o_fixgroupings(lines), bookid)
+    lines = c2o_chapverse(
+        c2o_fixgroupings(
+            c2o_processwj2(
+                [
+                    c2o_titlepar(
+                        c2o_ztags(
+                            c2o_noterefmarkers(
+                                c2o_specialfeatures(
+                                    c2o_specialtext(c2o_identification(_))
+                                )
+                            )
+                        ),
+                        bookid,
+                    )
+                    for _ in markintroend(c2o_preprocess(text).split("\n"))
+                ]
+            )
+        ),
+        bookid,
+    )
 
     # postprocessing to fix some issues that may be present
-    lines = post_acrostic(
+    linespost = post_acrostic(
         post_dverse(
             post_lgl(
                 post_selahlgl(
@@ -2918,7 +2950,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> str:
     )
 
     # rejoin lines after processing
-    return "\n".join([_ for _ in lines if _ != ""])
+    return "\n".join([_ for _ in linespost if _ != ""])
 
 
 # -------------------------------------------------------------------------- #
