@@ -11,6 +11,7 @@ This script is public domain.
 """
 
 import re
+import os.path
 from argparse import ArgumentParser
 from collections import Counter
 from glob import glob
@@ -410,12 +411,11 @@ def processtags(fnames: list[str], tcounts: bool) -> None:
     counttags: Counter[str] = Counter()
     knownset = set()
 
-    filenames = []
-    for _ in fnames:
-        if "*" in _:
-            filenames.extend(glob(_))
-        else:
-            filenames.append(_)
+    filenames = [_ for _ in fnames if os.path.isfile(_)]
+    globfiles = [glob(_) for _ in fnames if _ not in filenames]
+    if globfiles:
+        for _ in globfiles:
+            filenames.extend(_)
 
     for fname in filenames:
         with open(fname, "rb") as infile:

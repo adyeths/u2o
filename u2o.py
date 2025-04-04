@@ -105,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-03",  # THIS SCRIPT revision date
+    "DATE": "2025-04-04",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -141,7 +141,7 @@ OSISFOOTER = """
 
 # -------------------------------------------------------------------------- #
 
-CANONICALORDER = [
+CANONICALORDER = (
     # Canonical order used by the usfm2osis.py script...
     # minus the extra books that aren't part of usfm at this time.
     "FRONT",
@@ -260,7 +260,7 @@ CANONICALORDER = [
     "INDEX",
     "GAZETTEER",
     "X-OTHER",
-]
+)
 # get list of book orders available from external files in the current
 # working directory.  Each order file has the following naming pattern:
 #    order-SOMEORDER.txt
@@ -417,7 +417,7 @@ NONCANONICAL = {
 }
 
 # list of books with one chapter
-ONECHAP = ["Obad", "Phlm", "2John", "3John", "Jude"]
+ONECHAP = ("Obad", "Phlm", "2John", "3John", "Jude")
 
 
 # -------------------------------------------------------------------------- #
@@ -524,7 +524,6 @@ TITLETAGS = {
         '<title level="5" type="main" subType="x-introduction">',
         "</title>",
     ),
-    # r'\ib': ('', ''),
     # ##### Normal Title Section ##### #
     r"\mt": ('<title type="main">', "</title>"),
     r"\mt1": ('<title level="1" type="main">', "</title>"),
@@ -1209,7 +1208,7 @@ PARFLOW.update([r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"])
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
 PARCHECK = set(PARTAGS.keys())
-for _ in [r"\iex", r"\ie", r"\qa"]:
+for _ in (r"\iex", r"\ie", r"\qa"):
     try:
         PARCHECK.remove(_)
     except KeyError:
@@ -1464,13 +1463,11 @@ def reflow(flowtext: str) -> str:
 
     def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
-        textlines = text.split("\n")
-        for _ in enumerate(textlines):
-            if textlines[_[0]][0:4] in {r"\cl ", r"\sp ", r"\qa "}:
-                textlines[_[0]] = f"{textlines[_[0]]}\ufdd4"
-            elif textlines[_[0]][0:4] == r"\cp ":
-                textlines[_[0]] = f"{textlines[_[0]]}\ufdd5"
-        return "\n".join(textlines)
+        textlines = [
+            f"{_}\ufdd4" if _[0:4] in {r"\cl ", r"\sp ", r"\qa "} else _
+            for _ in text.split("\n")
+        ]
+        return "\n".join([f"{_}\ufdd5" if _[0:4] == r"\cp " else _ for _ in textlines])
 
     def reflowpar(text: str) -> str:
         """Put (almost) all paragraph tags on separate lines."""
@@ -1828,25 +1825,32 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
 
     def selah(text: str) -> str:
         """Handle selah."""
-        tmp = text.replace("<l", "\n<l").replace("</l>", "</l>\n")
-        selahfix = [_ for _ in tmp.split("\n") if _ != ""]
-        for _ in enumerate(selahfix):
-            if selahfix[_[0]].startswith(r"<l") and "<selah>" in selahfix[_[0]]:
-                selahfix[_[0]] = (
-                    selahfix[_[0]]
-                    .replace("<selah>", '</l><l type="selah">')
-                    .replace("</selah>", "</l><l>")
-                    .replace("<l> </l>", "")
-                    .replace("<l>  </l>", "")
+        selahfix = [
+            _ for _ in text.replace("<l", "\n<l").replace("</l>", "</l>\n") if _ != ""
+        ]
+        selahfix2 = [
+            (
+                _.replace("<selah>", '</l><l type="selah">')
+                .replace("</selah>", "</l><l>")
+                .replace("<l> </l>", "")
+                .replace("<l>  </l>", "")
+                if _.startswith(r"<l") and "<selah>" in _
+                else _
+            )
+            for _ in selahfix
+        ]
+        return " ".join(
+            [
+                (
+                    _.replace("<selah>", '<lg><l type="selah">').replace(
+                        "</selah>", "</l></lg>"
+                    )
+                    if "<selah>" in _ or "</selah>" in _
+                    else _
                 )
-        for _ in enumerate(selahfix):
-            if "<selah>" in selahfix[_[0]] or "</selah>" in selahfix[_[0]]:
-                selahfix[_[0]] = (
-                    selahfix[_[0]]
-                    .replace("<selah>", '<lg><l type="selah">')
-                    .replace("</selah>", "</l></lg>")
-                )
-        return " ".join(selahfix)
+                for _ in selahfix2
+            ]
+        )
 
     # add periph tag to titletags if book being processed
     # is a  peripheral or private use book.
@@ -2998,13 +3002,11 @@ def proc_readfiles(fnames: list[str], fencoding: str) -> str:
         # default to utf_8_sig encoding if no encoding is specified.
         bookencoding = "utf_8_sig"
         try:
-            if fencoding is not None:
-                bookencoding = lookup(fencoding).name
-            else:
-                tmp = getencoding(text)
-                bookencoding = (
-                    "utf_8_sig" if "utf-8" in tmp.lower() else lookup(tmp).name
-                )
+            bookencoding = (
+                lookup(fencoding).name if fencoding is not None else getencoding(text)
+            )
+            if "utf-8" in bookencoding:
+                bookencoding = "utf_8_sig"
 
             # use utf_8_sig in place of utf_8 encoding to eliminate errors that
             # may occur if a Byte Order Mark is present in the input file.
@@ -3247,19 +3249,15 @@ if __name__ == "__main__":
     if not HAVELXML:
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    FILENAMES = []
-    for _ in ARGS.file:
-        GLOBFILES = glob(_)
-
-        if os.path.isfile(_):
-            FILENAMES.append(_)
-        elif GLOBFILES:
-            FILENAMES.extend(GLOBFILES)
-        else:
-            FILENAMES.append(_)
+    FILENAMES = [_ for _ in ARGS.file if os.path.isfile(_)]
+    GLOBFILES = [glob(_) for _ in ARGS.file if _ not in FILENAMES]
+    if GLOBFILES:
+        for _ in GLOBFILES:
+            FILENAMES.extend(_)
 
     ARGS.file = FILENAMES
     del FILENAMES
+    del GLOBFILES
 
     for _ in ARGS.file:
         if not os.path.isfile(_):
