@@ -105,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-04",  # THIS SCRIPT revision date
+    "DATE": "2025-04-05",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1826,7 +1826,9 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
     def selah(text: str) -> str:
         """Handle selah."""
         selahfix = [
-            _ for _ in text.replace("<l", "\n<l").replace("</l>", "</l>\n") if _ != ""
+            _
+            for _ in text.replace("<l", "\n<l").replace("</l>", "</l>\n").split("\n")
+            if _ != ""
         ]
         selahfix2 = [
             (
