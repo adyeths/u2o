@@ -1207,12 +1207,7 @@ PARFLOW.update([r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"])
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
-PARCHECK = set(PARTAGS.keys())
-for _ in (r"\iex", r"\ie", r"\qa"):
-    try:
-        PARCHECK.remove(_)
-    except KeyError:
-        pass
+PARCHECK = {_ for _ in PARTAGS if _ not in (r"\iex", r"\ie", r"\qa")}
 
 # title tags... used by reflow subroutine below.
 # use TITLETAGS keys to eliminate unnecessary duplication
@@ -1221,16 +1216,10 @@ TITLEFLOW = set(TITLETAGS.keys())
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY POSTPROCESS ROUTINE
 
-OSISITEM = set()
-OSISL = set()
-
-for _ in PARTAGS.items():
-    if _[0].startswith("<item "):
-        OSISITEM.add(_[0])
-    elif _[0].startswith("<l "):
-        OSISL.add(_[0])
-OSISL.add("<l>")
+OSISITEM = {_[0] for _ in PARTAGS.items() if _[0].startswith("<item ")}
 OSISITEM.add("<item>")
+OSISL = {_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}
+OSISL.add("<l>")
 
 # -------------------------------------------------------------------------- #
 
@@ -1655,16 +1644,20 @@ def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
             attribs[attr[0]] = attr[2].strip('"')
 
     # attribute validity check
-    isinvalid = False
-    if tag in DEFINEDATTRIBUTES:
-        attribtest = DEFINEDATTRIBUTES[tag]
-        for _ in attribs:
-            if _ not in attribtest and not _.startswith("x-"):
-                isinvalid = True
-    else:
-        for _ in attribs:
-            if not _.startswith("x-"):
-                isinvalid = True
+    isinvalid = (
+        (
+            len(
+                [
+                    _
+                    for _ in attribs
+                    if _ not in DEFINEDATTRIBUTES[tag] and not _.startswith("x-")
+                ]
+            )
+            > 0
+        )
+        if tag in DEFINEDATTRIBUTES
+        else len([_[:2] for _ in attribs if _.startswith("x-")]) > 0
+    )
 
     return text, attributestring, attribs, isinvalid
 
