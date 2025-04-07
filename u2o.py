@@ -105,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-06",  # THIS SCRIPT revision date
+    "DATE": "2025-04-07",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1452,10 +1452,10 @@ def reflow(flowtext: str) -> str:
 
     def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
-        textlines = [
+        textlines = (
             f"{_}\ufdd4" if _[0:4] in {r"\cl ", r"\sp ", r"\qa "} else _
             for _ in text.split("\n")
-        ]
+        )
         return "\n".join([f"{_}\ufdd5" if _[0:4] == r"\cp " else _ for _ in textlines])
 
     def reflowpar(text: str) -> str:
@@ -1812,12 +1812,12 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
 
     def selah(text: str) -> str:
         """Handle selah."""
-        selahfix = [
+        selahfix = (
             _
             for _ in text.replace("<l", "\n<l").replace("</l>", "</l>\n").split("\n")
             if _ != ""
-        ]
-        selahfix2 = [
+        )
+        selahfix2 = (
             (
                 _.replace("<selah>", '</l><l type="selah">')
                 .replace("</selah>", "</l><l>")
@@ -1827,7 +1827,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
                 else _
             )
             for _ in selahfix
-        ]
+        )
         return " ".join(
             [
                 (
@@ -1959,10 +1959,10 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
 
     def introductions(lines: list[str]) -> list[str]:
         """Encapsulate introductions in divs."""
-        lines1 = [
+        lines1 = (
             '<div type="introduction">\ufdd0' if _ == "\ufde0" else _ for _ in lines
-        ]
-        lines2 = ["</div>\ufdd0" if _ == "\ufde1" else _ for _ in lines1]
+        )
+        lines2 = ("</div>\ufdd0" if _ == "\ufde1" else _ for _ in lines1)
         return [
             f'{_.replace("\ufde1", "")}</div>\ufdd0' if _.endswith("\ufde1") else _
             for _ in lines2
@@ -2625,13 +2625,12 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     in order to avoid crossing container boundaries.
 
     """
-    # get lists of tags where lines need to be broken for processing
-    wjstarttags = set()
-    wjendtags = set()
-    for _ in list(TITLETAGS.items()) + list(PARTAGS.items()):
-        if _[1][0] != "" and _[1][1] != "":
-            wjstarttags.add(_[1][0].strip())
-            wjendtags.add(_[1][1].strip())
+    # get tags where lines need to be broken for processing
+    wjtags = {
+        (_[1][0].strip(), _[1][1].strip())
+        for _ in (list(TITLETAGS.items()) + list(PARTAGS.items()))
+        if _[1][0] != "" and _[1][1] != ""
+    }
 
     # split words of jesus from the rest of the text.
     lines = (
@@ -2644,10 +2643,9 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     # process words of Jesus.
     for i in enumerate(lines):
         if lines[i[0]].startswith(r"\wj "):
-            for _ in wjstarttags:
-                lines[i[0]] = lines[i[0]].replace(_, f'{_}<q who="Jesus" marker="">')
-            for _ in wjendtags:
-                lines[i[0]] = lines[i[0]].replace(_, f"</q>{_}")
+            for _ in wjtags:
+                lines[i[0]] = lines[i[0]].replace(_[0], f'{_[0]}<q who="Jesus" marker="">')
+                lines[i[0]] = lines[i[0]].replace(_[1], f"</q>{_[1]}")
     lines = [
         _.replace(r"\wj ", '<q who="Jesus" marker="">').replace(r"\wj*", "</q>")
         for _ in lines
