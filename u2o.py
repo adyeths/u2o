@@ -105,7 +105,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-05",  # THIS SCRIPT revision date
+    "DATE": "2025-04-06",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -417,7 +417,7 @@ NONCANONICAL = {
 }
 
 # list of books with one chapter
-ONECHAP = ("Obad", "Phlm", "2John", "3John", "Jude")
+ONECHAP = {"Obad", "Phlm", "2John", "3John", "Jude"}
 
 
 # -------------------------------------------------------------------------- #
@@ -1689,21 +1689,15 @@ def c2o_getdescription(text: str) -> tuple[str, str]:
 def c2o_preprocess(text: str) -> str:
     """Preprocess text."""
     # preprocessing...
-    for _ in (
-        # special xml characters
-        ("&", "&amp;"),
-        ("<", "&lt;"),
-        (">", "&gt;"),
-        # special spacing characters
-        ("~", "\u00a0"),
-        (r"//", '<lb type="x-optional" />'),
-        (r"\pb ", '<milestone type="pb" />'),
-        (r"\pb", '<milestone type="pb" />'),
-    ):
-        if _[0] in text:
-            text = text.replace(_[0], _[1])
-
-    return text
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "%gt;")
+        .replace("~", "\u00a0")
+        .replace(r"//", '<lb type="x-optional" />')
+        .replace(r"\pb ", '<milestone type="pb" />')
+        .replace(r"\pb", '<milestone type="pb" />')
+    )
 
 
 def c2o_identification(text: str) -> str:
@@ -1965,14 +1959,14 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
 
     def introductions(lines: list[str]) -> list[str]:
         """Encapsulate introductions in divs."""
-        for _ in enumerate(lines):
-            if lines[_[0]] == "\ufde0":
-                lines[_[0]] = '<div type="introduction">\ufdd0'
-            elif lines[_[0]] == "\ufde1":
-                lines[_[0]] = "</div>\ufdd0"
-            elif lines[_[0]].endswith("\ufde1"):
-                lines[_[0]] = "{}</div>\ufdd0".format(lines[_[0]].replace("\ufde1", ""))
-        return lines
+        lines1 = [
+            '<div type="introduction">\ufdd0' if _ == "\ufde0" else _ for _ in lines
+        ]
+        lines2 = ["</div>\ufdd0" if _ == "\ufde1" else _ for _ in lines1]
+        return [
+            f'{_.replace("\ufde1", "")}</div>\ufdd0' if _.endswith("\ufde1") else _
+            for _ in lines2
+        ]
 
     # append a blank line. (needed in some cases)
     grouplines.append("")
@@ -2129,12 +2123,7 @@ def c2o_noterefmarkers(text: str) -> str:
             ).replace("</transChange>", "</transChange></seg>")
         return f"{tag[0]}{notetext}{tag[1]}"
 
-    text = NOTERE.sub(simplerepl, text, 0)
-
-    # process additional footnote tags if present
-    for _ in [r"\f", r"\x", r"\+f", r"\+x"]:
-        if _ in text:
-            text = notefix(text)
+    text = notefix(NOTERE.sub(simplerepl, text, 0))
 
     # handle fp tags
     text = (
@@ -2145,14 +2134,14 @@ def c2o_noterefmarkers(text: str) -> str:
         else text.replace("\ufdd2", "").replace("\ufdd3", "")
     )
 
-    # study bible index categories
-    if r"\cat " in text:
-        text = text.replace(r"\cat ", r'<index index="category" level1="').replace(
+    # return our processed text handling \cat if necessary
+    return (
+        text
+        if r"\cat " not in text
+        else text.replace(r"\cat ", r'<index index="category" level1="').replace(
             r"\cat*", r'" />'
         )
-
-    # return our processed text
-    return text
+    )
 
 
 def c2o_specialfeatures(specialtext: str) -> str:
@@ -2412,6 +2401,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
     for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
         if _ in specialtext:
             specialtext = milestonequotes(specialtext)
+            break
 
     return specialtext
 
@@ -2419,35 +2409,36 @@ def c2o_specialfeatures(specialtext: str) -> str:
 def c2o_ztags(text: str) -> str:
     """Process z tags that have both a start and end marker."""
 
-    if r"\z" in text:
+    def simplerepl(match: re.Match[str]) -> str:
+        """Simple regex replacement helper function."""
+        return "".join(
+            [
+                ' <seg type="x-usfm-z',
+                match.group("tag"),
+                ">",
+                match.group("osis"),
+                "</seg> ",
+            ]
+        )
 
-        def simplerepl(match: re.Match[str]) -> str:
-            """Simple regex replacement helper function."""
-            return "".join(
+    def simplerepl2(match: re.Match[str]) -> str:
+        """Simple regex replacement helper for milestone z tags."""
+        return "".join([" <!-- ", match.group("tag").replace("\\z", ""), "--> "])
+
+    if r"\z" in text:
+        text = ZTAGS2RE.sub(simplerepl2, ZTAGSRE.sub(simplerepl, text, 0), 0)
+        if r"\z" in text:
+            # milestone z tags… this may need more work…
+            text = " ".join(
                 [
-                    ' <seg type="x-usfm-z',
-                    match.group("tag"),
-                    ">",
-                    match.group("osis"),
-                    "</seg> ",
+                    (
+                        ' <milestone type="x-usfm-z{_[2:]}" /> '
+                        if _.startswith(r"\z")
+                        else _
+                    )
+                    for _ in text.split(" ")
                 ]
             )
-
-        def simplerepl2(match: re.Match[str]) -> str:
-            """Simple regex replacement helper for milestone z tags."""
-            return "".join([" <!-- ", match.group("tag").replace("\\z", ""), "--> "])
-
-        text = ZTAGS2RE.sub(simplerepl2, ZTAGSRE.sub(simplerepl, text, 0), 0)
-
-        # milestone z tags… this may need more work…
-        if r"\z" in text:
-            words = text.split(" ")
-            for i in enumerate(words):
-                if i[1].startswith(r"\z"):
-                    words[i[0]] = ' <milestone type="x-usfm-z{}" /> '.format(
-                        i[1].replace(r"\z", "")
-                    )
-            text = " ".join(words)
     return text
 
 
@@ -2671,13 +2662,17 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
 
 def post_sidebar(lines: list[str]) -> list[str]:
     """Fix sidebar."""
-    if not [_ for _ in lines if "SIDEBAR" in _]:
-        return lines
-    return [
-        _.replace("<SIDEBAR>", '<div type="x-sidebar">').replace("</SIDEBAR>", "</div>")
-        for _ in lines
-        if _ != ""
-    ]
+    return (
+        lines
+        if not [_ for _ in lines if "SIDEBAR" in _]
+        else [
+            _.replace("<SIDEBAR>", '<div type="x-sidebar">').replace(
+                "</SIDEBAR>", "</div>"
+            )
+            for _ in lines
+            if _ != ""
+        ]
+    )
 
 
 def post_vp(lines: list[str]) -> list[str]:
