@@ -71,20 +71,21 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-arguments
 # pylint: disable=consider-using-f-string
 
+import concurrent.futures
+import logging
 import os.path
 import re
-import logging
-import concurrent.futures
-from sys import exit as sysexit
-from os import getenv
-from glob import glob
-from unicodedata import normalize
-from datetime import datetime
-from tempfile import NamedTemporaryFile
-from codecs import encode, lookup, decode
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Any
+from codecs import decode, encode, lookup
+from datetime import datetime
 from functools import partial
+from glob import glob
+from itertools import chain
+from os import getenv
+from sys import exit as sysexit
+from tempfile import NamedTemporaryFile
+from typing import Any
+from unicodedata import normalize
 
 et: Any
 _: Any
@@ -105,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-07",  # THIS SCRIPT revision date
+    "DATE": "2025-04-08",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -264,11 +265,15 @@ CANONICALORDER = (
 # get list of book orders available from external files in the current
 # working directory.  Each order file has the following naming pattern:
 #    order-SOMEORDER.txt
-BOOKORDERS = sorted(
-    [_.replace("order-", "").replace(".txt", "") for _ in glob("order-*.txt")]
+BOOKORDERS = tuple(
+    chain(
+        ["canonical"],
+        sorted(
+            [_.replace("order-", "").replace(".txt", "") for _ in glob("order-*.txt")]
+        ),
+        ["none"],
+    )
 )
-BOOKORDERS.append("none")
-BOOKORDERS.insert(0, "canonical")
 
 # -------------------------------------------------------------------------- #
 
@@ -1200,10 +1205,14 @@ ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 # set of paragraph style tags built MOSTLY from other lists above...
 # this is used by reflow to reformat the input for processing
 # * chapter paragraph tags are omitted because we handle them differently
-PARFLOW = set(IDTAGS.keys())
-PARFLOW.update(TITLETAGS.keys())
-PARFLOW.update(PARTAGS.keys())
-PARFLOW.update([r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"])
+PARFLOW = set(
+    chain(
+        IDTAGS.keys(),
+        TITLETAGS.keys(),
+        PARTAGS.keys(),
+        [r"\tr", r"\pb", r"\periph", r"\b", r"\c", r"\cl", r"\cd"],
+    )
+)
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
@@ -1216,10 +1225,10 @@ TITLEFLOW = set(TITLETAGS.keys())
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY POSTPROCESS ROUTINE
 
-OSISITEM = {_[0] for _ in PARTAGS.items() if _[0].startswith("<item ")}
-OSISITEM.add("<item>")
-OSISL = {_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}
-OSISL.add("<l>")
+OSISITEM = set(
+    chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<item ")}, ["<item>"])
+)
+OSISL = set(chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}, ["<l>"]))
 
 # -------------------------------------------------------------------------- #
 
@@ -2644,7 +2653,9 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     for i in enumerate(lines):
         if lines[i[0]].startswith(r"\wj "):
             for _ in wjtags:
-                lines[i[0]] = lines[i[0]].replace(_[0], f'{_[0]}<q who="Jesus" marker="">')
+                lines[i[0]] = lines[i[0]].replace(
+                    _[0], f'{_[0]}<q who="Jesus" marker="">'
+                )
                 lines[i[0]] = lines[i[0]].replace(_[1], f"</q>{_[1]}")
     lines = [
         _.replace(r"\wj ", '<q who="Jesus" marker="">').replace(r"\wj*", "</q>")
