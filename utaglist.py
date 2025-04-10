@@ -10,15 +10,16 @@ This script is public domain.
 
 """
 
-import re
 import os.path
+import re
 from argparse import ArgumentParser
 from collections import Counter
 from glob import glob
+from itertools import chain
 
 # -------------------------------------------------------------------------- #
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 
 # -------------------------------------------------------------------------- #
 
@@ -341,6 +342,12 @@ KNOWNTAGS = {
     r"\rb*",
     r"\rt",
     r"\rt*",
+    r"\+w",
+    r"\+w*",
+    r"\+wg",
+    r"\+wg*",
+    r"\+wh",
+    r"\+wh*",
     # peripherals
     r"\periph",
     # study bible content
@@ -411,21 +418,16 @@ def processtags(fnames: list[str], tcounts: bool) -> None:
     counttags: Counter[str] = Counter()
     knownset = set()
 
-    filenames = [_ for _ in fnames if os.path.isfile(_)]
-    globfiles = [glob(_) for _ in fnames if _ not in filenames]
-    if globfiles:
-        for _ in globfiles:
-            filenames.extend(_)
-
+    filenames = (_ for __ in fnames for _ in chain(glob(__)) if os.path.isfile(_))
     for fname in filenames:
         with open(fname, "rb") as infile:
             intext = infile.read()
 
             # build tag set
-            knownset.update(USFMRE.findall(intext.decode("utf8")))
+            knownset.update(USFMRE.findall(intext.decode("utf_8")))
 
             # build usage counts
-            for i in USFMRE.findall(intext.decode("utf8")):
+            for i in USFMRE.findall(intext.decode("utf_8")):
                 count += 1
                 counttags[i] += 1
 

@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-08",  # THIS SCRIPT revision date
+    "DATE": "2025-04-09",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -3248,20 +3248,7 @@ if __name__ == "__main__":
     if not HAVELXML:
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    FILENAMES = [_ for _ in ARGS.file if os.path.isfile(_)]
-    GLOBFILES = [glob(_) for _ in ARGS.file if _ not in FILENAMES]
-    if GLOBFILES:
-        for _ in GLOBFILES:
-            FILENAMES.extend(_)
-
-    ARGS.file = FILENAMES
-    del FILENAMES
-    del GLOBFILES
-
-    for _ in ARGS.file:
-        if not os.path.isfile(_):
-            LOG.error("*** input file not present or not a normal file. ***")
-            sysexit()
+    ARGS.file = [_ for __ in ARGS.file for _ in chain(glob(__)) if os.path.isfile(_)]
 
     if ARGS.v:
         LOG.setLevel(logging.INFO)
