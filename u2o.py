@@ -1218,10 +1218,6 @@ PARFLOW = set(
 # this is used by reflow to test if we have paragraph markup.
 PARCHECK = {_ for _ in PARTAGS if _ not in (r"\iex", r"\ie", r"\qa")}
 
-# title tags... used by reflow subroutine below.
-# use TITLETAGS keys to eliminate unnecessary duplication
-TITLEFLOW = set(TITLETAGS.keys())
-
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY POSTPROCESS ROUTINE
 
