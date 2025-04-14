@@ -1457,11 +1457,15 @@ def reflow(flowtext: str) -> str:
 
     def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
-        textlines = (
-            f"{_}\ufdd4" if _[0:4] in {r"\cl ", r"\sp ", r"\qa "} else _
-            for _ in text.split("\n")
+        return "\n".join(
+            [
+                f"{_}\ufdd5" if _[0:4] == r"\cp " else _
+                for _ in (
+                    f"{_}\ufdd4" if _[0:4] in {r"\cl ", r"\sp ", r"\qa "} else _
+                    for _ in text.split("\n")
+                )
+            ]
         )
-        return "\n".join([f"{_}\ufdd5" if _[0:4] == r"\cp " else _ for _ in textlines])
 
     def reflowpar(text: str) -> str:
         """Put (almost) all paragraph tags on separate lines."""
@@ -1816,11 +1820,6 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
     def selah(text: str) -> str:
         """Handle selah."""
         selahfix = (
-            _
-            for _ in text.replace("<l", "\n<l").replace("</l>", "</l>\n").split("\n")
-            if _ != ""
-        )
-        selahfix2 = (
             (
                 _.replace("<selah>", '</l><l type="selah">')
                 .replace("</selah>", "</l><l>")
@@ -1829,7 +1828,13 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
                 if _.startswith(r"<l") and "<selah>" in _
                 else _
             )
-            for _ in selahfix
+            for _ in (
+                _
+                for _ in text.replace("<l", "\n<l")
+                .replace("</l>", "</l>\n")
+                .split("\n")
+                if _ != ""
+            )
         )
         return " ".join(
             [
@@ -1840,7 +1845,7 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
                     if "<selah>" in _ or "</selah>" in _
                     else _
                 )
-                for _ in selahfix2
+                for _ in selahfix
             ]
         )
 
@@ -1962,17 +1967,16 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
 
     def introductions(lines: list[str]) -> list[str]:
         """Encapsulate introductions in divs."""
-        lines1 = (
-            '<div type="introduction">\ufdd0' if _ == "\ufde0" else _ for _ in lines
-        )
-        lines2 = ("</div>\ufdd0" if _ == "\ufde1" else _ for _ in lines1)
         return [
             f'{_.replace("\ufde1", "")}</div>\ufdd0' if _.endswith("\ufde1") else _
-            for _ in lines2
+            for _ in (
+                "</div>\ufdd0" if _ == "\ufde1" else _
+                for _ in (
+                    '<div type="introduction">\ufdd0' if _ == "\ufde0" else _
+                    for _ in lines
+                )
+            )
         ]
-
-    # append a blank line. (needed in some cases)
-    grouplines.append("")
 
     # add breaks before verse tags
     # Process b tags,
@@ -1982,7 +1986,14 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
     return introductions(
         tabletags(
             listtags(
-                lgtags(btags([_.replace(r"\v ", "\ufdd0\\v ") for _ in grouplines]))
+                lgtags(
+                    btags(
+                        [
+                            _.replace(r"\v ", "\ufdd0\\v ")
+                            for _ in chain(grouplines, [""])
+                        ]
+                    )
+                )
             )
         )
     )
@@ -2653,17 +2664,11 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
 
 def post_sidebar(lines: list[str]) -> list[str]:
     """Fix sidebar."""
-    return (
-        lines
-        if not [_ for _ in lines if "SIDEBAR" in _]
-        else [
-            _.replace("<SIDEBAR>", '<div type="x-sidebar">').replace(
-                "</SIDEBAR>", "</div>"
-            )
-            for _ in lines
-            if _ != ""
-        ]
-    )
+    return [
+        _.replace("<SIDEBAR>", '<div type="x-sidebar">').replace("</SIDEBAR>", "</div>")
+        for _ in lines
+        if _ != ""
+    ]
 
 
 def post_vp(lines: list[str]) -> list[str]:
@@ -2972,12 +2977,9 @@ def proc_readfiles(fnames: list[str], fencoding: str) -> str:
     """Read files and return concatenated file contents."""
     files = []
     for fname in fnames:
-        # read our text files
+        # read our text files, stripping whitespace from beginning and end of text
         with open(fname, "rb") as ifile:
-            text = ifile.read()
-
-        # strip whitespace from beginning and end of file
-        text = text.strip()
+            text = ifile.read().strip()
 
         # get encoding. Abort processing if we don't know the encoding.
         # default to utf_8_sig encoding if no encoding is specified.
@@ -3097,20 +3099,29 @@ def processfiles(
                 booklist.append("TEST")
 
     # ## Get order for books...
-    if sortorder == "none":
-        tmp = "\n".join([books[_] for _ in booklist])
-        tmp2 = [descriptions[_] for _ in booklist]
-    elif sortorder == "canonical":
-        tmp = "\n".join([books[_] for _ in CANONICALORDER if _ in books])
-        tmp2 = [descriptions[_] for _ in CANONICALORDER if _ in books]
+    if sortorder in {"none", "canonical"}:
+        tmp, tmp2 = (
+            (
+                "\n".join([books[_] for _ in booklist])
+                if sortorder == "none"
+                else "\n".join([books[_] for _ in CANONICALORDER if _ in books])
+            ),
+            (
+                [descriptions[_] for _ in booklist]
+                if sortorder == "none"
+                else [descriptions[_] for _ in CANONICALORDER if _ in books]
+            ),
+        )
     else:
         with open(f"order-{sortorder}.txt", "r", encoding="utf_8") as order:
             bookorderstr = order.read()
             bookorder = [
                 _ for _ in bookorderstr.split("\n") if _ != "" and not _.startswith("#")
             ]
-        tmp = "\n".join([books[_] for _ in bookorder if _ in books])
-        tmp2 = [descriptions[_] for _ in bookorder if _ in books]
+        tmp, tmp2 = (
+            "\n".join([books[_] for _ in bookorder if _ in books]),
+            [descriptions[_] for _ in bookorder if _ in books],
+        )
 
     # check for strongs presence in osis
     strongsheader = STRONGSWORK if "<w " in tmp else ""
