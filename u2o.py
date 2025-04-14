@@ -78,7 +78,7 @@ import re
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from codecs import decode, encode, lookup
 from datetime import datetime
-from functools import partial
+from functools import partial, reduce
 from glob import glob
 from itertools import chain
 from os import getenv
@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-09",  # THIS SCRIPT revision date
+    "DATE": "2025-04-14",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1465,10 +1465,7 @@ def reflow(flowtext: str) -> str:
 
     def reflowpar(text: str) -> str:
         """Put (almost) all paragraph tags on separate lines."""
-        for _ in PARFLOW:
-            if _ in text:
-                text = text.replace(f"{_} ", f"\n{_} ")
-        return text
+        return reduce(lambda x, y: x.replace(f"{y} ", f"\n{y} "), PARFLOW, text)
 
     def fixlines(text: str) -> str:
         """Fix various potential issues with lines of text."""
@@ -1529,20 +1526,15 @@ def reflow(flowtext: str) -> str:
     # remove leading and trailing whitespace, mark end of cl sp and qa tags.
     # prepare to process text with paragraph formatting
     # put (almost) all paragraph style tags on separate lines
-    flowtext = reflowpar(SQUEEZE(endmark(flowtext.strip())))
-
-    for _ in (
-        # always add newline after \ie
-        (r"\ie ", "\\ie\n"),
-        # always put a space before \cp and \ca tags
-        (r"\cp", r" \cp"),
-        (r"\ca", r" \ca"),
-    ):
-        if _[0] in flowtext:
-            flowtext = flowtext.replace(_[0], _[1])
-
+    # always add space before \cp and \ca tags, and newlines after \ie
     # fix various possible issues in text lines.
-    flowtext = fixlines(flowtext)
+    flowtext = fixlines(
+        reduce(
+            lambda x, y: x.replace(y[0], y[1]),
+            ((r"\ie ", "\\ie\n"), (r"\cp", r" \cp"), (r"\ca", r" \ca")),
+            reflowpar(SQUEEZE(endmark(flowtext.strip()))),
+        )
+    )
 
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
@@ -1694,14 +1686,20 @@ def c2o_getdescription(text: str) -> tuple[str, str]:
 def c2o_preprocess(text: str) -> str:
     """Preprocess text."""
     # preprocessing...
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "%gt;")
-        .replace("~", "\u00a0")
-        .replace(r"//", '<lb type="x-optional" />')
-        .replace(r"\pb ", '<milestone type="pb" />')
-        .replace(r"\pb", '<milestone type="pb" />')
+    return reduce(
+        lambda x, y: x.replace(y[0], y[1]),
+        (
+            # xml special characters
+            ("&", "&amp;"),
+            ("<", "&lt;"),
+            (">", "%gt;"),
+            # usfm special characters
+            ("~", "\u00a0"),
+            (r"//", '<lb type="x-optional" />'),
+            (r"\pb ", '<milestone type="pb" />'),
+            (r"\pb", '<milestone type="pb" />'),
+        ),
+        text,
     )
 
 
@@ -2397,18 +2395,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
         # rejoin lines
         return "".join(tlines)
 
-    specialtext = SPECIALFEATURESRE.sub(simplerepl, specialtext, 0)
-
-    if r"\fig" in specialtext:
-        specialtext = figtags(specialtext)
-
-    # Process usfm milestone quotation tags... up to 5 levels.
-    for _ in [r"\qt-", r"\qt1-", r"\qt2-", r"\qt3-", r"\qt4-", r"\qt5-"]:
-        if _ in specialtext:
-            specialtext = milestonequotes(specialtext)
-            break
-
-    return specialtext
+    return milestonequotes(figtags(SPECIALFEATURESRE.sub(simplerepl, specialtext, 0)))
 
 
 def c2o_ztags(text: str) -> str:
@@ -2633,33 +2620,32 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
     # get tags where lines need to be broken for processing
     wjtags = {
         (_[1][0].strip(), _[1][1].strip())
-        for _ in (list(TITLETAGS.items()) + list(PARTAGS.items()))
+        for _ in chain(TITLETAGS.items(), PARTAGS.items())
         if _[1][0] != "" and _[1][1] != ""
     }
 
-    # split words of jesus from the rest of the text.
-    lines = (
-        "\ufdd1".join(lines)
-        .replace("\\wj ", "\n\\wj ")
-        .replace("\\wj*", "\\wj*\n ")
-        .split("\n")
-    )
-
-    # process words of Jesus.
-    for i in enumerate(lines):
-        if lines[i[0]].startswith(r"\wj "):
-            for _ in wjtags:
-                lines[i[0]] = lines[i[0]].replace(
-                    _[0], f'{_[0]}<q who="Jesus" marker="">'
+    # mark words of Jesus.
+    return "".join(
+        [
+            (
+                reduce(
+                    lambda x, y: x.replace(
+                        y[0], f'{y[0]}<q who="Jesus" marker="">'
+                    ).replace(y[1], f"</q>{y[1]}"),
+                    wjtags,
+                    _,
                 )
-                lines[i[0]] = lines[i[0]].replace(_[1], f"</q>{_[1]}")
-    lines = [
-        _.replace(r"\wj ", '<q who="Jesus" marker="">').replace(r"\wj*", "</q>")
-        for _ in lines
-    ]
-
-    # rejoin lines, then resplit and return processed lines...
-    return "".join(lines).split("\ufdd1")
+                .replace(r"\wj ", '<q who="Jesus" marker="">')
+                .replace(r"\wj*", "</q>")
+                if _.startswith(r"\wj ")
+                else _
+            )
+            for _ in "\ufdd1".join(lines)
+            .replace("\\wj ", "\n\\wj ")
+            .replace("\\wj*", "\\wj*\n ")
+            .split("\n")
+        ]
+    ).split("\ufdd1")
 
 
 ###########################################################################################
