@@ -577,6 +577,8 @@ TITLETAGS = {
         '<lg type="doxology">\ufdd0<l type="refrain">',
         "</l>\ufdd0</lg>",
     ),
+    # periph titles for non-canonical books
+    r"\periph": ('<title type="main">', "</title>"),
 }
 
 # paragraph and poetry/prose tags
@@ -1675,16 +1677,12 @@ def c2o_getdescription(text: str) -> tuple[str, str]:
         for _ in lines
         if _.startswith(r"\id ") or _.startswith(r"\ide ") or _.startswith(r"\rem ")
     ]
-    newtext = "\n".join(
-        [_ for _ in lines if (_.partition(" ")) not in descriptionlines]
-    )
-    description = "\n".join(
+    return "\n".join(
         [
             f'<description type="usfm" subType="x-{_[0][1:].strip()}">{_[2].strip()}</description>'
             for _ in descriptionlines
         ]
-    )
-    return description, newtext
+    ), "\n".join([_ for _ in lines if (_.partition(" ")) not in descriptionlines])
 
 
 def c2o_preprocess(text: str) -> str:
@@ -1727,11 +1725,6 @@ def c2o_identification(text: str) -> str:
 
 def c2o_titlepar(blocktext: str, bookid: str) -> str:
     """Process title and paragraph tags."""
-    # local copies of global variables.
-    partags = PARTAGS
-    othertags = OTHERTAGS
-    celltags = CELLTAGS
-    titletags = TITLETAGS
 
     def titles_and_sections(line: list[str]) -> str:
         """Process titles and sections."""
@@ -1754,8 +1747,8 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
             del isvalid  # make pylint happy
             if attributetext is not None:
                 attributetext = f"<!-- USFM Attributes - {attributetext} -->"
-            starttag = titletags[line[0]][0]
-            endtag = titletags[line[0]][1]
+            starttag = TITLETAGS[line[0]][0]
+            endtag = TITLETAGS[line[0]][1]
 
             # process id attribute
             if "id" in attributes:
@@ -1773,15 +1766,15 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         else:
             text = "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
                 line[0].replace("\\", ""),
-                titletags[line[0]][0],
+                TITLETAGS[line[0]][0],
                 line[2].strip(),
-                titletags[line[0]][1],
+                TITLETAGS[line[0]][1],
             )
         return text
 
     def paragraphs(line: list[str]) -> str:
         """Process paragraph tags."""
-        pstart, pend = partags[line[0]]
+        pstart, pend = PARTAGS[line[0]]
         btag = ""
         if pstart.startswith("<p"):
             pstart = f"{pstart}\ufdd0"
@@ -1811,9 +1804,9 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         cells = line[2].split("\n")
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
-            if tmp[0] in celltags:
+            if tmp[0] in CELLTAGS:
                 cells[i[0]] = (
-                    f"{celltags[tmp[0]][0]}{tmp[2].strip()}{celltags[tmp[0]][1]}"
+                    f"{CELLTAGS[tmp[0]][0]}{tmp[2].strip()}{CELLTAGS[tmp[0]][1]}"
                 )
         return f"<row>{''.join(cells)}</row>\ufdd0"
 
@@ -1849,52 +1842,14 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
             ]
         )
 
-    # add periph tag to titletags if book being processed
-    # is a  peripheral or private use book.
-    if bookid in {
-        "FRONT",
-        "INTRODUCTION",
-        "BACK",
-        "X-OTHER",
-        "XXA",
-        "XXB",
-        "XXC",
-        "XXD",
-        "XXE",
-        "XXF",
-        "XXG",
-    }:
-        titletags[r"\periph"] = ('<title type="main">', "</title>")
-
-    # ################################################################### #
-    # NOTE: I've not seen any kind of documentation to suggest that usage
-    #       of the usfm \d tag outside of psalms is valid.
-    #
-    #       Additionally every other converter that I've looked at does not
-    #       make a special exception for \d tags outside of psalms.
-    #       Neither the deprecated perl script nor the currently preferred
-    #       python script hosted by crosswire.org do this. Haiola does not
-    #       do this. Bibledit does not do this.
-    #
-    #       Anyway, it takes 2 lines. It was trivial. So, against my better
-    #       judgment I've provided an implementation of this change as was
-    #       requested.
-    #
-    #       Uncomment the next 2 lines of code to enable handling of
-    #       incorrect use of this tag.
-    #
-    # if bookid != "Ps":
-    #     titletags[r'\d'] = ('<title canonical="true">', '</title>')
-    # ################################################################### #
-
     blockline = list(blocktext.partition(" "))
 
     # process titles and sections
-    if blockline[0] in titletags:
+    if blockline[0] in TITLETAGS:
         blocktext = titles_and_sections(blockline)
 
     # process paragraphs
-    elif blockline[0] in partags:
+    elif blockline[0] in PARTAGS:
         blocktext = paragraphs(blockline)
 
     # process tables
@@ -1902,13 +1857,14 @@ def c2o_titlepar(blocktext: str, bookid: str) -> str:
         blocktext = tables(blockline)
 
     # other title, paragraph, intro tags
-    for _ in othertags.items():
+    for _ in OTHERTAGS.items():
         blocktext = blocktext.replace(_[0], _[1])
 
     # fix selah
     if "<selah>" in blocktext:
         blocktext = selah(blocktext)
 
+    # return our processed text
     return blocktext
 
 
@@ -2245,67 +2201,70 @@ def c2o_specialfeatures(specialtext: str) -> str:
             if tlines[i[0]].startswith(r"\fig "):
                 # old style \fig handling
                 # \fig DESC|FILE|SIZE|LOC|COPY|CAP|REF\fig*
-                if len(tlines[i[0]][5:-5].split("|")) > 2:
-                    fig = tlines[i[0]][5:-5].split("|")
-                    figref = ""
-                    fig[0] = {
-                        False: f"<!-- fig DESC - {fig[0]} -->\n",
-                        True: fig[0],
-                    }[not fig[0]]
-                    fig[1] = {
-                        False: f' src="{fig[1]}"',
-                        True: fig[1],
-                    }[not fig[1]]
-                    fig[2] = {
-                        False: f' size="{fig[2]}"',
-                        True: fig[2],
-                    }[not fig[2]]
-                    fig[3] = {
-                        False: f"<!-- fig LOC - {fig[3]} -->\n",
-                        True: fig[3],
-                    }[not fig[3]]
-                    fig[4] = {
-                        False: f' rights="{fig[4]}"',
-                        True: fig[4],
-                    }[not fig[4]]
-                    fig[5] = {
-                        False: f"<caption>{fig[5]}</caption>\n",
-                        True: fig[5],
-                    }[not fig[5]]
-                    # this is likely going to be very broken without
-                    # further processing of the references.
-                    if fig[6]:
-                        figref = f'<reference type="annotateRef">{fig[6]}</reference>\n'
-                        fig[6] = f' annotateRef="{fig[6]}"'
+                # if len(tlines[i[0]][5:-5].split("|")) > 2:
+                #     fig = tlines[i[0]][5:-5].split("|")
+                #     figref = ""
+                #     fig[0] = {
+                #         False: f"<!-- fig DESC - {fig[0]} -->\n",
+                #         True: fig[0],
+                #     }[not fig[0]]
+                #     fig[1] = {
+                #         False: f' src="{fig[1]}"',
+                #         True: fig[1],
+                #     }[not fig[1]]
+                #     fig[2] = {
+                #         False: f' size="{fig[2]}"',
+                #         True: fig[2],
+                #     }[not fig[2]]
+                #     fig[3] = {
+                #         False: f"<!-- fig LOC - {fig[3]} -->\n",
+                #         True: fig[3],
+                #     }[not fig[3]]
+                #     fig[4] = {
+                #         False: f' rights="{fig[4]}"',
+                #         True: fig[4],
+                #     }[not fig[4]]
+                #     fig[5] = {
+                #         False: f"<caption>{fig[5]}</caption>\n",
+                #         True: fig[5],
+                #     }[not fig[5]]
+                #     # this is likely going to be very broken without
+                #     # further processing of the references.
+                #     if fig[6]:
+                #         figref = f'<reference type="annotateRef">{fig[6]}</reference>\n'
+                #         fig[6] = f' annotateRef="{fig[6]}"'
 
                 # new style \fig handling
-                else:
-                    figattr = parseattributes(r"\fig", tlines[i[0]][5:-5])
-                    fig = []
-                    figparts = {
-                        "alt": "<!-- fig ALT - {} -->\n",
-                        "src": ' src="{}"',
-                        "size": ' size="{}"',
-                        "loc": "<!-- fig LOC - {} -->\n",
-                        "copy": ' rights="{}"',
-                    }
-                    for _ in ["alt", "src", "size", "loc", "copy"]:
-                        fig.append(
-                            {
-                                True: figparts[_].format(figattr[2][_]),
-                                False: "",
-                            }[_ in figattr[2]]
-                        )
-                        # caption absent in new style fig attributes
+                # else:
+
+                # new style \fig tags introduced in usfm 3.0
+                figattr = parseattributes(r"\fig", tlines[i[0]][5:-5])
+                fig = []
+                figparts = {
+                    "alt": "<!-- fig ALT - {} -->\n",
+                    "src": ' src="{}"',
+                    "size": ' size="{}"',
+                    "loc": "<!-- fig LOC - {} -->\n",
+                    "copy": ' rights="{}"',
+                }
+                for _ in ["alt", "src", "size", "loc", "copy"]:
+                    fig.append(
+                        {
+                            True: figparts[_].format(figattr[2][_]),
+                            False: "",
+                        }[_ in figattr[2]]
+                    )
+                    # caption absent in new style fig attributes
+                    fig.append("")
+                    # this is likely going to be very broken without
+                    # further processing of the references.
+                    if "ref" in figattr[2]:
+                        figref = f'<reference type="annotateRef">{figattr[2]["ref"]}</reference>\n\n'
+                        fig.append(f' annotateRef="{figattr[2]["ref"]}"')
+                    else:
+                        figref = ""
                         fig.append("")
-                        # this is likely going to be very broken without
-                        # further processing of the references.
-                        if "ref" in figattr[2]:
-                            figref = f'<reference type="annotateRef">{figattr[2]["ref"]}</reference>\n\n'
-                            fig.append(f' annotateRef="{figattr[2]["ref"]}"')
-                        else:
-                            figref = ""
-                            fig.append("")
+
                 # build our osis figure tag
                 tlines[i[0]] = "".join(
                     [
