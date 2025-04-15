@@ -71,17 +71,17 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-arguments
 # pylint: disable=consider-using-f-string
 
-import concurrent.futures
-import logging
-import os.path
 import re
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from codecs import decode, encode, lookup
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from functools import partial, reduce
 from glob import glob
 from itertools import chain
+from logging import DEBUG, INFO, WARNING, basicConfig, getLogger
 from os import getenv
+from os.path import isfile
 from sys import exit as sysexit
 from tempfile import NamedTemporaryFile
 from typing import Any
@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-14",  # THIS SCRIPT revision date
+    "DATE": "2025-04-15",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -435,7 +435,7 @@ IDTAGS = {
     r"\toc1": ("", '<milestone type="x-usfm-toc1" n="{}" />'),
     r"\toc2": ("", '<milestone type="x-usfm-toc2" n="{}" />'),
     r"\toc3": ("", '<milestone type="x-usfm-toc3" n="{}" />'),
-    r"\restore": ("<!-- restore - ", " -->"),
+    # r"\restore": ("<!-- restore - ", " -->"),
     # the osis 2.1.1 user manual says the value of h h1 h2 and h3 tags should
     # be in the short attribute of a title.
     # ************************************************************************
@@ -1398,9 +1398,9 @@ OFCQJyEEPw==
 # -------------------------------------------------------------------------- #
 
 # logging.basicConfig(format="%(levelname)s: %(message)s")
-logging.basicConfig(format="%(message)s")
-LOG = logging.getLogger(__name__)
-LOG.setLevel(logging.WARNING)
+basicConfig(format="%(message)s")
+LOG = getLogger(__name__)
+LOG.setLevel(WARNING)
 
 # -------------------------------------------------------------------------- #
 
@@ -1575,13 +1575,6 @@ def reflow(flowtext: str) -> str:
     return flowtext
 
 
-def getbookid(text: str) -> str | None:
-    """Get book id from file text."""
-    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
-    bookid = None if not lines else lines[0].split()[1].strip()
-    return None if not bookid else BOOKNAMES.get(bookid, f"* {bookid}")
-
-
 def getencoding(text: bytes) -> str | None:
     """Get encoding from file text."""
     lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
@@ -1723,7 +1716,7 @@ def c2o_identification(text: str) -> str:
     return text
 
 
-def c2o_titlepar(blocktext: str, bookid: str) -> str:
+def c2o_titlepar(blocktext: str) -> str:
     """Process title and paragraph tags."""
 
     def titles_and_sections(line: list[str]) -> str:
@@ -2860,8 +2853,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> str:
                                     c2o_specialtext(c2o_identification(_))
                                 )
                             )
-                        ),
-                        bookid,
+                        )
                     )
                     for _ in markintroend(c2o_preprocess(text).split("\n"))
                 ]
@@ -2913,23 +2905,24 @@ def doconvert(text: str) -> tuple[str, ...]:
         text = convertcl(text)
 
     # get book id. use TEST if none present.
-    bookid = getbookid(text)
-    if bookid is not None:
-        if bookid.startswith("* "):
-            LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
-    else:
-        bookid = "TEST"
+    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
+    bookid = (
+        "TEST"
+        if not lines
+        else BOOKNAMES.get(
+            lines[0].split()[1].strip(), f"* {lines[0].split()[1].strip()}"
+        )
+    )
+    if bookid.startswith("* "):
+        LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
+        sysexit()
 
     # get id, ide, and rem statements to use for descriptiontext
     descriptiontext, newtext = c2o_getdescription(text)
 
-    # decode and reflow our text
-    newtext = reflow(newtext)
-
     # convert file to osis
     LOG.info("... Processing %s ...", bookid)
-    newtext = convert_to_osis(newtext, bookid)
-    return bookid, descriptiontext, newtext
+    return bookid, descriptiontext, convert_to_osis(reflow(newtext), bookid)
 
 
 def proc_readfiles(fnames: list[str], fencoding: str) -> str:
@@ -3028,7 +3021,7 @@ def processfiles(
     filelist = proc_readfiles(fnames, fencoding).split("\ufddf")
     results: list[tuple[str, ...]]
     LOG.info("Processing files...")
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         results = (
             list(executor.map(doconvert, filelist))
             if not dodebug
@@ -3200,12 +3193,12 @@ if __name__ == "__main__":
     if not HAVELXML:
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")
 
-    ARGS.file = [_ for __ in ARGS.file for _ in chain(glob(__)) if os.path.isfile(_)]
+    ARGS.file = [_ for __ in ARGS.file for _ in chain(glob(__)) if isfile(_)]
 
     if ARGS.v:
-        LOG.setLevel(logging.INFO)
+        LOG.setLevel(INFO)
     if ARGS.d:
-        LOG.setLevel(logging.DEBUG)
+        LOG.setLevel(DEBUG)
     processfiles(
         ARGS.file,
         ARGS.e,
