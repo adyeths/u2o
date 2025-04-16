@@ -106,7 +106,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-15",  # THIS SCRIPT revision date
+    "DATE": "2025-04-16",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1551,8 +1551,7 @@ def reflow(flowtext: str) -> str:
         lines = flowtext.split("\n")
         for _ in range(len(lines) - 1, 0, -1):
             if not lines[_].startswith("\\"):
-                lines[_ - 1] = f"{lines[_ - 1]} {lines[1]}"
-                lines.pop(_)
+                lines[_ - 1] = f"{lines[_ - 1]} {lines.pop(_)}"
         flowtext = "\n".join(lines)
 
         # remove some newlines that we don't want...
