@@ -77,6 +77,7 @@ from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from functools import partial, reduce
+from gc import disable as gcdisable
 from glob import glob
 from itertools import chain
 from logging import DEBUG, INFO, WARNING, basicConfig, getLogger
@@ -100,13 +101,16 @@ except ImportError:
     et = None
     HAVELXML = False
 
+# disable garbage collector as it's not needed for this converter
+gcdisable()
+
 # -------------------------------------------------------------------------- #
 
 META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-16",  # THIS SCRIPT revision date
+    "DATE": "2025-04-17",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1428,8 +1432,7 @@ def convertcl(text: str) -> str:
             clmarker = lines[chaplines[0] - 1]
             lines[chaplines[0] - 1] = ""
             for i in reversed(chaplines):
-                cnumber = lines[i].split(" ")[1]
-                lines.insert(i + 1, " ".join([clmarker, cnumber]))
+                lines.insert(i + 1, " ".join([clmarker, lines[i].split(" ")[1]]))
 
     # return our lines with converted cl tags.
     return "\n".join(lines)
@@ -1767,7 +1770,6 @@ def c2o_titlepar(blocktext: str) -> str:
     def paragraphs(line: list[str]) -> str:
         """Process paragraph tags."""
         pstart, pend = PARTAGS[line[0]]
-        btag = ""
         if pstart.startswith("<p"):
             pstart = f"{pstart}\ufdd0"
             pend = f"\ufdd0{pend}\ufdd0"
@@ -1775,13 +1777,12 @@ def c2o_titlepar(blocktext: str) -> str:
         text = f"{pstart}{line[2].strip()}"
         # handle b  and ib tags in paragraphs and poetry...
         if text.endswith("\\b") or text.endswith("\\ib"):
-            text = text.rstrip("\\b").rstrip("\\ib")
-            btag = "<!-- b -->"
+            text = f'{text.rstrip("\\b").rstrip("\\ib")}<!-- b -->'
         elif r"\b " in text or r"\ib" in text:
             text = text.replace("\\b ", "<!-- b -->").replace("\\ib ", "<!-- b -->")
 
         # finish paragraphs.
-        return f"{text}{pend}{btag}\ufdd0"
+        return f"{text}{pend}\ufdd0"
 
     def tables(line: list[str]) -> str:
         """Process tables."""
@@ -1804,6 +1805,9 @@ def c2o_titlepar(blocktext: str) -> str:
 
     def selah(text: str) -> str:
         """Handle selah."""
+        if "<selah>" not in text:
+            return text
+
         selahfix = (
             (
                 _.replace("<selah>", '</l><l type="selah">')
@@ -1836,17 +1840,16 @@ def c2o_titlepar(blocktext: str) -> str:
 
     blockline = list(blocktext.partition(" "))
 
-    # process titles and sections
-    if blockline[0] in TITLETAGS:
-        blocktext = titles_and_sections(blockline)
-
-    # process paragraphs
-    elif blockline[0] in PARTAGS:
-        blocktext = paragraphs(blockline)
-
-    # process tables
-    elif blockline[0] == r"\tr":
-        blocktext = tables(blockline)
+    # process titles and sections, paragraphs, tables
+    blocktext = (
+        titles_and_sections(blockline)
+        if blockline[0] in TITLETAGS
+        else (
+            paragraphs(blockline)
+            if blockline[0] in PARTAGS
+            else tables(blockline) if blockline[0] == r"\tr" else blocktext
+        )
+    )
 
     # other title, paragraph, intro tags
     for _ in OTHERTAGS.items():
@@ -1967,14 +1970,14 @@ def c2o_specialtext(text: str) -> str:
         return f'{tag[0]}{match.group("osis")}{tag[1]}'
 
     text = SPECIALTEXTRE.sub(simplerepl, text, 0)
+
     # Make sure all nested tags are processed.
     # In order to avoid getting stuck here we abort
     # after a maximum of 5 attempts. (5 was chosen arbitrarily)
-    nestcount = 0
-    while "\\" in text:
-        nestcount += 1
-        text = SPECIALTEXTRE.sub(simplerepl, text, 0)
-        if nestcount > 5:
+    for _ in range(5):
+        if "\\" in text:
+            text = SPECIALTEXTRE.sub(simplerepl, text, 0)
+        else:
             break
 
     return text
@@ -2035,44 +2038,44 @@ def c2o_noterefmarkers(text: str) -> str:
                 txt = f"<!-- USFM Attributes: {attrtxt} -->{txt}"
             return "".join([tag[0], txt, tag[1]])
 
-        notetext = NOTEFIXRE.sub(notefixsub, notetext, 0)
-        for _ in [
-            r"\fm*",
-            r"\fdc*",
-            r"\fr*",
-            r"\fk*",
-            r"\fq*",
-            r"\fqa*",
-            r"\fl*",
-            r"\fv*",
-            r"\ft*",
-            r"\xo*",
-            r"\xk*",
-            r"\xq*",
-            r"\xt*",
-            r"\xot*",
-            r"\xnt*",
-            r"\xdc*",
-            r"\+fm*",
-            r"\+fdc*",
-            r"\+fr*",
-            r"\+fk*",
-            r"\+fq*",
-            r"\+fqa*",
-            r"\+fl*",
-            r"\+fv*",
-            r"\+ft*",
-            r"\+xo*",
-            r"\+xk*",
-            r"\+xq*",
-            r"\+xt*",
-            r"\+xot*",
-            r"\+xnt*",
-            r"\+xdc*",
-        ]:
-            if _ in notetext:
-                notetext = notetext.replace(_, "")
-        return notetext
+        return reduce(
+            lambda x, y: x.replace(y, ""),
+            [
+                r"\fm*",
+                r"\fdc*",
+                r"\fr*",
+                r"\fk*",
+                r"\fq*",
+                r"\fqa*",
+                r"\fl*",
+                r"\fv*",
+                r"\ft*",
+                r"\xo*",
+                r"\xk*",
+                r"\xq*",
+                r"\xt*",
+                r"\xot*",
+                r"\xnt*",
+                r"\xdc*",
+                r"\+fm*",
+                r"\+fdc*",
+                r"\+fr*",
+                r"\+fk*",
+                r"\+fq*",
+                r"\+fqa*",
+                r"\+fl*",
+                r"\+fv*",
+                r"\+ft*",
+                r"\+xo*",
+                r"\+xk*",
+                r"\+xq*",
+                r"\+xt*",
+                r"\+xot*",
+                r"\+xnt*",
+                r"\+xdc*",
+            ],
+            NOTEFIXRE.sub(notefixsub, notetext, 0),
+        )
 
     def simplerepl(match: re.Match[str]) -> str:
         """Simple regex replacement helper function."""
@@ -2278,17 +2281,19 @@ def c2o_specialfeatures(specialtext: str) -> str:
 
     def milestonequotes(text: str) -> str:
         """Handle usfm milestone quotations."""
-        for _ in [
-            r"\qt-",
-            r"\qt1-",
-            r"\qt2-",
-            r"\qt3-",
-            r"\qt4-",
-            r"\qt5-",
-        ]:
-            if _ in text:
-                text = text.replace(_, f"\n{_}")
-        tlines = text.replace(r"\*", "\\*\n").split("\n")
+        tlines = reduce(
+            lambda x, y: x.replace(y, f"\n{y}"),
+            [
+                r"\qt-",
+                r"\qt1-",
+                r"\qt2-",
+                r"\qt3-",
+                r"\qt4-",
+                r"\qt5-",
+            ],
+            text,
+        ).replace(r"\*", "\\*\n").split("\n")
+
         qlevel = ""
         for i in enumerate(tlines):
             # make sure we're processing milestone \qt tags
@@ -2402,21 +2407,25 @@ def c2o_chapverse(lines: list[str], bookid: str) -> list[str]:
     def verserange(text: str) -> list[str]:
         """Generate list for verse ranges."""
         low, high = text.split("-")
+
         # make sure Right-To-Left and Left-To-Right marks aren't included
         # in verse range numbers.
         low = low.replace("\u200e", "").replace("\u200f", "")
         high = high.replace("\u200e", "").replace("\u200f", "")
+
         try:
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
         except ValueError:
-            end1 = ""
-            end2 = ""
-            if low[-1] in {"a", "b", "A", "B"}:
-                end1 = low[-1]
-                low = "".join(low[:-1])
-            if high[-1] in {"a", "b", "A", "B"}:
-                end2 = high[-1]
-                high = "".join(high[:-1])
+            end1, low = (
+                (low[-1], "".join(low[:-1]))
+                if low[-1] in {"a", "b", "A", "B"}
+                else ("", low)
+            )
+            end2, high = (
+                (high[-1], "".join(high[:-1]))
+                if high[-1] in {"a", "b", "A", "B"}
+                else ("", high)
+            )
             retval = [str(_) for _ in range(int(low), int(high) + 1)]
             if end1 != "":
                 retval[0] = "!".join([retval[0], end1])
