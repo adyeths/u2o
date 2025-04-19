@@ -69,6 +69,7 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
 # pylint: disable=consider-using-f-string
 
 import re
@@ -110,7 +111,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-17",  # THIS SCRIPT revision date
+    "DATE": "2025-04-18",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2254,7 +2255,10 @@ def c2o_specialfeatures(specialtext: str) -> str:
                     # this is likely going to be very broken without
                     # further processing of the references.
                     if "ref" in figattr[2]:
-                        figref = f'<reference type="annotateRef">{figattr[2]["ref"]}</reference>\n\n'
+                        figref = (
+                            '<reference type="annotateRef">'
+                            + f'{figattr[2]["ref"]}</reference>\n\n'
+                        )
                         fig.append(f' annotateRef="{figattr[2]["ref"]}"')
                     else:
                         figref = ""
@@ -2281,18 +2285,22 @@ def c2o_specialfeatures(specialtext: str) -> str:
 
     def milestonequotes(text: str) -> str:
         """Handle usfm milestone quotations."""
-        tlines = reduce(
-            lambda x, y: x.replace(y, f"\n{y}"),
-            [
-                r"\qt-",
-                r"\qt1-",
-                r"\qt2-",
-                r"\qt3-",
-                r"\qt4-",
-                r"\qt5-",
-            ],
-            text,
-        ).replace(r"\*", "\\*\n").split("\n")
+        tlines = (
+            reduce(
+                lambda x, y: x.replace(y, f"\n{y}"),
+                [
+                    r"\qt-",
+                    r"\qt1-",
+                    r"\qt2-",
+                    r"\qt3-",
+                    r"\qt4-",
+                    r"\qt5-",
+                ],
+                text,
+            )
+            .replace(r"\*", "\\*\n")
+            .split("\n")
+        )
 
         qlevel = ""
         for i in enumerate(tlines):
@@ -2969,33 +2977,33 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
-    testosis = SQUEEZE(osisdoc2.decode("utf_8"))
+    testosis = SQUEEZE(osisdoc2.decode("utf-8"))
 
     LOG.info("Validating osis xml...")
-    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf_8")
+    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf-8")
     xmlschema = decode(
         decode(decode(XMLSCHEMA, "base64"), "bz2"),
-        "utf_8",
+        "utf-8",
     )
     with NamedTemporaryFile(suffix=".xsd") as xmlxsd:
         osisschema = osisschema.replace(
             "http://www.w3.org/2001/03/xml.xsd",
             f"file://{xmlxsd.name}",
         )
-        xmlxsd.write(xmlschema.encode("utf_8"))
+        xmlxsd.write(xmlschema.encode("utf-8"))
 
         try:
             vparser = et.XMLParser(
                 schema=et.XMLSchema(et.XML(osisschema)),
                 remove_blank_text=True,
             )
-            _ = et.fromstring(testosis.encode("utf_8"), vparser)  # nosec
+            _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
             LOG.warning("Validation passed!")
             osisdoc2 = et.tostring(
                 _,
                 pretty_print=True,
                 xml_declaration=True,
-                encoding="utf_8",
+                encoding="utf-8",
             )
         except et.XMLSyntaxError as err:
             LOG.error("Validation failed: %s", str(err))
