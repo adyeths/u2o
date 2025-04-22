@@ -111,7 +111,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-18",  # THIS SCRIPT revision date
+    "DATE": "2025-04-22",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -963,7 +963,6 @@ DEFAULTATTRIBUTES = {
 }
 
 # -------------------------------------------------------------------------- #
-# REGULAR EXPRESSIONS
 
 # create a function to squeeze all regular spaces, carriage returns,
 # and newlines into a single space.
@@ -971,7 +970,8 @@ SQUEEZE = partial(re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
-SPECIALTEXTRE_S = r"""
+SPECIALTEXTRE = re.compile(
+    r"""
         # put special text tags into a named group called 'tag'
         (?P<tag>
 
@@ -992,13 +992,14 @@ SPECIALTEXTRE_S = r"""
         # tag end marker
         (?P=tag)\*
     """.format(
-    "|".join([_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")])
+        "|".join([_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")])
+    ),
+    re.U + re.VERBOSE,
 )
-SPECIALTEXTRE = re.compile(SPECIALTEXTRE_S, re.U + re.VERBOSE)
-del SPECIALTEXTRE_S
 
 # match z tags that have both a start and end marker
-ZTAGS_S = r"""
+ZTAGSRE = re.compile(
+    r"""
         # put z tags that have a start and end marker into named group 'tag'
         (?P<tag>
 
@@ -1017,12 +1018,13 @@ ZTAGS_S = r"""
 
         # tag end marker
         (?P=tag)\*
-    """
-ZTAGSRE = re.compile(ZTAGS_S, re.U + re.VERBOSE)
-del ZTAGS_S
+    """,
+    re.U + re.VERBOSE,
+)
 
 # match milestone z tags
-ZTAGS2_S = r"""
+ZTAGS2RE = re.compile(
+    r"""
     # put z tag content in a named group 'tag'
     (?P<tag>
 
@@ -1041,13 +1043,13 @@ ZTAGS2_S = r"""
         # tag end marker
         \\\*
     )
-"""
-ZTAGS2RE = re.compile(ZTAGS2_S, re.U + re.VERBOSE)
-del ZTAGS2_S
-
+""",
+    re.U + re.VERBOSE,
+)
 # matches special feature tags
 # Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
-SPECIALFEATURESRE_S = r"""
+SPECIALFEATURESRE = re.compile(
+    r"""
         # put the special features tags into a named group called 'tag'
         (?P<tag>
 
@@ -1069,14 +1071,15 @@ SPECIALFEATURESRE_S = r"""
         # tag end marker
         (?P=tag)\*
     """.format(
-    "|".join([_.replace("\\", "") for _ in FEATURETAGS if not _.startswith(r"\+")])
+        "|".join([_.replace("\\", "") for _ in FEATURETAGS if not _.startswith(r"\+")])
+    ),
+    re.U + re.VERBOSE,
 )
-SPECIALFEATURESRE = re.compile(SPECIALFEATURESRE_S, re.U + re.VERBOSE)
-del SPECIALFEATURESRE_S
 
 # regex used in footnote/crossref functions
 # Automatically build NOTERE regex string from NOTETAGS dict.
-NOTERE_S = r"""
+NOTERE = re.compile(
+    r"""
         # put the footnote and cross reference markers into a named group
         # called 'tag'
         (?P<tag>
@@ -1103,13 +1106,14 @@ NOTERE_S = r"""
         # footnote / cross reference end tag
         (?P=tag)\*
     """.format(
-    "|".join([_.replace("\\", "") for _ in NOTETAGS if not _.startswith(r"\+")])
+        "|".join([_.replace("\\", "") for _ in NOTETAGS if not _.startswith(r"\+")])
+    ),
+    re.U + re.VERBOSE,
 )
-NOTERE = re.compile(NOTERE_S, re.U + re.VERBOSE)
-del NOTERE_S
 # ---
 # Automatically build NOTEFIXRE regex string from NOTETAGS2 dict.
-NOTEFIXRE_S = r"""
+NOTEFIXRE = re.compile(
+    r"""
         (
             # tags always start with a backslash and may have a + symbol which
             # indicates that it's a nested character style.
@@ -1130,51 +1134,11 @@ NOTEFIXRE_S = r"""
         # start of an additional tag or the end of the note.
         (?=\\\+?[fx]|</note)
     """.format(
-    "|".join([_.replace("\\", "") for _ in NOTETAGS2 if not _.startswith(r"\+")])
-)
-NOTEFIXRE = re.compile(NOTEFIXRE_S, re.U + re.VERBOSE)
-del NOTEFIXRE_S
-
-# match \vp tags
-VPRE = re.compile(
-    r"""
-        \\vp
-        \s+
-        (?P<num>\S+)
-        \s*
-        \\vp\*
-        \s*
-    """,
+        "|".join([_.replace("\\", "") for _ in NOTETAGS2 if not _.startswith(r"\+")])
+    ),
     re.U + re.VERBOSE,
 )
 
-# regex for matching against \ca or \va usfm tags.
-CVARE = re.compile(
-    r"""
-        # put the tag we match into a named group called tag
-        (?P<tag>
-
-            # tags always start with a backslash
-            \\
-
-            # match against either ca or va
-            (?:ca|va)
-        )
-
-        # there is always at least one space following the tag
-        \s+
-
-        # put the number into a named group called num
-        (?P<num>\S+)
-
-        # make sure the end tag matched the start tag...
-        (?P=tag)\*
-
-        # there may or may not be space following this tag.
-        \s*
-    """,
-    re.U + re.VERBOSE,
-)
 
 # regex for finding usfm tags
 USFMRE = re.compile(
@@ -1201,9 +1165,6 @@ USFMRE = re.compile(
 """,
     re.U + re.VERBOSE,
 )
-
-
-ATTRIBRE = re.compile(r' +(\S+=[\'"])', re.U + re.DOTALL)
 
 
 # -------------------------------------------------------------------------- #
@@ -1420,11 +1381,8 @@ def convertcl(text: str) -> str:
     """
     lines = text.split("\n")
 
-    # count number of cl tags in text
-    clcount = len([_ for _ in lines if _.startswith(r"\cl ")])
-
-    # test for presence of only 1 cl marker.
-    if clcount == 1:
+    # convert cl markers if only 1 is present.
+    if len([_ for _ in lines if _.startswith(r"\cl ")]) == 1:
         chaplines = [_ for _ in range(len(lines)) if lines[_].startswith(r"\c ")]
 
         # get cl marker line if it precedes chapter 1 and add this after
@@ -1629,6 +1587,7 @@ def markintroend(lines: list[str]) -> list[str]:
 
 def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
     """Separate attributes from text in usfm."""
+
     # split attributes from text
     text, _, attributestring = tagtext.partition("|")
     attribs: dict[str, str] = {}
@@ -1637,7 +1596,9 @@ def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
     if "=" not in attributestring:
         attribs[DEFAULTATTRIBUTES.get(tag, "x-default")] = attributestring
     else:
-        tmp = ATTRIBRE.sub("\ufde2\\1", attributestring)
+        tmp = re.sub(
+            r' +(\S+=[\'"])', "\ufde2\\1", attributestring, flags=re.U + re.DOTALL
+        )
         for _ in tmp.split("\ufde2"):
             attr = _.partition("=")
             attribs[attr[0]] = attr[2].strip('"')
@@ -2160,7 +2121,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                 if tag2 is not None:
                     strong2 = f' morph="{attributes["x-morph"]}"'
 
-        # TODO: improve processing of tag attributes
+        # to do: improve processing of tag attributes
 
         if tag[0] == "" and tag2 is None:
             # limited filtering of index entry contents...
@@ -2641,12 +2602,26 @@ def post_sidebar(lines: list[str]) -> list[str]:
 
 def post_vp(lines: list[str]) -> list[str]:
     """Handle vp tags that were missed."""
+
+    # regex to match \vp tags
+    vpre = re.compile(
+        r"""
+            \\vp
+            \s+
+            (?P<num>\S+)
+            \s*
+            \\vp\*
+            \s*
+        """,
+        re.U + re.VERBOSE,
+    )
+
     for _ in enumerate(lines):
         while r"\vp " in lines[_[0]]:
-            tmp = VPRE.search(lines[_[0]])
+            tmp = vpre.search(lines[_[0]])
             if tmp is not None:
                 vpnum = tmp.group("num")
-                lines[_[0]] = VPRE.sub(
+                lines[_[0]] = vpre.sub(
                     f'<milestone type="x-usfm-vp" n="{vpnum}" />',
                     lines[_[0]],
                     1,
@@ -2848,10 +2823,33 @@ def post_acrostic(lines: list[str]) -> list[str]:
     return [_ for _ in lines if _ != ""]
 
 
-def convert_to_osis(text: str, bookid: str = "TEST") -> str:
-    """Convert usfm file to osis."""
-    # ---------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
+
+def doconvert(text: str) -> tuple[str, ...]:
+    """Convert our text and return our results."""
+    # convert cl lines to form that follows each chapter marker instead of
+    # form that precedes first chapter.
+    if r"\cl " in text:
+        text = convertcl(text)
+
+    # get book id. use TEST if none present.
+    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
+    bookid = (
+        "TEST"
+        if not lines
+        else BOOKNAMES.get(
+            lines[0].split()[1].strip(), f"* {lines[0].split()[1].strip()}"
+        )
+    )
+    if bookid.startswith("* "):
+        LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
+        sysexit()
+
+    # get id, ide, and rem statements to use for descriptiontext
+    descriptiontext, newtext = c2o_getdescription(text)
+
+    LOG.info("... Processing %s ...", bookid)
     # preprocess, split text, mark introduction endings... then process
     # identification, character styles, special features, footnotes and cross references,
     # ztags, paragraph style formatting
@@ -2871,13 +2869,12 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> str:
                             )
                         )
                     )
-                    for _ in markintroend(c2o_preprocess(text).split("\n"))
+                    for _ in markintroend(c2o_preprocess(reflow(newtext)).split("\n"))
                 ]
             )
         ),
         bookid,
     )
-
     # postprocessing to fix some issues that may be present
     linespost = post_acrostic(
         post_dverse(
@@ -2905,40 +2902,7 @@ def convert_to_osis(text: str, bookid: str = "TEST") -> str:
             )
         )
     )
-
-    # rejoin lines after processing
-    return "\n".join([_ for _ in linespost if _ != ""])
-
-
-# -------------------------------------------------------------------------- #
-
-
-def doconvert(text: str) -> tuple[str, ...]:
-    """Convert our text and return our results."""
-    # convert cl lines to form that follows each chapter marker instead of
-    # form that precedes first chapter.
-    if r"\cl " in text:
-        text = convertcl(text)
-
-    # get book id. use TEST if none present.
-    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
-    bookid = (
-        "TEST"
-        if not lines
-        else BOOKNAMES.get(
-            lines[0].split()[1].strip(), f"* {lines[0].split()[1].strip()}"
-        )
-    )
-    if bookid.startswith("* "):
-        LOG.error("Book id naming issue - %s", bookid.replace("* ", ""))
-        sysexit()
-
-    # get id, ide, and rem statements to use for descriptiontext
-    descriptiontext, newtext = c2o_getdescription(text)
-
-    # convert file to osis
-    LOG.info("... Processing %s ...", bookid)
-    return bookid, descriptiontext, convert_to_osis(reflow(newtext), bookid)
+    return bookid, descriptiontext, "\n".join([_ for _ in linespost if _ != ""])
 
 
 def proc_readfiles(fnames: list[str], fencoding: str) -> str:
@@ -2977,33 +2941,33 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
-    testosis = SQUEEZE(osisdoc2.decode("utf-8"))
+    testosis = SQUEEZE(osisdoc2.decode("utf_8"))
 
     LOG.info("Validating osis xml...")
-    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf-8")
+    osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf_8")
     xmlschema = decode(
         decode(decode(XMLSCHEMA, "base64"), "bz2"),
-        "utf-8",
+        "utf_8",
     )
     with NamedTemporaryFile(suffix=".xsd") as xmlxsd:
         osisschema = osisschema.replace(
             "http://www.w3.org/2001/03/xml.xsd",
             f"file://{xmlxsd.name}",
         )
-        xmlxsd.write(xmlschema.encode("utf-8"))
+        xmlxsd.write(xmlschema.encode("utf_8"))
 
         try:
             vparser = et.XMLParser(
                 schema=et.XMLSchema(et.XML(osisschema)),
                 remove_blank_text=True,
             )
-            _ = et.fromstring(testosis.encode("utf-8"), vparser)  # nosec
+            _ = et.fromstring(testosis.encode("utf_8"), vparser)  # nosec
             LOG.warning("Validation passed!")
             osisdoc2 = et.tostring(
                 _,
                 pretty_print=True,
                 xml_declaration=True,
-                encoding="utf-8",
+                encoding="utf-8",  # lxml seems to need utf-8 instead of utf_8
             )
         except et.XMLSyntaxError as err:
             LOG.error("Validation failed: %s", str(err))
