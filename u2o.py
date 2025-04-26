@@ -73,7 +73,7 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=consider-using-f-string
 
 import re
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace as argsNamespace
 from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
@@ -81,16 +81,12 @@ from functools import partial, reduce
 from gc import disable as gcdisable
 from glob import glob
 from itertools import chain
-from logging import DEBUG, INFO, WARNING, basicConfig, getLogger
+from logging import DEBUG, INFO, WARNING, basicConfig, getLogger, Logger
 from os import getenv
 from os.path import isfile
 from sys import exit as sysexit
 from tempfile import NamedTemporaryFile
-from typing import Any
 from unicodedata import normalize
-
-et: Any
-_: Any
 
 # try to import lxml so that we can validate
 # our output against the OSIS schema.
@@ -99,7 +95,6 @@ try:
 
     HAVELXML = True
 except ImportError:
-    et = None
     HAVELXML = False
 
 # disable garbage collector as it's not needed for this converter
@@ -270,7 +265,7 @@ CANONICALORDER = (
 # get list of book orders available from external files in the current
 # working directory.  Each order file has the following naming pattern:
 #    order-SOMEORDER.txt
-BOOKORDERS = tuple(
+BOOKORDERS: tuple[str, ...] = tuple(
     chain(
         ["canonical"],
         sorted(
@@ -966,11 +961,11 @@ DEFAULTATTRIBUTES = {
 
 # create a function to squeeze all regular spaces, carriage returns,
 # and newlines into a single space.
-SQUEEZE = partial(re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL)
+SQUEEZE: partial[str] = partial(re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
-SPECIALTEXTRE = re.compile(
+SPECIALTEXTRE: re.Pattern[str] = re.compile(
     r"""
         # put special text tags into a named group called 'tag'
         (?P<tag>
@@ -998,7 +993,7 @@ SPECIALTEXTRE = re.compile(
 )
 
 # match z tags that have both a start and end marker
-ZTAGSRE = re.compile(
+ZTAGSRE: re.Pattern[str] = re.compile(
     r"""
         # put z tags that have a start and end marker into named group 'tag'
         (?P<tag>
@@ -1023,7 +1018,7 @@ ZTAGSRE = re.compile(
 )
 
 # match milestone z tags
-ZTAGS2RE = re.compile(
+ZTAGS2RE: re.Pattern[str] = re.compile(
     r"""
     # put z tag content in a named group 'tag'
     (?P<tag>
@@ -1048,7 +1043,7 @@ ZTAGS2RE = re.compile(
 )
 # matches special feature tags
 # Automatically build SPECIALFEATURESRE regex string from FEATURETAGS dict.
-SPECIALFEATURESRE = re.compile(
+SPECIALFEATURESRE: re.Pattern[str] = re.compile(
     r"""
         # put the special features tags into a named group called 'tag'
         (?P<tag>
@@ -1078,7 +1073,7 @@ SPECIALFEATURESRE = re.compile(
 
 # regex used in footnote/crossref functions
 # Automatically build NOTERE regex string from NOTETAGS dict.
-NOTERE = re.compile(
+NOTERE: re.Pattern[str] = re.compile(
     r"""
         # put the footnote and cross reference markers into a named group
         # called 'tag'
@@ -1112,7 +1107,7 @@ NOTERE = re.compile(
 )
 # ---
 # Automatically build NOTEFIXRE regex string from NOTETAGS2 dict.
-NOTEFIXRE = re.compile(
+NOTEFIXRE: re.Pattern[str] = re.compile(
     r"""
         (
             # tags always start with a backslash and may have a + symbol which
@@ -1141,7 +1136,7 @@ NOTEFIXRE = re.compile(
 
 
 # regex for finding usfm tags
-USFMRE = re.compile(
+USFMRE: re.Pattern[str] = re.compile(
     r"""
     # the first character of a usfm tag is always a backslash
     \\
@@ -1173,7 +1168,7 @@ USFMRE = re.compile(
 # set of paragraph style tags built MOSTLY from other lists above...
 # this is used by reflow to reformat the input for processing
 # * chapter paragraph tags are omitted because we handle them differently
-PARFLOW = set(
+PARFLOW: set[str] = set(
     chain(
         IDTAGS.keys(),
         TITLETAGS.keys(),
@@ -1184,15 +1179,15 @@ PARFLOW = set(
 
 # poetry/prose tags... used by reflow subroutine below.
 # this is used by reflow to test if we have paragraph markup.
-PARCHECK = {_ for _ in PARTAGS if _ not in (r"\iex", r"\ie", r"\qa")}
+PARCHECK: set[str] = {_ for _ in PARTAGS if _ not in (r"\iex", r"\ie", r"\qa")}
 
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY POSTPROCESS ROUTINE
 
-OSISITEM = set(
+OSISITEM: set[str] = set(
     chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<item ")}, ["<item>"])
 )
-OSISL = set(chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}, ["<l>"]))
+OSISL: set[str] = set(chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}, ["<l>"]))
 
 # -------------------------------------------------------------------------- #
 
@@ -1365,7 +1360,7 @@ OFCQJyEEPw==
 
 # logging.basicConfig(format="%(levelname)s: %(message)s")
 basicConfig(format="%(message)s")
-LOG = getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 LOG.setLevel(WARNING)
 
 # -------------------------------------------------------------------------- #
@@ -1524,19 +1519,11 @@ def reflow(flowtext: str) -> str:
             .replace("\n\\vp", " \\vp")
         )
 
-    # fix newline issue
-    if "\ufdd4" in flowtext:
-        flowtext = flowtext.replace("\ufdd4", "\n")
-
-    # add custom end marker for cp tags for easier processing
-    if "\ufdd5" in flowtext:
-        flowtext = flowtext.replace("\ufdd5", r"\cp*")
-
-    # done
-    return flowtext
+    # fix newline issue and add custom end marker for cp tags.
+    return flowtext.replace("\ufdd4", "\n").replace("\ufdd5", r"\cp*")
 
 
-def getencoding(text: bytes) -> str | None:
+def getencoding(text: bytes) -> str:
     """Get encoding from file text."""
     lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
     return "utf_8_sig" if not lines else lines[0].partition(" ")[2].lower().strip()
@@ -1585,7 +1572,7 @@ def markintroend(lines: list[str]) -> list[str]:
     return newlines
 
 
-def parseattributes(tag: str, tagtext: str) -> tuple[str, str, Any, bool]:
+def parseattributes(tag: str, tagtext: str) -> tuple[str, str, dict[str, str], bool]:
     """Separate attributes from text in usfm."""
 
     # split attributes from text
@@ -1663,13 +1650,7 @@ def c2o_preprocess(text: str) -> str:
 
 
 def c2o_identification(text: str) -> str:
-    """
-    Process identification tags.
-
-    sts, h, h1, h2, h3, toc1, toc2, toc3, restore, usfm.
-    handling of id, ide, and rem are done elsewhere.
-
-    """
+    """Process identification tags."""
     line = text.partition(" ")
     if line[0] in IDTAGS:
         text = (
@@ -1695,38 +1676,39 @@ def c2o_titlepar(blocktext: str) -> str:
         # is there ever a reason for a \b tag to appear in a title?
         # if there is, I will have to add \b processing here.
 
-        if line[0] == r"\periph":
-            # handle usfm attributes if present
-            osis, attributetext, attributes, isvalid = {
-                True: parseattributes(r"periph", line[2]),
-                False: (line[2], None, {}, True),
-            }["|" in line[2]]
-            del isvalid  # make pylint happy
-            if attributetext is not None:
-                attributetext = f"<!-- USFM Attributes - {attributetext} -->"
-            starttag = TITLETAGS[line[0]][0]
-            endtag = TITLETAGS[line[0]][1]
-
-            # process id attribute
-            if "id" in attributes:
-                idattribute = f' n="{attributes["id"]}">'
-                starttag = starttag.replace(">", idattribute)
-
-            # finished processing periph now...
-            text = "\ufdd0<!-- {} -->{}{}{}{}\ufdd0".format(
-                line[0].replace("\\", ""),
-                starttag,
-                osis.strip(),
-                endtag,
-                attributetext,
-            )
-        else:
-            text = "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
+        if line[0] != r"\periph":
+            return "\ufdd0<!-- {} -->{}{}{}\ufdd0".format(
                 line[0].replace("\\", ""),
                 TITLETAGS[line[0]][0],
                 line[2].strip(),
                 TITLETAGS[line[0]][1],
             )
+
+        # handle usfm attributes if present
+        osis, attributetext, attributes, isvalid = {
+            True: parseattributes(r"periph", line[2]),
+            False: (line[2], None, {}, True),
+        }["|" in line[2]]
+        del isvalid  # make pylint happy
+        if attributetext is not None:
+            attributetext = f"<!-- USFM Attributes - {attributetext} -->"
+        starttag = TITLETAGS[line[0]][0]
+        endtag = TITLETAGS[line[0]][1]
+
+        # process id attribute
+        if "id" in attributes:
+            idattribute = f' n="{attributes["id"]}">'
+            starttag = starttag.replace(">", idattribute)
+
+        # finished processing periph now...
+        text = "\ufdd0<!-- {} -->{}{}{}{}\ufdd0".format(
+            line[0].replace("\\", ""),
+            starttag,
+            osis.strip(),
+            endtag,
+            attributetext,
+        )
+
         return text
 
     def paragraphs(line: list[str]) -> str:
@@ -1817,12 +1799,8 @@ def c2o_titlepar(blocktext: str) -> str:
     for _ in OTHERTAGS.items():
         blocktext = blocktext.replace(_[0], _[1])
 
-    # fix selah
-    if "<selah>" in blocktext:
-        blocktext = selah(blocktext)
-
     # return our processed text
-    return blocktext
+    return blocktext if "<selah>" not in blocktext else selah(blocktext)
 
 
 def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
@@ -1915,13 +1893,6 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
 def c2o_specialtext(text: str) -> str:
     """
     Process special text and character styles.
-
-    add, add*, bk, bk*, dc, dc*, k, k*, lit, nd, nd*, ord, ord*, pn, pn*,
-    qt, qt*, sig, sig*, sls, sls*, tl, tl*, wj, wj*
-
-    em, em*, bd, bd*, it, it*, bdit, bdit*, no, no*, sc, sc*
-
-
     * lit tags are handled in the titlepar function
 
     """
@@ -2154,6 +2125,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
         """Process fig tags."""
         text = text.replace(r"\fig ", "\n\\fig ").replace(r"\fig*", "\\fig*\n")
         tlines = text.split("\n")
+        figref = ""
         for i in enumerate(tlines):
             if tlines[i[0]].startswith(r"\fig "):
                 # old style \fig handling
@@ -2617,12 +2589,11 @@ def post_vp(lines: list[str]) -> list[str]:
     )
 
     for _ in enumerate(lines):
-        while r"\vp " in lines[_[0]]:
+        if r"\vp " in lines[_[0]]:
             tmp = vpre.search(lines[_[0]])
             if tmp is not None:
-                vpnum = tmp.group("num")
                 lines[_[0]] = vpre.sub(
-                    f'<milestone type="x-usfm-vp" n="{vpnum}" />',
+                    f'<milestone type="x-usfm-vp" n="{tmp.group("num")}" />',
                     lines[_[0]],
                     1,
                 )
@@ -3168,7 +3139,7 @@ if __name__ == "__main__":
         nargs="+",
         metavar="filename",
     )
-    ARGS = PARSER.parse_args()
+    ARGS: argsNamespace = PARSER.parse_args()
 
     if not HAVELXML:
         LOG.warning("Note:  lxml is not installed. Skipping OSIS validation.")

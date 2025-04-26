@@ -12,7 +12,7 @@ This script is public domain.
 
 import os.path
 import re
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace as argsNamespace
 from collections import Counter
 from glob import glob
 from itertools import chain
@@ -376,7 +376,7 @@ KNOWNTAGS = {
 }
 
 # regex for finding usfm tags
-USFMRE = re.compile(
+USFMRE: re.Pattern[str] = re.compile(
     r"""
     # handle usfm tags other than special spacing...
     (?:
@@ -467,6 +467,6 @@ if __name__ == "__main__":
     PARSER.add_argument(
         "file", help="name of file to process (wildcards allowed)", nargs="+"
     )
-    ARGS = PARSER.parse_args()
+    ARGS: argsNamespace = PARSER.parse_args()
 
     processtags(ARGS.file, ARGS.c)

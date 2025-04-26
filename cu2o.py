@@ -2,17 +2,15 @@
 """Program information goes here."""
 import logging
 from sys import exit as sysexit
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace as argsNamespace
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from os import path
-from typing import Any
-
 from u2o import processfiles, LOG, META, BOOKORDERS, HAVELXML
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
-
+# pylint: disable=too-many-positional-arguments
 
 def processfiles2(
     fname: str,
@@ -25,7 +23,6 @@ def processfiles2(
     outputfile: str,
 ) -> None:
     """Unsplit a single concatenated usfm file for processing."""
-    i: Any
 
     # read file
     LOG.info("Reading filename and splitting into separate files... ")
@@ -60,10 +57,10 @@ def processfiles2(
         with TemporaryDirectory() as tmpdir:
             filenames = []
             pth = Path(tmpdir)
-            for i in books.items():
-                ipth = pth / i[0]
+            for j in books.items():
+                ipth = pth / j[0]
                 with open(ipth, "w+", encoding="utf-8") as outfile:
-                    outfile.write(i[1])
+                    outfile.write(j[1])
                     filenames.append(str(ipth))
 
             processfiles(
@@ -120,7 +117,7 @@ if __name__ == "__main__":
         help="file to process",
         metavar="filename",
     )
-    ARGS = PARSER.parse_args()
+    ARGS: argsNamespace = PARSER.parse_args()
 
     # make sure we skip OSIS validation if we don't have lxml
     if not ARGS.x and not HAVELXML:
