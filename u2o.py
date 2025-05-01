@@ -73,7 +73,11 @@ This script is public domain. You may do whatever you want with it.
 # pylint: disable=consider-using-f-string
 
 import re
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace as argsNamespace
+from argparse import (
+    ArgumentDefaultsHelpFormatter,
+    ArgumentParser,
+    Namespace as argsNamespace,
+)
 from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
@@ -106,7 +110,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-04-22",  # THIS SCRIPT revision date
+    "DATE": "2025-05-01",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -961,7 +965,9 @@ DEFAULTATTRIBUTES = {
 
 # create a function to squeeze all regular spaces, carriage returns,
 # and newlines into a single space.
-SQUEEZE: partial[str] = partial(re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL)
+SQUEEZE: partial[str] = partial(
+    re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL
+)
 
 # matches special text and character styles
 # Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
@@ -1187,7 +1193,9 @@ PARCHECK: set[str] = {_ for _ in PARTAGS if _ not in (r"\iex", r"\ie", r"\qa")}
 OSISITEM: set[str] = set(
     chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<item ")}, ["<item>"])
 )
-OSISL: set[str] = set(chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}, ["<l>"]))
+OSISL: set[str] = set(
+    chain({_[0] for _ in PARTAGS.items() if _[0].startswith("<l ")}, ["<l>"])
+)
 
 # -------------------------------------------------------------------------- #
 
@@ -1806,21 +1814,21 @@ def c2o_titlepar(blocktext: str) -> str:
 def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
     """Fix linegroups in poetry, lists, etc."""
 
-    def btags(lines: list[str]) -> list[str]:
-        """Handle b tags."""
+    def b_lg_list_table_tags(lines: list[str]) -> list[str]:
+        """Handle b tags, and lg list and table tag groupings."""
+        inlg = False
+        inlist = False
+        intable = False
+
         for _ in enumerate(lines):
+            # b tags
             if "<!-- b -->" in lines[_[0]]:
                 lines[_[0]] = (
                     lines[_[0]].replace("<!-- b -->", '<lb type="x-p" />')
                     if lines[_[0]][:2] in {"<l", "<p"}
                     else lines[_[0]].replace("<!-- b -->", "")
                 )
-        return lines
-
-    def lgtags(lines: list[str]) -> list[str]:
-        """Handle lg tag groupings."""
-        inlg = False
-        for _ in enumerate(lines):
+            # linegroups
             if lines[_[0]].startswith("<l "):
                 if not inlg:
                     lines[_[0]] = f"<lg>\ufdd0{lines[_[0]]}"
@@ -1828,12 +1836,7 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
             elif inlg:
                 lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</lg>\ufdd0"
                 inlg = False
-        return lines
-
-    def listtags(lines: list[str]) -> list[str]:
-        """Handle list tag groupings."""
-        inlist = False
-        for _ in enumerate(lines):
+            # lists
             if lines[_[0]].startswith("<item "):
                 if not inlist:
                     lines[_[0]] = f"<list>\ufdd0{lines[_[0]]}"
@@ -1841,12 +1844,7 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
             elif inlist:
                 lines[_[0] - 1] = f"{lines[_[0] - 1]}\ufdd0</list>\ufdd0"
                 inlist = False
-        return lines
-
-    def tabletags(lines: list[str]) -> list[str]:
-        """Handle table tag groupings."""
-        intable = False
-        for _ in enumerate(lines):
+            # tables
             if lines[_[0]].startswith("<row"):
                 if not intable:
                     lines[_[0]] = f"\ufdd0<table>\ufdd0{lines[_[0]]}"
@@ -1856,38 +1854,23 @@ def c2o_fixgroupings(grouplines: list[str]) -> list[str]:
                 intable = False
         return lines
 
-    def introductions(lines: list[str]) -> list[str]:
-        """Encapsulate introductions in divs."""
-        return [
-            f'{_.replace("\ufde1", "")}</div>\ufdd0' if _.endswith("\ufde1") else _
-            for _ in (
-                "</div>\ufdd0" if _ == "\ufde1" else _
-                for _ in (
-                    '<div type="introduction">\ufdd0' if _ == "\ufde0" else _
-                    for _ in lines
-                )
-            )
-        ]
-
     # add breaks before verse tags
     # Process b tags,
     # add missing lg tags, list tags, and table tags.
     # Encapsulate introductions inside div tags.
     # Return results.
-    return introductions(
-        tabletags(
-            listtags(
-                lgtags(
-                    btags(
-                        [
-                            _.replace(r"\v ", "\ufdd0\\v ")
-                            for _ in chain(grouplines, [""])
-                        ]
-                    )
+    return [
+        f'{_.replace("\ufde1", "")}</div>\ufdd0' if _.endswith("\ufde1") else _
+        for _ in (
+            "</div>\ufdd0" if _ == "\ufde1" else _
+            for _ in (
+                '<div type="introduction">\ufdd0' if _ == "\ufde0" else _
+                for _ in b_lg_list_table_tags(
+                    [_.replace(r"\v ", "\ufdd0\\v ") for _ in chain(grouplines, [""])]
                 )
             )
         )
-    )
+    ]
 
 
 def c2o_specialtext(text: str) -> str:
