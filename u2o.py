@@ -110,7 +110,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-05-01",  # THIS SCRIPT revision date
+    "DATE": "2025-05-11",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1382,7 +1382,7 @@ def convertcl(text: str) -> str:
     the form that appears after each chapter marker.
 
     """
-    lines = text.split("\n")
+    lines = text.splitlines()
 
     # convert cl markers if only 1 is present.
     if len([_ for _ in lines if _.startswith(r"\cl ")]) == 1:
@@ -1429,7 +1429,7 @@ def reflow(flowtext: str) -> str:
                 f"{_}\ufdd5" if _[0:4] == r"\cp " else _
                 for _ in (
                     f"{_}\ufdd4" if _[0:4] in {r"\cl ", r"\sp ", r"\qa "} else _
-                    for _ in text.split("\n")
+                    for _ in text.splitlines()
                 )
             ]
         )
@@ -1487,7 +1487,7 @@ def reflow(flowtext: str) -> str:
                     }
                     else _
                 )
-                for _ in text.split("\n")
+                for _ in text.splitlines()
             ]
         )
 
@@ -1513,7 +1513,7 @@ def reflow(flowtext: str) -> str:
         flowtext = flowtext.replace("\\c ", "\n\\c ").replace("\\v ", "\n\\v ")
 
         # make sure all lines start with a usfm tag...
-        lines = flowtext.split("\n")
+        lines = flowtext.splitlines()
         for _ in range(len(lines) - 1, 0, -1):
             if not lines[_].startswith("\\"):
                 lines[_ - 1] = f"{lines[_ - 1]} {lines.pop(_)}"
@@ -1533,7 +1533,7 @@ def reflow(flowtext: str) -> str:
 
 def getencoding(text: bytes) -> str:
     """Get encoding from file text."""
-    lines = [_.decode("utf8") for _ in text.split(b"\n") if _.startswith(b"\\ide")]
+    lines = [_.decode("utf8") for _ in text.splitlines() if _.startswith(b"\\ide")]
     return "utf_8_sig" if not lines else lines[0].partition(" ")[2].lower().strip()
 
 
@@ -1623,7 +1623,7 @@ def parseattributes(tag: str, tagtext: str) -> tuple[str, str, dict[str, str], b
 
 def c2o_getdescription(text: str) -> tuple[str, str]:
     """Extract id, ide, and rem lines from text to use as osis description."""
-    lines = text.split("\n")
+    lines = text.splitlines()
     descriptionlines = [
         (_.partition(" "))
         for _ in lines
@@ -1746,7 +1746,7 @@ def c2o_titlepar(blocktext: str) -> str:
             .replace(r"\th", "\n\\th")
             .replace(r"\tc", "\n\\tc")
         )
-        cells = line[2].split("\n")
+        cells = line[2].splitlines()
         for i in enumerate(cells):
             tmp = list(cells[i[0]].partition(" "))
             if tmp[0] in CELLTAGS:
@@ -1773,7 +1773,7 @@ def c2o_titlepar(blocktext: str) -> str:
                 _
                 for _ in text.replace("<l", "\n<l")
                 .replace("</l>", "</l>\n")
-                .split("\n")
+                .splitlines()
                 if _ != ""
             )
         )
@@ -2107,7 +2107,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
     def figtags(text: str) -> str:
         """Process fig tags."""
         text = text.replace(r"\fig ", "\n\\fig ").replace(r"\fig*", "\\fig*\n")
-        tlines = text.split("\n")
+        tlines = text.splitlines()
         figref = ""
         for i in enumerate(tlines):
             if tlines[i[0]].startswith(r"\fig "):
@@ -2215,7 +2215,7 @@ def c2o_specialfeatures(specialtext: str) -> str:
                 text,
             )
             .replace(r"\*", "\\*\n")
-            .split("\n")
+            .splitlines()
         )
 
         qlevel = ""
@@ -2538,7 +2538,7 @@ def c2o_processwj2(lines: list[str]) -> list[str]:
             for _ in "\ufdd1".join(lines)
             .replace("\\wj ", "\n\\wj ")
             .replace("\\wj*", "\\wj*\n ")
-            .split("\n")
+            .splitlines()
         ]
     ).split("\ufdd1")
 
@@ -2788,7 +2788,7 @@ def doconvert(text: str) -> tuple[str, ...]:
         text = convertcl(text)
 
     # get book id. use TEST if none present.
-    lines = [_ for _ in text.split("\n") if _.startswith("\\id ")]
+    lines = [_ for _ in text.splitlines() if _.startswith("\\id ")]
     bookid = (
         "TEST"
         if not lines
@@ -2823,7 +2823,7 @@ def doconvert(text: str) -> tuple[str, ...]:
                             )
                         )
                     )
-                    for _ in markintroend(c2o_preprocess(reflow(newtext)).split("\n"))
+                    for _ in markintroend(c2o_preprocess(reflow(newtext)).splitlines())
                 ]
             )
         ),
@@ -2842,7 +2842,7 @@ def doconvert(text: str) -> tuple[str, ...]:
                                         post_sidebar(
                                             [
                                                 _.strip()
-                                                for _ in "\n".join(lines).split("\n")
+                                                for _ in "\n".join(lines).splitlines()
                                                 if _.strip() != ""
                                                 and _.strip() != "<!-- b -->"
                                             ]
@@ -3002,7 +3002,7 @@ def processfiles(
         with open(f"order-{sortorder}.txt", "r", encoding="utf_8") as order:
             bookorderstr = order.read()
             bookorder = [
-                _ for _ in bookorderstr.split("\n") if _ != "" and not _.startswith("#")
+                _ for _ in bookorderstr.splitlines() if _ != "" and not _.startswith("#")
             ]
         tmp, tmp2 = (
             "\n".join([books[_] for _ in bookorder if _ in books]),

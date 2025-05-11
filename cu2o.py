@@ -28,7 +28,7 @@ def processfiles2(
     LOG.info("Reading filename and splitting into separate files... ")
     with open(fname, "rb") as ifile:
         text = ifile.read()
-        textlines = text.decode("utf-8-sig").strip().split("\n")
+        textlines = text.decode("utf-8-sig").strip().splitlines()
 
         # get index of locations for \id tags
         idx = [textlines.index(_) for _ in textlines if _.startswith(r"\id ")]
