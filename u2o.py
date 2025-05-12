@@ -81,7 +81,7 @@ from argparse import (
 from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
-from functools import partial, reduce
+from functools import reduce
 from gc import disable as gcdisable
 from glob import glob
 from itertools import chain
@@ -963,41 +963,6 @@ DEFAULTATTRIBUTES = {
 
 # -------------------------------------------------------------------------- #
 
-# create a function to squeeze all regular spaces, carriage returns,
-# and newlines into a single space.
-SQUEEZE: partial[str] = partial(
-    re.sub, r"[ \t\n\r]+", " ", flags=re.U + re.M + re.DOTALL
-)
-
-# matches special text and character styles
-# Automatically build SPECIALTEXTRE regex string from SPECIALTEXT dict.
-SPECIALTEXTRE: re.Pattern[str] = re.compile(
-    r"""
-        # put special text tags into a named group called 'tag'
-        (?P<tag>
-
-            # tags always start with a backslash and may have a + symbol which
-            # indicates that it's a nested character style.
-            \\\+?
-
-            # match the tags we want to match.
-            (?:{})
-        )
-
-        # there is always at least one space separating the tag and the content
-        \s+
-
-        # put the tag content into a named group called 'osis'
-        (?P<osis>.*?)
-
-        # tag end marker
-        (?P=tag)\*
-    """.format(
-        "|".join([_.replace("\\", "") for _ in SPECIALTEXT if not _.startswith(r"\+")])
-    ),
-    re.U + re.VERBOSE,
-)
-
 # match z tags that have both a start and end marker
 ZTAGSRE: re.Pattern[str] = re.compile(
     r"""
@@ -1374,6 +1339,26 @@ LOG.setLevel(WARNING)
 # -------------------------------------------------------------------------- #
 
 
+def squeeze(text: str) -> str:
+    """
+    Squeeze whitespace characters into a single space.
+
+    Only squeezes ascii space, ascii tab, carriage return, and newline.
+    Other whitespace characters are left intact.
+
+    """
+    return " ".join(
+        [
+            _
+            for _ in text.replace("\t", " ")
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .split(" ")
+            if _ != ""
+        ]
+    )
+
+
 def convertcl(text: str) -> str:
     """
     CL tag format conversion.
@@ -1503,7 +1488,7 @@ def reflow(flowtext: str) -> str:
         reduce(
             lambda x, y: x.replace(y[0], y[1]),
             ((r"\ie ", "\\ie\n"), (r"\cp", r" \cp"), (r"\ca", r" \ca")),
-            reflowpar(SQUEEZE(endmark(flowtext.strip()))),
+            reflowpar(squeeze(endmark(flowtext.strip()))),
         )
     )
 
@@ -1646,7 +1631,7 @@ def c2o_preprocess(text: str) -> str:
             # xml special characters
             ("&", "&amp;"),
             ("<", "&lt;"),
-            (">", "%gt;"),
+            (">", "&gt;"),
             # usfm special characters
             ("~", "\u00a0"),
             (r"//", '<lb type="x-optional" />'),
@@ -1693,11 +1678,10 @@ def c2o_titlepar(blocktext: str) -> str:
             )
 
         # handle usfm attributes if present
-        osis, attributetext, attributes, isvalid = {
+        osis, attributetext, attributes, _ = {
             True: parseattributes(r"periph", line[2]),
             False: (line[2], None, {}, True),
         }["|" in line[2]]
-        del isvalid  # make pylint happy
         if attributetext is not None:
             attributetext = f"<!-- USFM Attributes - {attributetext} -->"
         starttag = TITLETAGS[line[0]][0]
@@ -1879,23 +1863,10 @@ def c2o_specialtext(text: str) -> str:
     * lit tags are handled in the titlepar function
 
     """
-
-    def simplerepl(match: re.Match[str]) -> str:
-        """Simple regex replacement helper function."""
-        tag = SPECIALTEXT[match.group("tag")]
-        return f'{tag[0]}{match.group("osis")}{tag[1]}'
-
-    text = SPECIALTEXTRE.sub(simplerepl, text, 0)
-
-    # Make sure all nested tags are processed.
-    # In order to avoid getting stuck here we abort
-    # after a maximum of 5 attempts. (5 was chosen arbitrarily)
-    for _ in range(5):
-        if "\\" in text:
-            text = SPECIALTEXTRE.sub(simplerepl, text, 0)
-        else:
-            break
-
+    for i in SPECIALTEXT.items():
+        if i[0] not in text:
+            continue
+        text = text.replace(f"{i[0]}*", i[1][1]).replace(f"{i[0]} ", i[1][0])
     return text
 
 
@@ -2034,11 +2005,10 @@ def c2o_specialfeatures(specialtext: str) -> str:
         tag = FEATURETAGS[matchtag]
         rawosis = match.group("osis")
 
-        osis, attributetext, attributes, isvalid = {
+        osis, attributetext, attributes, _ = {
             True: parseattributes(matchtag, rawosis),
             False: (rawosis, None, {}, True),
         }["|" in rawosis]
-        del isvalid  # make pylint happy
         osis2 = osis
         strong1 = ""
         strong2 = ""
@@ -2239,11 +2209,10 @@ def c2o_specialfeatures(specialtext: str) -> str:
                         if tag.endswith(r"-s"):
                             (
                                 _,
-                                attributetext,
+                                __,
                                 attributes,
-                                isvalid,
+                                ___,
                             ) = parseattributes(r"\qt-s", qttext)
-                            del isvalid, attributetext  # make pylint happy
                             newline = r"<q"
                             newline = {
                                 True: f'{newline} sID="{attributes["id"]}"',
@@ -2262,9 +2231,9 @@ def c2o_specialfeatures(specialtext: str) -> str:
                         elif tag.endswith(r"-e"):
                             (
                                 _,
-                                attributetext,
+                                __,
                                 attributes,
-                                isvalid,
+                                ___,
                             ) = parseattributes(r"\qt-e", qttext)
                             newline = r"<q"
                             newline = {
@@ -2557,29 +2526,13 @@ def post_sidebar(lines: list[str]) -> list[str]:
 
 def post_vp(lines: list[str]) -> list[str]:
     """Handle vp tags that were missed."""
-
-    # regex to match \vp tags
-    vpre = re.compile(
-        r"""
-            \\vp
-            \s+
-            (?P<num>\S+)
-            \s*
-            \\vp\*
-            \s*
-        """,
-        re.U + re.VERBOSE,
-    )
-
     for _ in enumerate(lines):
         if r"\vp " in lines[_[0]]:
-            tmp = vpre.search(lines[_[0]])
-            if tmp is not None:
-                lines[_[0]] = vpre.sub(
-                    f'<milestone type="x-usfm-vp" n="{tmp.group("num")}" />',
-                    lines[_[0]],
-                    1,
-                )
+            lines[_[0]] = (
+                lines[_[0]]
+                .replace(r"\vp*", '" />')
+                .replace(r"\vp ", '<milestone type="x-usfm-vp" n="')
+            )
     return [_ for _ in lines if _ != ""]
 
 
@@ -2895,7 +2848,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
     """Validate and reformat osis and return results."""
     # a test string allows output to still be generated
     # even when when validation fails.
-    testosis = SQUEEZE(osisdoc2.decode("utf_8"))
+    testosis = squeeze(osisdoc2.decode("utf_8"))
 
     LOG.info("Validating osis xml...")
     osisschema = decode(decode(decode(SCHEMA, "base64"), "bz2"), "utf_8")
@@ -3002,7 +2955,9 @@ def processfiles(
         with open(f"order-{sortorder}.txt", "r", encoding="utf_8") as order:
             bookorderstr = order.read()
             bookorder = [
-                _ for _ in bookorderstr.splitlines() if _ != "" and not _.startswith("#")
+                _
+                for _ in bookorderstr.splitlines()
+                if _ != "" and not _.startswith("#")
             ]
         tmp, tmp2 = (
             "\n".join([books[_] for _ in bookorder if _ in books]),
