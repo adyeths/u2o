@@ -104,13 +104,15 @@ except ImportError:
 # disable garbage collector as it's not needed for this converter
 gcdisable()
 
+WSTRANS = str.maketrans("\t\r\n", "   ")
+
 # -------------------------------------------------------------------------- #
 
 META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-05-11",  # THIS SCRIPT revision date
+    "DATE": "2025-05-12",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1347,16 +1349,7 @@ def squeeze(text: str) -> str:
     Other whitespace characters are left intact.
 
     """
-    return " ".join(
-        [
-            _
-            for _ in text.replace("\t", " ")
-            .replace("\r", " ")
-            .replace("\n", " ")
-            .split(" ")
-            if _ != ""
-        ]
-    )
+    return " ".join([_ for _ in text.translate(WSTRANS).split(" ") if _ != ""])
 
 
 def convertcl(text: str) -> str:
@@ -1518,7 +1511,7 @@ def reflow(flowtext: str) -> str:
 
 def getencoding(text: bytes) -> str:
     """Get encoding from file text."""
-    lines = [_.decode("utf8") for _ in text.splitlines() if _.startswith(b"\\ide")]
+    lines = [_.decode("utf_8") for _ in text.splitlines() if _.startswith(b"\\ide")]
     return "utf_8_sig" if not lines else lines[0].partition(" ")[2].lower().strip()
 
 
@@ -1679,7 +1672,7 @@ def c2o_titlepar(blocktext: str) -> str:
 
         # handle usfm attributes if present
         osis, attributetext, attributes, _ = {
-            True: parseattributes(r"periph", line[2]),
+            True: parseattributes(r"\periph", line[2]),
             False: (line[2], None, {}, True),
         }["|" in line[2]]
         if attributetext is not None:
