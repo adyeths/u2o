@@ -84,6 +84,7 @@ from datetime import datetime
 from functools import reduce
 from gc import disable as gcdisable
 from glob import glob
+from io import StringIO
 from itertools import chain
 from logging import DEBUG, INFO, WARNING, basicConfig, getLogger, Logger
 from os import getenv
@@ -1349,7 +1350,9 @@ def squeeze(text: str) -> str:
     Other whitespace characters are left intact.
 
     """
-    return " ".join([_ for _ in text.translate(WSTRANS).split(" ") if _ != ""])
+    with StringIO() as newtext:
+        newtext.write(text.replace("\t", " ").replace("\r", " ").replace("\n", " "))
+        return " ".join([_ for _ in newtext.getvalue().split(" ") if _ != ""])
 
 
 def convertcl(text: str) -> str:
@@ -1395,10 +1398,7 @@ def reflow(flowtext: str) -> str:
 
     def manglecheck(text: str) -> bool:
         """Check to see if we have paragraph markup."""
-        return any(
-            re.search(r"\\{}\b".format(_.lstrip(r"\\")), text, re.U + re.M + re.DOTALL)
-            for _ in PARCHECK
-        )
+        return any((_ in text) for _ in PARCHECK)
 
     def endmark(text: str) -> str:
         """Mark end of cl, sp, and qa tags."""
@@ -1618,21 +1618,19 @@ def c2o_getdescription(text: str) -> tuple[str, str]:
 def c2o_preprocess(text: str) -> str:
     """Preprocess text."""
     # preprocessing...
-    return reduce(
-        lambda x, y: x.replace(y[0], y[1]),
-        (
+    with StringIO() as newtext:
+        newtext.write(
             # xml special characters
-            ("&", "&amp;"),
-            ("<", "&lt;"),
-            (">", "&gt;"),
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
             # usfm special characters
-            ("~", "\u00a0"),
-            (r"//", '<lb type="x-optional" />'),
-            (r"\pb ", '<milestone type="pb" />'),
-            (r"\pb", '<milestone type="pb" />'),
-        ),
-        text,
-    )
+            .replace("~", "\u00a0")
+            .replace(r"//", '<lb type="x-optional" />')
+            .replace(r"\pb ", '<milestone type="pb" />')
+            .replace(r"\pb", '<milestone type="pb" />')
+        )
+        return newtext.getvalue()
 
 
 def c2o_identification(text: str) -> str:
@@ -3005,18 +3003,19 @@ def processfiles(
         LOG.warning("Unhandled USFM Tags: %s", ", ".join(sorted(usfmtagset)))
 
     # simple whitespace cleanups before writing to file...
-    osisdoc2 = (
-        osisdoc2.decode("utf_8")
-        .replace(" <note", "<note")
-        .replace(" </p>", "</p>")
-        .replace(" </item>", "</item>")
-        .replace(" </l>", "</l>")
-        .replace("</w><w", "</w> <w")
-        .replace(" </w>", "</w>")
-        .replace("</w><transChange", "</w> <transChange")
-        .replace("</transChange><w", "</transChange> <w")
-        .encode("utf_8")
-    )
+    with StringIO() as newdoc:
+        newdoc.write(
+            osisdoc2.decode("utf_8")
+            .replace(" <note", "<note")
+            .replace(" </p>", "</p>")
+            .replace(" </item>", "</item>")
+            .replace(" </l>", "</l>")
+            .replace("</w><w", "</w> <w")
+            .replace(" </w>", "</w>")
+            .replace("</w><transChange", "</w> <transChange")
+            .replace("</transChange><w", "</transChange> <w")
+        )
+        osisdoc2 = newdoc.getvalue().encode("utf_8")
 
     # write doc to file
     outfile = f"{workid}.osis" if outputfile is None else outputfile
