@@ -80,6 +80,7 @@ from argparse import (
 )
 from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import suppress
 from datetime import datetime
 from functools import reduce
 from gc import disable as gcdisable
@@ -95,12 +96,10 @@ from unicodedata import normalize
 
 # try to import lxml so that we can validate
 # our output against the OSIS schema.
-try:
+HAVELXML = False
+with suppress(ImportError):
     import lxml.etree as et  # nosec
-
     HAVELXML = True
-except ImportError:
-    HAVELXML = False
 
 # disable garbage collector as it's not needed for this converter
 gcdisable()
@@ -113,7 +112,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-05-12",  # THIS SCRIPT revision date
+    "DATE": "2025-06-03",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -2121,25 +2120,23 @@ def c2o_specialfeatures(specialtext: str) -> str:
                     "copy": ' rights="{}"',
                 }
                 for _ in ["alt", "src", "size", "loc", "copy"]:
-                    fig.append(
-                        {
-                            True: figparts[_].format(figattr[2][_]),
-                            False: "",
-                        }[_ in figattr[2]]
-                    )
-                    # caption absent in new style fig attributes
-                    fig.append("")
-                    # this is likely going to be very broken without
-                    # further processing of the references.
-                    if "ref" in figattr[2]:
-                        figref = (
-                            '<reference type="annotateRef">'
-                            + f'{figattr[2]["ref"]}</reference>\n\n'
-                        )
-                        fig.append(f' annotateRef="{figattr[2]["ref"]}"')
+                    if _ in figattr[2]:
+                        fig.append(figparts[_].format(figattr[2][_]))
                     else:
-                        figref = ""
                         fig.append("")
+                # caption absent in new style fig attributes
+                fig.append("")
+                # this is likely going to be very broken without
+                # further processing of the references.
+                if "ref" in figattr[2]:
+                    figref = (
+                        '<reference type="annotateRef">'
+                        + f'{figattr[2]["ref"]}</reference>\n\n'
+                    )
+                    fig.append(f' annotateRef="{figattr[2]["ref"]}"')
+                else:
+                    figref = ""
+                    fig.append("")
 
                 # build our osis figure tag
                 tlines[i[0]] = "".join(
@@ -2545,11 +2542,9 @@ def post_tagadjust(lines: list[str]) -> list[str]:
 def post_swap_lblg(lines: list[str]) -> list[str]:
     """Swap lb and lg tags when lg end tag follows lb."""
     for i in range(len(lines) - 1, 0, -1):
-        try:
+        with suppress(IndexError):
             if lines[i] == '<lb type="x-p" />' and lines[i + 1] == "</lg>":
                 lines[i], lines[i + 1] = (lines[i + 1], lines[i])
-        except IndexError:
-            pass
     return [_ for _ in lines if _ != ""]
 
 
@@ -2610,7 +2605,7 @@ def post_verseend(lines: list[str]) -> list[str]:
             lines[j - 1], lines[j] = (f"{tmp[0]}{lines[j]}{tmp[1]}{tmp[2]}", "")
 
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse eID")):
-        try:
+        with suppress(IndexError):
             if (
                 lines[i + 1].startswith("<verse sID")
                 and lines[i - 1].startswith("<l ")
@@ -2634,8 +2629,6 @@ def post_verseend(lines: list[str]) -> list[str]:
                 and lines[i - 3] == "</p>"
             ):
                 lines.insert(i - 3, lines.pop(i))
-        except IndexError:
-            pass
     return [_ for _ in lines if _ != ""]
 
 
@@ -2643,11 +2636,9 @@ def post_versestart(lines: list[str]) -> list[str]:
     """Adjust placement of some verse start tags...
     This is only to make sure they are properly nested inside paragraph markers!"""
     for i in (_ for _ in range(len(lines)) if lines[_].startswith("<verse sID")):
-        try:
+        with suppress(IndexError):
             if lines[i + 1].startswith("</p") and lines[i + 2].startswith("<p"):
                 lines.insert(i + 2, lines.pop(i))
-        except IndexError:
-            pass
     return [_ for _ in lines if _ != ""]
 
 
