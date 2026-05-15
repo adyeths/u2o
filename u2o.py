@@ -112,12 +112,12 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2025-06-03",  # THIS SCRIPT revision date
+    "DATE": "2026-05-15",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
 
-OSISHEADER = """<?xml version="1.0" encoding="utf-8"?>
+OSISHEADER = """<?xml version="1.0"?>
 <osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.bibletechnologies.net/2003/OSIS/namespace
@@ -1134,6 +1134,11 @@ USFMRE: re.Pattern[str] = re.compile(
     re.U + re.VERBOSE,
 )
 
+# regex to fix chapter markers... they need to be on a separate line
+CHAPFIXRE: re.Pattern[str] = re.compile(
+        r"""(\\c+\w+)\s*""",
+        re.U,
+)
 
 # -------------------------------------------------------------------------- #
 # VARIABLES USED BY REFLOW ROUTINE
@@ -1483,6 +1488,9 @@ def reflow(flowtext: str) -> str:
             reflowpar(squeeze(endmark(flowtext.strip()))),
         )
     )
+    # this is a stupid fix. But it works.
+    flowtext = flowtext.replace(r"\c ", "\n/c ")
+    flowtext = CHAPFIXRE.sub(r"\1\n", flowtext)
 
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
@@ -2860,6 +2868,8 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
             )
         except et.XMLSyntaxError as err:
             LOG.error("Validation failed: %s", str(err))
+        except et.XMLSchemaParseError:
+            LOG.error("lxml issue encountered. Validation aborted.")
     return osisdoc2
 
 
