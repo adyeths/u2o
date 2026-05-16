@@ -1136,7 +1136,7 @@ USFMRE: re.Pattern[str] = re.compile(
 
 # regex to fix chapter markers... they need to be on a separate line
 CHAPFIXRE: re.Pattern[str] = re.compile(
-        r"""(\\c+\w+)\s*""",
+        r"""(\\c +\w+)\s*""",
         re.U,
 )
 
@@ -1490,7 +1490,7 @@ def reflow(flowtext: str) -> str:
     )
     # this is a stupid fix. But it works.
     flowtext = flowtext.replace(r"\c ", "\n\\c ")
-    flowtext = CHAPFIXRE.sub(r"\1\n", flowtext)
+    flowtext = CHAPFIXRE.sub("\ufdd0\\1\ufdd0", flowtext)
 
     # process text without paragraph markup (may not work. needs testing.)
     if not mangletext:
