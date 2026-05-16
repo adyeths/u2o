@@ -112,7 +112,7 @@ META = {
     "USFM": "3.0",  # Targeted USFM version
     "OSIS": "2.1.1",  # Targeted OSIS version
     "VERSION": "0.7",  # THIS SCRIPT version
-    "DATE": "2026-05-15",  # THIS SCRIPT revision date
+    "DATE": "2026-05-16",  # THIS SCRIPT revision date
 }
 
 # -------------------------------------------------------------------------- #
@@ -1489,7 +1489,7 @@ def reflow(flowtext: str) -> str:
         )
     )
     # this is a stupid fix. But it works.
-    flowtext = flowtext.replace(r"\c ", "\n/c ")
+    flowtext = flowtext.replace(r"\c ", "\n\\c ")
     flowtext = CHAPFIXRE.sub(r"\1\n", flowtext)
 
     # process text without paragraph markup (may not work. needs testing.)
