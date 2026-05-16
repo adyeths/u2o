@@ -82,7 +82,7 @@ from codecs import decode, encode, lookup
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import suppress
 from datetime import datetime
-from functools import reduce
+from functools import reduce, partial
 from gc import disable as gcdisable
 from glob import glob
 from io import StringIO
@@ -1341,7 +1341,6 @@ OFCQJyEEPw==
 # logging.basicConfig(format="%(levelname)s: %(message)s")
 basicConfig(format="%(message)s")
 LOG: Logger = getLogger(__name__)
-LOG.setLevel(WARNING)
 
 # -------------------------------------------------------------------------- #
 
@@ -2723,8 +2722,11 @@ def post_acrostic(lines: list[str]) -> list[str]:
 # -------------------------------------------------------------------------- #
 
 
-def doconvert(text: str) -> tuple[str, ...]:
+def doconvert(text: str, log_level: int) -> tuple[str, ...]:
     """Convert our text and return our results."""
+    # set logging level
+    LOG.setLevel(log_level)
+
     # convert cl lines to form that follows each chapter marker instead of
     # form that precedes first chapter.
     if r"\cl " in text:
@@ -2882,11 +2884,20 @@ def processfiles(
     nonormalize: bool,
     workid: str,
     outputfile: str,
+    verbose: bool,
+    debug: bool,
 ) -> None:
     """Process usfm files specified on command line."""
+    loglevel = WARNING
+    if verbose:
+        loglevel = INFO
+    if debug:
+        loglevel = DEBUG
+
     books: dict[str, str] = {}
     descriptions: dict[str, str] = {}
     booklist: list[str] = []
+
 
     # get username from operating system
     username = {True: getenv("LOGNAME"), False: getenv("USERNAME")}[
@@ -2901,10 +2912,11 @@ def processfiles(
     results: list[tuple[str, ...]]
     LOG.info("Processing files...")
     with ProcessPoolExecutor() as executor:
+        logconvert = partial(doconvert, log_level=loglevel)
         results = (
-            list(executor.map(doconvert, filelist))
+            list(executor.map(logconvert, filelist))
             if not dodebug
-            else [doconvert(_) for _ in filelist]
+            else [doconvert(_, loglevel) for _ in filelist]
         )
 
     # store results
@@ -3077,10 +3089,6 @@ if __name__ == "__main__":
 
     ARGS.file = [_ for __ in ARGS.file for _ in chain(glob(__)) if isfile(_)]
 
-    if ARGS.v:
-        LOG.setLevel(INFO)
-    if ARGS.d:
-        LOG.setLevel(DEBUG)
     processfiles(
         ARGS.file,
         ARGS.e,
@@ -3090,4 +3098,6 @@ if __name__ == "__main__":
         ARGS.n,
         ARGS.workid,
         ARGS.o,
+        ARGS.v,
+        ARGS.d,
     )
