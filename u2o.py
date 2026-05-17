@@ -2854,6 +2854,7 @@ def proc_xmlvalidate(osisdoc2: bytes) -> bytes:
             f"file://{xmlxsd.name}",
         )
         xmlxsd.write(xmlschema.encode("utf_8"))
+        xmlxsd.flush()
 
         try:
             vparser = et.XMLParser(
